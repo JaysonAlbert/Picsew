@@ -1,0 +1,11 @@
+[project]
+name = "picsew"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "imagehash>=4.3.2",
+    "numpy>=2.2.6",
+    "opencv-python>=4.12.0.88",
+]
