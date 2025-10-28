@@ -105,6 +105,16 @@ def main():
 
     largest_contour = max(contours, key=cv2.contourArea)
     x, y, w, h = cv2.boundingRect(largest_contour)
+
+    # Create the outside mask from the original, full-sized scrolling window
+    outside_mask = np.ones(frames[0].shape[:2], dtype=np.uint8) * 255
+    outside_mask[y:y+h, x:x+w] = 0
+
+    # Inset the window to avoid sticky headers/footers
+    inset_pixels = int(h * 0.1)
+    y += inset_pixels
+    h -= inset_pixels * 2
+
     refined_window = (0, y, frame_width, h)
     print(f"Detected refined window: {refined_window}")
 
@@ -152,9 +162,6 @@ def main():
     # --- Filter candidate keyframes ---
     clean_keyframes = [candidate_keyframes[0]]
     for i in range(1, len(candidate_keyframes)):
-        outside_mask = np.ones(frames[0].shape[:2], dtype=np.uint8) * 255
-        outside_mask[y:y+h, x:x+w] = 0
-
         gray1 = cv2.cvtColor(candidate_keyframes[i-1], cv2.COLOR_BGR2GRAY)
         gray2 = cv2.cvtColor(candidate_keyframes[i], cv2.COLOR_BGR2GRAY)
         diff = cv2.absdiff(gray1, gray2)
