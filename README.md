@@ -1,10 +1,9 @@
 # Picsew - Automatic Scrolling Screenshot Stitcher
 
-This project is a Python application that automatically analyzes a screen recording of a scrolling window and stitches the content together to create a single, long screenshot.
+This project is a **TypeScript web application** that automatically analyzes a screen recording of a scrolling window and stitches the content together to create a single, long screenshot. It leverages browser-side computation using OpenCV.js.
 
-It produces two main outputs:
-- `dist/detected_windows.jpg`: A snapshot of the first frame showing the detected scrolling areas for debugging.
-- `dist/stitched_screenshot.jpg`: The final, stitched long screenshot.
+It produces one main output:
+- The final, stitched long screenshot, displayed directly in the browser.
 
 ## Algorithm
 
@@ -17,9 +16,7 @@ The first step is to accurately identify the vertical zone of the screen that is
 1.  **Motion Accumulation:** The algorithm processes the video frame by frame and calculates the difference between each consecutive frame. These differences are added together into a single "motion heat map."
 2.  **Contour Detection:** This heat map is then thresholded to create a binary mask that isolates the areas with the most consistent motion. The largest contour in this mask is assumed to be the scrolling content.
 3.  **Vertical Zone Identification:** The vertical bounds (`y` coordinate and `height`) of the largest contour's bounding box define the primary scrolling zone. For robustness against issues like static margins, this zone is always treated as being the **full width** of the video frame in all subsequent steps.
-4.  **Visualization:** To help with debugging, the script saves an image to `dist/detected_windows.jpg`. This image shows the first frame of the video with two rectangles drawn on it:
-    *   **Red Box:** The initial, full-width scrolling zone detected from the motion analysis.
-    *   **Green Box:** The final "inset" window (described below) that is used for stitching.
+4.  **Visualization (Debug - Removed by default):** The original Python script included a debug image showing the first frame with detected scrolling windows. This visualization is now removed by default in the TypeScript version to streamline the output.
 
 ### 2. Keyframe Selection
 
@@ -49,16 +46,31 @@ The final step is to stitch the clean keyframes together into a single, seamless
 
 This process results in a single, perfectly aligned long screenshot.
 
-## How to Run
+## How to Run the TypeScript Web Application
 
-This project uses `uv` for environment and package management, with dependencies defined in `pyproject.toml`.
+This project uses Next.js and npm for environment and package management.
 
 1.  **Install Dependencies:**
     ```bash
+    npm install
+    ```
+2.  **Run the Development Server:**
+    ```bash
+    npm run dev
+    ```
+3.  Open your browser to `http://localhost:3000`.
+4.  Upload a video file and click "Process Video".
+
+## Python Version (Legacy)
+
+The original Python script is now located in the `scripts/` directory. It uses `uv` for environment and package management, with dependencies defined in `pyproject.toml`.
+
+1.  **Install Dependencies (Python):**
+    ```bash
     uv pip install -e .
     ```
-2.  **Run the Script:**
+2.  **Run the Python Script:**
     ```bash
-    uv run python main.py /path/to/your/video.mp4
+    uv run python scripts/main.py /path/to/your/video.mp4
     ```
     If no path is provided, it will default to using `demo.MP4` in the project root.

@@ -2,37 +2,76 @@
 
 ## Project Overview
 
-This project, named "picsew", is a Python application designed to analyze video files to detect and identify moving or scrolling areas. It uses the OpenCV library to process video frames, calculate differences between them, and use image manipulation techniques like thresholding, dilation, and erosion to isolate the moving regions. The primary goal appears to be identifying a scrolling area within a screen recording, likely for applications such as creating a single panoramic screenshot from a video.
+This project, named "picsew", is primarily a **TypeScript web application** designed to analyze video files to detect and identify moving or scrolling areas. It leverages browser-side computation using the OpenCV.js library to process video frames, calculate differences between them, and use image manipulation techniques like thresholding, dilation, and erosion to isolate the moving regions. The primary goal is to identify a scrolling area within a screen recording, likely for applications such as creating a single panoramic screenshot from a video.
 
-The main logic is contained within `main.py`, which reads a `demo.MP4` video file, processes it to find the largest moving contour, and saves the results as JPG images in the `dist/` directory. The script produces two main output files:
+The main logic for the web application is contained within `src/app/picsew.ts` and `src/app/page.tsx`. The application processes a user-uploaded video file and displays the final stitched long screenshot directly in the browser.
+
+**Python Version (Legacy):**
+
+The original Python script, which provides the same core functionality, is now located in `scripts/main.py`. It reads a `demo.MP4` video file, processes it to find the largest moving contour, and saves the results as JPG images in the `dist/` directory. The script produces two main output files:
 - `dist/detected_windows.jpg`: A debug image showing the first frame with the detected original (red) and inset (green) scrolling windows.
 - `dist/stitched_screenshot.jpg`: The final, stitched long screenshot of the scrolling content.
 
-## Building and Running
+## Building and Running the TypeScript Web Application
 
-This project is a Python script and does not have a separate build process.
+This project is a Next.js application and uses npm for package management.
 
 ### Dependencies
 
-The project's dependencies are listed in the `pyproject.toml` file and include:
+The project's dependencies are listed in `package.json` and include:
+
+*   `next`
+*   `react`
+*   `react-dom`
+*   `tailwindcss`
+*   `typescript`
+*   `eslint`
+*   `postcss`
+*   `prettier`
+*   `zod` (from t3-app scaffolding, though not directly used by picsew logic)
+
+Additionally, it uses `OpenCV.js` loaded via CDN for image processing.
+
+### Running the Application
+
+To run the web application, execute the following commands from the project root directory:
+
+1.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+2.  **Run the Development Server:**
+    ```bash
+    npm run dev
+    ```
+3.  Open your browser to `http://localhost:3000`.
+4.  Upload a video file and click "Process Video".
+
+## Building and Running the Python Version (Legacy)
+
+This project's Python version is a script and does not have a separate build process. It uses `uv` for environment and package management, with dependencies defined in `pyproject.toml`.
+
+### Dependencies (Python)
+
+The Python project's dependencies are listed in the `pyproject.toml` file and include:
 
 *   `imagehash`
 *   `numpy`
 *   `opencv-python`
 
-### Running the Application
+### Running the Python Script
 
-To run the application, execute the main script from the project root directory using `uv`:
+To run the Python script, execute the following commands from the project root directory using `uv`:
 
 ```bash
-uv run python main.py
+    uv run python scripts/main.py /path/to/your/video.mp4
 ```
 
-**Prerequisites:**
+**Prerequisites (Python):**
 
 *   Ensure that a video file named `demo.MP4` exists in the project's root directory. If you want to use a different video file, you can pass its path as a command-line argument:
     ```bash
-    uv run python main.py /path/to/your/video.mp4
+    uv run python scripts/main.py /path/to/your/video.mp4
     ```
 *   The required Python packages must be installed. You can install them using `uv`:
     ```bash
@@ -41,9 +80,9 @@ uv run python main.py
 
 ## Development Conventions
 
-*   The project follows standard Python conventions.
-*   The main script is self-contained and executed directly.
-*   Output files are saved to the `dist/` directory.
+*   The TypeScript web application follows standard Next.js/React/TypeScript conventions.
+*   The Python script follows standard Python conventions.
+*   Output files for the Python script are saved to the `dist/` directory.
 
 ## Development Workflow
 
