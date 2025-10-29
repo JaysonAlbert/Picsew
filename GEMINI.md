@@ -4,7 +4,9 @@
 
 This project, named "picsew", is a Python application designed to analyze video files to detect and identify moving or scrolling areas. It uses the OpenCV library to process video frames, calculate differences between them, and use image manipulation techniques like thresholding, dilation, and erosion to isolate the moving regions. The primary goal appears to be identifying a scrolling area within a screen recording, likely for applications such as creating a single panoramic screenshot from a video.
 
-The main logic is contained within `main.py`, which reads a `demo.MP4` video file, processes it to find the largest moving contour, and saves the result as a JPG image in the `dist/` directory.
+The main logic is contained within `main.py`, which reads a `demo.MP4` video file, processes it to find the largest moving contour, and saves the results as JPG images in the `dist/` directory. The script produces two main output files:
+- `dist/detected_windows.jpg`: A debug image showing the first frame with the detected original (red) and inset (green) scrolling windows.
+- `dist/stitched_screenshot.jpg`: The final, stitched long screenshot of the scrolling content.
 
 ## Building and Running
 

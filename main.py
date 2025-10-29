@@ -105,10 +105,14 @@ def main():
 
     largest_contour = max(contours, key=cv2.contourArea)
     x, y, w, h = cv2.boundingRect(largest_contour)
+    # For visualization, show the full-width window that corresponds to the motion area
+    original_full_width_window = (0, y, frame_width, h)
 
-    # Create the outside mask from the original, full-sized scrolling window
+    # Create the outside mask from the full-width scrolling window.
+    # This prevents the filter from incorrectly discarding keyframes if the detected
+    # contour is narrower than the actual scrolling content (e.g., due to static margins).
     outside_mask = np.ones(frames[0].shape[:2], dtype=np.uint8) * 255
-    outside_mask[y:y+h, x:x+w] = 0
+    outside_mask[y:y+h, 0:frame_width] = 0
 
     # Inset the window to avoid sticky headers/footers
     inset_pixels = int(h * 0.1)
@@ -117,6 +121,16 @@ def main():
 
     refined_window = (0, y, frame_width, h)
     print(f"Detected refined window: {refined_window}")
+
+    # Plot a frame with the original and refined (inset) windows
+    frame_with_windows = frames[0].copy()
+    # Draw original full-width window (red)
+    (orig_x, orig_y, orig_w, orig_h) = original_full_width_window
+    cv2.rectangle(frame_with_windows, (orig_x, orig_y), (orig_x + orig_w, orig_y + orig_h), (0, 0, 255), 2)
+    # Draw refined/inset window (green)
+    (ref_x, ref_y, ref_w, ref_h) = refined_window
+    cv2.rectangle(frame_with_windows, (ref_x, ref_y), (ref_x + ref_w, ref_y + ref_h), (0, 255, 0), 2)
+    cv2.imwrite('dist/detected_windows.jpg', frame_with_windows)
 
     # --- Keyframe Selection ---
     candidate_keyframes = [frames[0]]
