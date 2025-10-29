@@ -4,67 +4,155 @@ import { useState, useRef } from "react";
 import { processVideo as picsewProcessVideo } from "./picsew";
 
 export default function HomePage() {
-  const [log, setLog] = useState<string[]>([]);
-  const [processing, setProcessing] = useState(false);
+  const [step, setStep] = useState("upload"); // upload, processing, result
+  const [progress, setProgress] = useState(0);
+  const [fileName, setFileName] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && videoRef.current) {
       const url = URL.createObjectURL(file);
       videoRef.current.src = url;
-      addLog(`Video '${file.name}' loaded.`);
+      setFileName(file.name);
+      setStep("processing");
     }
   };
 
-  const addLog = (message: string) => {
-    console.log(message);
-    setLog((prev) => [...prev, message]);
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
   const processVideo = async () => {
-    addLog("Starting video processing...");
-    setProcessing(true);
+    setStep("processing");
+    setProgress(0);
 
-    if (videoRef.current) {
-      await picsewProcessVideo(videoRef.current, addLog, canvasRef.current);
+    if (videoRef.current && canvasRef.current) {
+      await picsewProcessVideo(
+        videoRef.current,
+        () => {},
+        canvasRef.current,
+        (p) => setProgress(Math.round(p))
+      );
     }
 
-    setProcessing(false);
-    addLog("Video processing finished.");
+    setStep("result");
+  };
+
+  const handleDownload = () => {
+    if (canvasRef.current) {
+      const link = document.createElement("a");
+      link.download = "stitched_screenshot.png";
+      link.href = canvasRef.current.toDataURL("image/png");
+      link.click();
+    }
+  };
+
+  const handleRestart = () => {
+    setStep("upload");
+    setProgress(0);
+    setFileName("");
+    if (videoRef.current) {
+      videoRef.current.src = "";
+    }
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white">
-      <div className="container flex flex-col items-center justify-center gap-8 px-4 py-16">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          Picsew - Scrolling Screenshot Stitcher
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white p-4 transition-all duration-500 ease-in-out">
+      <div className="w-full max-w-md text-center">
+        <h1 className="text-4xl font-bold tracking-tight mb-2">
+          Picsew
         </h1>
-        
-        <div className="w-full max-w-2xl">
-          <div className="flex flex-col gap-4">
-            <input type="file" accept="video/*" onChange={handleFileChange} className="rounded-lg bg-gray-800 p-2" />
-            <button onClick={processVideo} disabled={processing} className="rounded-lg bg-blue-600 px-4 py-2 font-bold text-white hover:bg-blue-700 disabled:bg-gray-500">
-              {processing ? "Processing..." : "Process Video"}
+        <p className="text-lg text-gray-400 mb-8">
+          Stitch scrolling screenshots from a video.
+        </p>
+
+        {step === "upload" && (
+          <div className="flex flex-col items-center justify-center">
+            <input
+              type="file"
+              accept="video/*"
+              onChange={handleFileChange}
+              ref={fileInputRef}
+              className="hidden"
+            />
+            <button
+              onClick={handleUploadClick}
+              className="w-full max-w-xs rounded-full bg-blue-600 px-8 py-4 font-bold text-white text-lg hover:bg-blue-700 transition-transform duration-300 ease-in-out transform hover:scale-105"
+            >
+              Select Video
             </button>
           </div>
-        </div>
+        )}
 
-        <div className="mt-8 w-full max-w-4xl">
-          <h2 className="text-2xl font-bold">Output</h2>
-          <canvas ref={canvasRef} className="mt-4 w-full rounded-lg bg-gray-800"></canvas>
-        </div>
+        {step === "processing" && !progress && (
+            <div className="flex flex-col items-center justify-center">
+                <p className="text-gray-300 mb-4">{fileName}</p>
+                <button
+                onClick={processVideo}
+                className="w-full max-w-xs rounded-full bg-green-600 px-8 py-4 font-bold text-white text-lg hover:bg-green-700 transition-transform duration-300 ease-in-out transform hover:scale-105"
+                >
+                Process Video
+                </button>
+            </div>
+        )}
 
-        <div className="mt-8 w-full max-w-4xl">
-          <h2 className="text-2xl font-bold">Logs</h2>
-          <div className="mt-4 h-48 overflow-y-auto rounded-lg bg-gray-800 p-4 font-mono text-sm">
-            {log.map((line, index) => (
-              <p key={index}>{`> ${line}`}</p>
-            ))}
+        {step === "processing" && progress > 0 && (
+          <div className="flex flex-col items-center justify-center">
+            <div className="relative w-40 h-40">
+              <svg className="w-full h-full" viewBox="0 0 100 100">
+                <circle
+                  className="text-gray-700"
+                  strokeWidth="10"
+                  stroke="currentColor"
+                  fill="transparent"
+                  r="45"
+                  cx="50"
+                  cy="50"
+                />
+                <circle
+                  className="text-blue-600"
+                  strokeWidth="10"
+                  strokeDasharray={`${2 * Math.PI * 45}`}
+                  strokeDashoffset={`${(2 * Math.PI * 45) * (1 - progress / 100)}`}
+                  strokeLinecap="round"
+                  stroke="currentColor"
+                  fill="transparent"
+                  r="45"
+                  cx="50"
+                  cy="50"
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+              <span className="absolute inset-0 flex items-center justify-center text-3xl font-bold">
+                {progress}%
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
+        {step === "result" && (
+          <div className="flex flex-col items-center justify-center w-full">
+            <div className="flex gap-4 mb-8">
+              <button
+                onClick={handleDownload}
+                className="rounded-full bg-blue-600 px-8 py-3 font-bold text-white hover:bg-blue-700 transition-transform duration-300 ease-in-out transform hover:scale-105"
+              >
+                Download Image
+              </button>
+              <button
+                onClick={handleRestart}
+                className="rounded-full bg-gray-600 px-8 py-3 font-bold text-white hover:bg-gray-700 transition-transform duration-300 ease-in-out transform hover:scale-105"
+              >
+                Restart
+              </button>
+            </div>
+          </div>
+        )}
+
+        <canvas ref={canvasRef} className={`w-full rounded-lg bg-gray-800 my-8 ${step === 'result' ? '' : 'hidden'}`}></canvas>
         <video ref={videoRef} className="hidden" />
       </div>
     </main>

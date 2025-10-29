@@ -1,6 +1,10 @@
 const FRAME_RATE = 10; // frames per second
 
-const extractFrames = async (videoElement: HTMLVideoElement, addLog: (message: string) => void): Promise<any[]> => {
+const extractFrames = async (
+  videoElement: HTMLVideoElement,
+  addLog: (message: string) => void,
+  updateProgress: (progress: number) => void
+): Promise<any[]> => {
   addLog("Extracting frames...");
   // @ts-ignore
   const cv = window.cv;
@@ -25,8 +29,9 @@ const extractFrames = async (videoElement: HTMLVideoElement, addLog: (message: s
       currentTime += 1 / FRAME_RATE;
       if (currentTime < videoElement.duration) {
         videoElement.currentTime = currentTime;
-      }
-      else {
+        const progress = (currentTime / videoElement.duration) * 100;
+        updateProgress(progress);
+      } else {
         videoElement.removeEventListener("seeked", onSeeked);
         addLog(`Extracted ${frames.length} frames.`);
         resolve(frames);
@@ -325,33 +330,53 @@ const stitchKeyframes = (keyframes: any[], refinedWindow: any, addLog: (message:
   return stitchedImage.roi(new cv.Rect(0, 0, frameWidth, currentY));
 };
 
-export const processVideo = async (videoElement: HTMLVideoElement, addLog: (message: string) => void, outputCanvas: HTMLCanvasElement) => {
+export const processVideo = async (
+  videoElement: HTMLVideoElement,
+  addLog: (message: string) => void,
+  outputCanvas: HTMLCanvasElement,
+  updateProgress: (progress: number) => void
+) => {
   addLog("Processing video with OpenCV.js");
+  updateProgress(5);
   // @ts-ignore
   const cv = window.cv;
-  if (typeof cv === 'undefined') {
-    addLog('OpenCV.js is not ready.');
+  if (typeof cv === "undefined") {
+    addLog("OpenCV.js is not ready.");
     return;
   }
   addLog(`OpenCV.js version: ${cv.CV_8U}`);
+  updateProgress(10);
 
-  const frames = await extractFrames(videoElement, addLog);
+  const frames = await extractFrames(videoElement, addLog, (p) =>
+    updateProgress(10 + p * 0.2)
+  ); // 10-30%
   if (frames.length < 2) {
     addLog("Not enough frames to process.");
     return;
   }
+  updateProgress(30);
 
   const windowInfo = findRefinedScrollingWindow(frames, addLog);
   if (!windowInfo) {
     return;
   }
+  updateProgress(50);
 
   const { refinedWindow, originalFullWidthWindow, outsideMask } = windowInfo;
 
   const candidateKeyframes = selectKeyframes(frames, refinedWindow, addLog);
-  const cleanKeyframes = filterKeyframes(candidateKeyframes, originalFullWidthWindow, outsideMask, addLog);
+  updateProgress(70);
+
+  const cleanKeyframes = filterKeyframes(
+    candidateKeyframes,
+    originalFullWidthWindow,
+    outsideMask,
+    addLog
+  );
+  updateProgress(85);
 
   const stitchedImage = stitchKeyframes(cleanKeyframes, refinedWindow, addLog);
+  updateProgress(95);
 
   if (stitchedImage) {
     cv.imshow(outputCanvas, stitchedImage);
@@ -360,4 +385,5 @@ export const processVideo = async (videoElement: HTMLVideoElement, addLog: (mess
 
   outsideMask.delete();
   frames.forEach((frame: any) => frame.delete());
+  updateProgress(100);
 };
