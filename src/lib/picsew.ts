@@ -1,3 +1,5 @@
+import { getOpenCV, loadOpenCV } from './opencv';
+
 const FRAME_RATE = 10; // frames per second
 
 const extractFrames = async (
@@ -6,8 +8,7 @@ const extractFrames = async (
   updateProgress: (progress: number) => void
 ): Promise<any[]> => {
   addLog("Extracting frames...");
-  // @ts-expect-error OpenCV.js types are not available
-  const cv = window.cv;
+  const cv = getOpenCV();
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   const frames: any[] = [];
@@ -45,9 +46,8 @@ const extractFrames = async (
 
 const findRefinedScrollingWindow = (frames: any[], addLog: (message: string) => void) => {
   addLog("Finding refined scrolling window...");
-  // @ts-expect-error OpenCV.js types are not available
-  const cv = window.cv;
-  const motionAccumulator = new cv.Mat.zeros(frames[0].rows, frames[0].cols, cv.CV_32F);
+  const cv = getOpenCV();
+  const motionAccumulator = cv.Mat.zeros(frames[0].rows, frames[0].cols, cv.CV_32F);
 
   for (let i = 0; i < frames.length - 1; i++) {
     const gray1 = new cv.Mat();
@@ -100,12 +100,12 @@ const findRefinedScrollingWindow = (frames: any[], addLog: (message: string) => 
     }
   }
 
-  const boundingRect = cv.boundingRect(largestContour);
+  const boundingRect = cv.boundingRect(largestContour!);
   const frameWidth = frames[0].cols;
 
   const originalFullWidthWindow = { x: 0, y: boundingRect.y, width: frameWidth, height: boundingRect.height };
 
-  const outsideMask = new cv.Mat.ones(frames[0].rows, frames[0].cols, cv.CV_8U);
+  const outsideMask = cv.Mat.ones(frames[0].rows, frames[0].cols, cv.CV_8U);
   outsideMask.setTo(new cv.Scalar(255));
   const roi = new cv.Rect(0, boundingRect.y, frameWidth, boundingRect.height);
   const outsideMaskRoi = outsideMask.roi(roi);
@@ -129,8 +129,7 @@ const findRefinedScrollingWindow = (frames: any[], addLog: (message: string) => 
 
 const selectKeyframes = (frames: any[], refinedWindow: any, addLog: (message: string) => void): any[] => {
   addLog("Selecting keyframes...");
-  // @ts-expect-error OpenCV.js types are not available
-  const cv = window.cv;
+  const cv = getOpenCV();
   const { x, y, width, height } = refinedWindow;
 
   const candidateKeyframes: any[] = [frames[0]];
@@ -151,7 +150,7 @@ const selectKeyframes = (frames: any[], refinedWindow: any, addLog: (message: st
       const scrollingWindowContent = currentFrame.roi(new cv.Rect(x, y, width, height));
       const res = new cv.Mat();
       cv.matchTemplate(scrollingWindowContent, template, res, cv.TM_CCOEFF_NORMED);
-      const minMaxLoc = cv.minMaxLoc(res);
+      const minMaxLoc = cv.minMaxLoc(res, new cv.Mat());
       const maxVal = minMaxLoc.maxVal;
       const maxLoc = minMaxLoc.maxLoc;
 
@@ -191,8 +190,7 @@ const selectKeyframes = (frames: any[], refinedWindow: any, addLog: (message: st
 
 const filterKeyframes = (candidateKeyframes: any[], originalFullWidthWindow: any, outsideMask: any, addLog: (message: string) => void): any[] => {
   addLog("Filtering keyframes...");
-  // @ts-expect-error OpenCV.js types are not available
-  const cv = window.cv;
+  const cv = getOpenCV();
 
   const cleanKeyframes: any[] = [candidateKeyframes[0]];
 
@@ -242,8 +240,7 @@ const filterKeyframes = (candidateKeyframes: any[], originalFullWidthWindow: any
 
 const stitchKeyframes = (keyframes: any[], refinedWindow: any, addLog: (message: string) => void): any => {
   addLog("Stitching keyframes...");
-  // @ts-expect-error OpenCV.js types are not available
-  const cv = window.cv;
+  const cv = getOpenCV();
   const { x, y, width, height } = refinedWindow;
   const frameWidth = keyframes[0].cols;
 
@@ -265,7 +262,7 @@ const stitchKeyframes = (keyframes: any[], refinedWindow: any, addLog: (message:
 
     const res = new cv.Mat();
     cv.matchTemplate(window2, template, res, cv.TM_CCOEFF_NORMED);
-    const minMaxLoc = cv.minMaxLoc(res);
+    const minMaxLoc = cv.minMaxLoc(res, new cv.Mat());
     const maxLoc = minMaxLoc.maxLoc;
 
     const vOffset = (height - templateHeight) - maxLoc.y;
@@ -339,52 +336,55 @@ export const processVideo = async (
 ) => {
   addLog("Processing video with OpenCV.js");
   updateProgress(5);
-  // @ts-expect-error OpenCV.js types are not available
-  const cv = window.cv;
-  if (typeof cv === "undefined") {
-    addLog("OpenCV.js is not ready.");
-    return;
-  }
-  addLog(`OpenCV.js version: ${cv.CV_8U}`);
+  
+  try {
+    await loadOpenCV();
+    const cv = getOpenCV();
+    addLog(`OpenCV.js version: ${cv.CV_8U}`);
   updateProgress(10);
 
-  const frames = await extractFrames(videoElement, addLog, (p) =>
-    updateProgress(10 + p * 0.2)
-  ); // 10-30%
-  if (frames.length < 2) {
-    addLog("Not enough frames to process.");
-    return;
+    updateProgress(10);
+    const frames = await extractFrames(videoElement, addLog, (p) =>
+      updateProgress(10 + p * 0.2)
+    ); // 10-30%
+    if (frames.length < 2) {
+      addLog("Not enough frames to process.");
+      return;
+    }
+    updateProgress(30);
+
+    const windowInfo = findRefinedScrollingWindow(frames, addLog);
+    if (!windowInfo) {
+      return;
+    }
+    updateProgress(50);
+
+    const { refinedWindow, originalFullWidthWindow, outsideMask } = windowInfo;
+
+    const candidateKeyframes = selectKeyframes(frames, refinedWindow, addLog);
+    updateProgress(70);
+
+    const cleanKeyframes = filterKeyframes(
+      candidateKeyframes,
+      originalFullWidthWindow,
+      outsideMask,
+      addLog
+    );
+    updateProgress(85);
+
+    const stitchedImage = stitchKeyframes(cleanKeyframes, refinedWindow, addLog);
+    updateProgress(95);
+
+    if (stitchedImage) {
+      cv.imshow(outputCanvas, stitchedImage);
+      stitchedImage.delete();
+    }
+
+    outsideMask.delete();
+    frames.forEach((frame: any) => frame.delete());
+    updateProgress(100);
+  } catch (error) {
+    addLog(`OpenCV.js 处理错误: ${error}`);
+    console.error('OpenCV.js error:', error);
   }
-  updateProgress(30);
-
-  const windowInfo = findRefinedScrollingWindow(frames, addLog);
-  if (!windowInfo) {
-    return;
-  }
-  updateProgress(50);
-
-  const { refinedWindow, originalFullWidthWindow, outsideMask } = windowInfo;
-
-  const candidateKeyframes = selectKeyframes(frames, refinedWindow, addLog);
-  updateProgress(70);
-
-  const cleanKeyframes = filterKeyframes(
-    candidateKeyframes,
-    originalFullWidthWindow,
-    outsideMask,
-    addLog
-  );
-  updateProgress(85);
-
-  const stitchedImage = stitchKeyframes(cleanKeyframes, refinedWindow, addLog);
-  updateProgress(95);
-
-  if (stitchedImage) {
-    cv.imshow(outputCanvas, stitchedImage);
-    stitchedImage.delete();
-  }
-
-  outsideMask.delete();
-  frames.forEach((frame: any) => frame.delete());
-  updateProgress(100);
 };
