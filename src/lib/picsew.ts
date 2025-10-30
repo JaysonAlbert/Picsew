@@ -1,4 +1,4 @@
-import { getOpenCV, loadOpenCV } from './opencv';
+import { getOpenCV } from './opencv';
 
 const FRAME_RATE = 10; // frames per second
 
@@ -8,7 +8,7 @@ const extractFrames = async (
   updateProgress: (progress: number) => void
 ): Promise<any[]> => {
   addLog("Extracting frames...");
-  const cv = getOpenCV();
+  const cv = await getOpenCV() ;
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   const frames: any[] = [];
@@ -44,9 +44,9 @@ const extractFrames = async (
   });
 };
 
-const findRefinedScrollingWindow = (frames: any[], addLog: (message: string) => void) => {
+const findRefinedScrollingWindow = async (frames: any[], addLog: (message: string) => void) => {
   addLog("Finding refined scrolling window...");
-  const cv = getOpenCV();
+  const cv =await getOpenCV();
   const motionAccumulator = cv.Mat.zeros(frames[0].rows, frames[0].cols, cv.CV_32F);
 
   for (let i = 0; i < frames.length - 1; i++) {
@@ -127,9 +127,9 @@ const findRefinedScrollingWindow = (frames: any[], addLog: (message: string) => 
   return { refinedWindow, originalFullWidthWindow, outsideMask };
 };
 
-const selectKeyframes = (frames: any[], refinedWindow: any, addLog: (message: string) => void): any[] => {
+const selectKeyframes =async (frames: any[], refinedWindow: any, addLog: (message: string) => void): Promise<any[]> => {
   addLog("Selecting keyframes...");
-  const cv = getOpenCV();
+  const cv =await getOpenCV();
   const { x, y, width, height } = refinedWindow;
 
   const candidateKeyframes: any[] = [frames[0]];
@@ -188,9 +188,9 @@ const selectKeyframes = (frames: any[], refinedWindow: any, addLog: (message: st
   return candidateKeyframes;
 };
 
-const filterKeyframes = (candidateKeyframes: any[], originalFullWidthWindow: any, outsideMask: any, addLog: (message: string) => void): any[] => {
+const filterKeyframes =async (candidateKeyframes: any[], originalFullWidthWindow: any, outsideMask: any, addLog: (message: string) => void): Promise<any[]> => {
   addLog("Filtering keyframes...");
-  const cv = getOpenCV();
+  const cv =await getOpenCV();
 
   const cleanKeyframes: any[] = [candidateKeyframes[0]];
 
@@ -238,9 +238,9 @@ const filterKeyframes = (candidateKeyframes: any[], originalFullWidthWindow: any
   return cleanKeyframes;
 };
 
-const stitchKeyframes = (keyframes: any[], refinedWindow: any, addLog: (message: string) => void): any => {
+const stitchKeyframes =async (keyframes: any[], refinedWindow: any, addLog: (message: string) => void): Promise<any> => {
   addLog("Stitching keyframes...");
-  const cv = getOpenCV();
+  const cv =await getOpenCV();
   const { x, y, width, height } = refinedWindow;
   const frameWidth = keyframes[0].cols;
 
@@ -338,8 +338,7 @@ export const processVideo = async (
   updateProgress(5);
   
   try {
-    await loadOpenCV();
-    const cv = getOpenCV();
+    const cv =await getOpenCV();
     addLog(`OpenCV.js version: ${cv.CV_8U}`);
   updateProgress(10);
 
@@ -353,7 +352,7 @@ export const processVideo = async (
     }
     updateProgress(30);
 
-    const windowInfo = findRefinedScrollingWindow(frames, addLog);
+    const windowInfo =await findRefinedScrollingWindow(frames, addLog);
     if (!windowInfo) {
       return;
     }
@@ -361,10 +360,10 @@ export const processVideo = async (
 
     const { refinedWindow, originalFullWidthWindow, outsideMask } = windowInfo;
 
-    const candidateKeyframes = selectKeyframes(frames, refinedWindow, addLog);
+    const candidateKeyframes = await selectKeyframes(frames, refinedWindow, addLog);
     updateProgress(70);
 
-    const cleanKeyframes = filterKeyframes(
+    const cleanKeyframes = await filterKeyframes(
       candidateKeyframes,
       originalFullWidthWindow,
       outsideMask,
@@ -372,7 +371,7 @@ export const processVideo = async (
     );
     updateProgress(85);
 
-    const stitchedImage = stitchKeyframes(cleanKeyframes, refinedWindow, addLog);
+    const stitchedImage = await stitchKeyframes(cleanKeyframes, refinedWindow, addLog);
     updateProgress(95);
 
     if (stitchedImage) {
