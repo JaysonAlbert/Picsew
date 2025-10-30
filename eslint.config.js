@@ -1,22 +1,26 @@
 import { FlatCompat } from "@eslint/eslintrc";
+import path from "path";
+import { fileURLToPath } from "url";
 import tseslint from 'typescript-eslint';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
+    baseDirectory: __dirname,
+    resolvePluginsRelativeTo: __dirname
 });
 
-export default tseslint.config(
+const config = [
   {
-		ignores: ['.next']
+		ignores: ['.next', 'next-env.d.ts']
 	},
   ...compat.extends("next/core-web-vitals"),
+  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
   {
     files: ['**/*.ts', '**/*.tsx'],
-		extends: [
-			...tseslint.configs.recommended,
-			...tseslint.configs.recommendedTypeChecked,
-			...tseslint.configs.stylisticTypeChecked
-		],
       rules: {
     "@typescript-eslint/array-type": "off",
     "@typescript-eslint/consistent-type-definitions": "off",
@@ -55,4 +59,6 @@ export default tseslint.config(
 			}
 		}
 	}
-)
+];
+
+export default config;
