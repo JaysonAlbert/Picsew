@@ -4,6 +4,7 @@ import { VideoUpload } from './components/VideoUpload';
 import { ProcessingView } from './components/ProcessingView';
 import { PreviewView } from './components/PreviewView';
 import { processVideo as picsewProcessVideo } from './lib/picsew';
+import { preloadOpenCV, isOpenCVLoaded } from './lib/opencv';
 
 type AppStep = 'upload' | 'processing' | 'preview';
 
@@ -13,9 +14,34 @@ export default function App() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [processProgress, setProcessProgress] = useState(0);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isOpenCVReady, setIsOpenCVReady] = useState(false);
+  const [isOpenCVLoading, setIsOpenCVLoading] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // 应用启动后立即预加载OpenCV
+  useEffect(() => {
+    if (!isOpenCVReady && !isOpenCVLoading) {
+      setIsOpenCVLoading(true);
+      preloadOpenCV();
+      
+      // 检查OpenCV是否已加载完成
+      const checkOpenCVStatus = () => {
+        if (isOpenCVLoaded()) {
+          setIsOpenCVReady(true);
+          setIsOpenCVLoading(false);
+          console.log('OpenCV.js 已准备就绪');
+        } else {
+          // 如果还没加载完成，继续检查
+          setTimeout(checkOpenCVStatus, 100);
+        }
+      };
+      
+      // 延迟检查，给预加载一些时间
+      setTimeout(checkOpenCVStatus, 500);
+    }
+  }, [isOpenCVReady, isOpenCVLoading]);
 
   useEffect(() => {
     if (selectedVideo && videoRef.current) {
@@ -147,6 +173,8 @@ export default function App() {
             videoPreviewUrl={videoPreviewUrl}
             onVideoSelect={handleVideoSelect}
             onStartProcessing={handleStartProcessing}
+            isOpenCVReady={isOpenCVReady}
+            isOpenCVLoading={isOpenCVLoading}
           />
         )}
 

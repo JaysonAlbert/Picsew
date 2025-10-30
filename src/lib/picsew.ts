@@ -10,7 +10,7 @@ const extractFrames = async (
   addLog("Extracting frames...");
   const cv = await getOpenCV() ;
   const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext("2d", { willReadFrequently: true });
   const frames: any[] = [];
 
   canvas.width = videoElement.videoWidth;
