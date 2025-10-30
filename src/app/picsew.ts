@@ -6,7 +6,7 @@ const extractFrames = async (
   updateProgress: (progress: number) => void
 ): Promise<any[]> => {
   addLog("Extracting frames...");
-  // @ts-ignore
+  // @ts-expect-error OpenCV.js types are not available
   const cv = window.cv;
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -45,7 +45,7 @@ const extractFrames = async (
 
 const findRefinedScrollingWindow = (frames: any[], addLog: (message: string) => void) => {
   addLog("Finding refined scrolling window...");
-  // @ts-ignore
+  // @ts-expect-error OpenCV.js types are not available
   const cv = window.cv;
   const motionAccumulator = new cv.Mat.zeros(frames[0].rows, frames[0].cols, cv.CV_32F);
 
@@ -129,7 +129,7 @@ const findRefinedScrollingWindow = (frames: any[], addLog: (message: string) => 
 
 const selectKeyframes = (frames: any[], refinedWindow: any, addLog: (message: string) => void): any[] => {
   addLog("Selecting keyframes...");
-  // @ts-ignore
+  // @ts-expect-error OpenCV.js types are not available
   const cv = window.cv;
   const { x, y, width, height } = refinedWindow;
 
@@ -191,7 +191,7 @@ const selectKeyframes = (frames: any[], refinedWindow: any, addLog: (message: st
 
 const filterKeyframes = (candidateKeyframes: any[], originalFullWidthWindow: any, outsideMask: any, addLog: (message: string) => void): any[] => {
   addLog("Filtering keyframes...");
-  // @ts-ignore
+  // @ts-expect-error OpenCV.js types are not available
   const cv = window.cv;
 
   const cleanKeyframes: any[] = [candidateKeyframes[0]];
@@ -242,7 +242,7 @@ const filterKeyframes = (candidateKeyframes: any[], originalFullWidthWindow: any
 
 const stitchKeyframes = (keyframes: any[], refinedWindow: any, addLog: (message: string) => void): any => {
   addLog("Stitching keyframes...");
-  // @ts-ignore
+  // @ts-expect-error OpenCV.js types are not available
   const cv = window.cv;
   const { x, y, width, height } = refinedWindow;
   const frameWidth = keyframes[0].cols;
@@ -266,7 +266,6 @@ const stitchKeyframes = (keyframes: any[], refinedWindow: any, addLog: (message:
     const res = new cv.Mat();
     cv.matchTemplate(window2, template, res, cv.TM_CCOEFF_NORMED);
     const minMaxLoc = cv.minMaxLoc(res);
-    const maxVal = minMaxLoc.maxVal;
     const maxLoc = minMaxLoc.maxLoc;
 
     const vOffset = (height - templateHeight) - maxLoc.y;
@@ -300,7 +299,9 @@ const stitchKeyframes = (keyframes: any[], refinedWindow: any, addLog: (message:
   currentY += height;
 
   for (let i = 0; i < offsets.length; i++) {
-    const { v_offset, h_offset } = offsets[i];
+    const offset = offsets[i];
+    if (!offset) continue;
+    const { v_offset, h_offset } = offset;
     const keyframe = keyframes[i + 1];
     const scrollingWindow = keyframe.roi(new cv.Rect(x, y, width, height));
 
@@ -338,7 +339,7 @@ export const processVideo = async (
 ) => {
   addLog("Processing video with OpenCV.js");
   updateProgress(5);
-  // @ts-ignore
+  // @ts-expect-error OpenCV.js types are not available
   const cv = window.cv;
   if (typeof cv === "undefined") {
     addLog("OpenCV.js is not ready.");

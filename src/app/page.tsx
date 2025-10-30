@@ -32,7 +32,9 @@ export default function HomePage() {
     if (videoRef.current && canvasRef.current) {
       await picsewProcessVideo(
         videoRef.current,
-        () => {},
+        () => {
+          /* no-op */
+        },
         canvasRef.current,
         (p) => setProgress(Math.round(p))
       );
