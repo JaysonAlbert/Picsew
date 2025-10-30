@@ -29,7 +29,7 @@ export function VideoUpload({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    onVideoSelect(null as any);
+    onVideoSelect(null as unknown as File);
   };
 
   return (

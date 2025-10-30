@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Image, Download, Play, Check, Smartphone } from 'lucide-react';
+import { Upload, Image, Play, Check, Smartphone } from 'lucide-react';
 import { VideoUpload } from './components/VideoUpload';
 import { ProcessingView } from './components/ProcessingView';
 import { PreviewView } from './components/PreviewView';
