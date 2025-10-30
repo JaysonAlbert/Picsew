@@ -2,9 +2,11 @@
 
 ## Project Overview
 
-This project, named "picsew", is primarily a **TypeScript web application** designed to analyze video files to detect and identify moving or scrolling areas. It leverages browser-side computation using the OpenCV.js library to process video frames, calculate differences between them, and use image manipulation techniques like thresholding, dilation, and erosion to isolate the moving regions. The primary goal is to identify a scrolling area within a screen recording, likely for applications such as creating a single panoramic screenshot from a video.
+This project, named "picsew", is a **TypeScript web application** that automatically analyzes a screen recording of a scrolling window and stitches the content together to create a single, long screenshot. It leverages browser-side computation using OpenCV.js.
 
-The main logic for the web application is contained within `src/app/picsew.ts` and `src/app/page.tsx`. The application processes a user-uploaded video file and displays the final stitched long screenshot directly in the browser.
+The UI is built with **React**, **Next.js**, **Tailwind CSS**, and the **Shadcn/ui** component library.
+
+The main logic for the web application is contained within `src/App.tsx` (the main application component) and `src/lib/picsew.ts` (the core video processing logic). The application processes a user-uploaded video file and displays the final stitched long screenshot directly in the browser.
 
 **Python Version (Legacy):**
 
@@ -18,17 +20,7 @@ This project is a Next.js application and uses npm for package management.
 
 ### Dependencies
 
-The project's dependencies are listed in `package.json` and include:
-
-*   `next`
-*   `react`
-*   `react-dom`
-*   `tailwindcss`
-*   `typescript`
-*   `eslint`
-*   `postcss`
-*   `prettier`
-*   `zod` (from t3-app scaffolding, though not directly used by picsew logic)
+The project's dependencies are listed in `package.json`. The UI is built with **React**, **Next.js**, **Tailwind CSS**, and **Shadcn/ui**.
 
 Additionally, it uses `OpenCV.js` loaded via CDN for image processing.
 

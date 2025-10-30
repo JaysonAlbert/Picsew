@@ -5,6 +5,15 @@ This project is a **TypeScript web application** that automatically analyzes a s
 It produces one main output:
 - The final, stitched long screenshot, displayed directly in the browser.
 
+## Tech Stack
+
+The user interface is built with modern web technologies:
+
+- **Framework**: [React](https://react.dev/) and [Next.js](https://nextjs.org/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **UI Components**: [Shadcn/ui](https://ui.shadcn.com/)
+
 ## Algorithm
 
 The process for creating the long screenshot is as follows:
@@ -48,7 +57,7 @@ This process results in a single, perfectly aligned long screenshot.
 
 ## How to Run the TypeScript Web Application
 
-This project uses Next.js and npm for environment and package management.
+This project uses Next.js and npm for environment and package management. The UI is built with **Shadcn/ui**.
 
 1.  **Install Dependencies:**
     ```bash
