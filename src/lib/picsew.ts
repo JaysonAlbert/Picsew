@@ -1,135 +1,145 @@
 import { getOpenCV } from "./opencv";
 
-const FRAME_RATE = 10; // frames per second
+const FRAME_RATE = 6; // frames per second
+
+/**
+ * Helper function to seek the video to a specific time and wait for
+ * the 'seeked' event to ensure the frame is ready.
+ */
+const seekTo = (video: HTMLVideoElement, time: number): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    // Set a timeout in case 'seeked' never fires
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`Video seek to ${time}s timed out.`));
+    }, 5000); // 5-second timeout per seek
+
+    const onSeeked = () => {
+      clearTimeout(timeoutId);
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("error", onError);
+      resolve();
+    };
+
+    const onError = (e: Event) => {
+      clearTimeout(timeoutId);
+      video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("error", onError);
+      reject(new Error(`Failed to seek video. Error: ${e.type}`));
+    };
+
+    // Add event listeners *before* setting currentTime
+    video.addEventListener("seeked", onSeeked, { once: true });
+    video.addEventListener("error", onError, { once: true });
+
+    video.currentTime = time;
+  });
+};
 
 const extractFrames = async (
   videoElement: HTMLVideoElement,
   addLog: (message: string) => void,
   updateProgress: (progress: number) => void,
 ): Promise<{ fullRes: any[]; lowResGray: any[] }> => {
-  addLog("Extracting frames...");
+  addLog("Extracting frames using seek method...");
   const cv = await getOpenCV();
   const fullResFrames: any[] = [];
   const lowResGrayFrames: any[] = [];
 
-  return new Promise((resolve, reject) => {
-    (async () => {
-      try {
-        // 创建离屏画布用于转换帧数据
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d", { willReadFrequently: true });
-        if (!context) {
-          throw new Error("Could not get 2D context");
-        }
+  try {
+    // Ensure video metadata is loaded before we do anything
+    if (videoElement.readyState < HTMLMediaElement.HAVE_METADATA) {
+      addLog("Waiting for video metadata...");
+      await new Promise<void>((resolve, reject) => {
+        videoElement.addEventListener("loadedmetadata", () => resolve(), {
+          once: true,
+        });
+        videoElement.addEventListener(
+          "error",
+          () => reject(new Error("Failed to load video metadata")),
+          { once: true },
+        );
+      });
+      addLog("Metadata loaded.");
+    }
 
-        canvas.width = videoElement.videoWidth;
-        canvas.height = videoElement.videoHeight;
+    // Create the off-screen canvas
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    if (!context) {
+      throw new Error("Could not get 2D context");
+    }
 
-        let frameCount = 0;
-        const targetFrameCount = Math.floor(videoElement.duration * FRAME_RATE);
-        let lastFrameTime = 0;
-        const frameInterval = 1000 / FRAME_RATE; // 毫秒
-        let isProcessing = true;
+    // Set canvas dimensions *after* metadata is loaded
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
 
-        const processFrame = (_now: number, _metadata: any) => {
-          try {
-            if (!isProcessing) return;
+    // We must mute and pause the video, as we are controlling it manually
+    videoElement.muted = true;
+    videoElement.pause();
 
-            const currentTime = performance.now();
+    const frameInterval = 1 / FRAME_RATE; // Time in seconds
+    const targetFrameCount = Math.floor(videoElement.duration * FRAME_RATE);
+    addLog(`Targeting ${targetFrameCount} frames...`);
 
-            // 控制帧率，避免处理过多帧
-            if (currentTime - lastFrameTime >= frameInterval) {
-              // 使用更高效的 drawImage，但通过 requestVideoFrameCallback 避免阻塞
-              context.drawImage(
-                videoElement,
-                0,
-                0,
-                canvas.width,
-                canvas.height,
-              );
-              const imageData = context.getImageData(
-                0,
-                0,
-                canvas.width,
-                canvas.height,
-              );
-              const fullResFrame = cv.matFromImageData(imageData);
-              fullResFrames.push(fullResFrame);
+    for (let i = 0; i < targetFrameCount; i++) {
+      const currentTime = i * frameInterval;
 
-              // 创建低分辨率灰度图
-              const lowResFrame = new cv.Mat();
-              const scaleFactor = 0.5;
-              cv.resize(
-                fullResFrame,
-                lowResFrame,
-                new cv.Size(0, 0),
-                scaleFactor,
-                scaleFactor,
-                cv.INTER_AREA,
-              );
+      // Seek to the target time and wait for the frame to be ready
+      await seekTo(videoElement, currentTime);
 
-              const grayFrame = new cv.Mat();
-              cv.cvtColor(lowResFrame, grayFrame, cv.COLOR_RGBA2GRAY);
-              lowResGrayFrames.push(grayFrame);
+      // Now that the 'seeked' event has fired, the frame is ready.
+      // Draw it to the canvas.
+      context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
 
-              lowResFrame.delete();
+      // --- Same OpenCV processing as before ---
+      const fullResFrame = cv.matFromImageData(imageData);
+      fullResFrames.push(fullResFrame);
 
-              frameCount++;
-              lastFrameTime = currentTime;
+      // Create low-resolution grayscale image
+      const lowResFrame = new cv.Mat();
+      const scaleFactor = 0.5;
+      cv.resize(
+        fullResFrame,
+        lowResFrame,
+        new cv.Size(0, 0),
+        scaleFactor,
+        scaleFactor,
+        cv.INTER_AREA,
+      );
 
-              // 更新进度
-              const progress = (frameCount / targetFrameCount) * 100;
-              updateProgress(Math.min(progress, 100));
-            }
+      const grayFrame = new cv.Mat();
+      cv.cvtColor(lowResFrame, grayFrame, cv.COLOR_RGBA2GRAY);
+      lowResGrayFrames.push(grayFrame);
 
-            // 检查是否完成
-            if (
-              frameCount >= targetFrameCount ||
-              videoElement.ended ||
-              videoElement.currentTime >= videoElement.duration - 0.1
-            ) {
-              isProcessing = false;
-              addLog(`Extracted ${fullResFrames.length} frames.`);
-              resolve({ fullRes: fullResFrames, lowResGray: lowResGrayFrames });
-              return;
-            }
+      lowResFrame.delete();
+      // --- End of OpenCV processing ---
 
-            // 继续处理下一帧
-            videoElement.requestVideoFrameCallback(processFrame);
-          } catch (error) {
-            isProcessing = false;
-            reject(error);
-          }
-        };
+      // Update progress
+      const progress = ((i + 1) / targetFrameCount) * 100;
+      updateProgress(Math.min(progress, 100));
+    }
 
-        // 确保视频已加载元数据
-        if (videoElement.readyState < HTMLMediaElement.HAVE_METADATA) {
-          videoElement.addEventListener("loadedmetadata", () => {
-            videoElement.requestVideoFrameCallback(processFrame);
-            videoElement.play().catch(reject);
-          });
-        } else {
-          videoElement.requestVideoFrameCallback(processFrame);
-          videoElement.play().catch(reject);
-        }
+    addLog(`Successfully extracted ${fullResFrames.length} frames.`);
+    return { fullRes: fullResFrames, lowResGray: lowResGrayFrames };
+  } catch (error: any) {
+    let errorMessage = "Unknown error";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    } else if (error.msg) {
+      // OpenCV.js errors sometimes use 'msg'
+      errorMessage = error.msg;
+    } else {
+      errorMessage = String(error);
+    }
 
-        // 设置超时保护
-        setTimeout(
-          () => {
-            if (isProcessing) {
-              addLog("Frame extraction timeout");
-              isProcessing = false;
-              reject(new Error("Frame extraction timeout"));
-            }
-          },
-          Math.max(videoElement.duration * 1000 * 2, 30000),
-        ); // 2倍视频时长或30秒
-      } catch (error) {
-        addLog(`Frame extraction failed: ${error}`);
-        reject(error);
-      }
-    })();
-  });
+    addLog(`Frame extraction failed: ${errorMessage}`);
+    console.error("Frame extraction error:", error);
+    // Return empty arrays to prevent downstream errors
+    return { fullRes: [], lowResGray: [] };
+  }
 };
 
 const findRefinedScrollingWindow = async (
