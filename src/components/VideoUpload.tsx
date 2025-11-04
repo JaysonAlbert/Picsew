@@ -8,8 +8,6 @@ interface VideoUploadProps {
   videoPreviewUrl: string | null;
   onVideoSelect: (file: File) => void;
   onStartProcessing: () => void;
-  isOpenCVReady: boolean;
-  isOpenCVLoading: boolean;
 }
 
 export function VideoUpload({

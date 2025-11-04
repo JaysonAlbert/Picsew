@@ -6,57 +6,129 @@ const extractFrames = async (
   videoElement: HTMLVideoElement,
   addLog: (message: string) => void,
   updateProgress: (progress: number) => void
-): Promise<any[]> => {
+): Promise<{ fullRes: any[]; lowResGray: any[] }> => {
   addLog("Extracting frames...");
-  const cv = await getOpenCV() ;
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  const frames: any[] = [];
+  const cv = await getOpenCV();
+  const fullResFrames: any[] = [];
+  const lowResGrayFrames: any[] = [];
 
-  canvas.width = videoElement.videoWidth;
-  canvas.height = videoElement.videoHeight;
-
-  let currentTime = 0;
-  videoElement.currentTime = 0;
-
-  return new Promise((resolve) => {
-    const onSeeked = async () => {
-      if (context) {
-        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        frames.push(cv.matFromImageData(imageData));
+  return new Promise(async (resolve, reject) => {
+    try {
+      // 创建离屏画布用于转换帧数据
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        throw new Error("Could not get 2D context");
       }
 
-      currentTime += 1 / FRAME_RATE;
-      if (currentTime < videoElement.duration) {
-        videoElement.currentTime = currentTime;
-        const progress = (currentTime / videoElement.duration) * 100;
-        updateProgress(progress);
+      canvas.width = videoElement.videoWidth;
+      canvas.height = videoElement.videoHeight;
+
+      let frameCount = 0;
+      const targetFrameCount = Math.floor(videoElement.duration * FRAME_RATE);
+      let lastFrameTime = 0;
+      const frameInterval = 1000 / FRAME_RATE; // 毫秒
+      let isProcessing = true;
+
+      const processFrame = (now: number, metadata: any) => {
+        try {
+          if (!isProcessing) return;
+          
+          const currentTime = performance.now();
+          
+          // 控制帧率，避免处理过多帧
+          if (currentTime - lastFrameTime >= frameInterval) {
+            // 使用更高效的 drawImage，但通过 requestVideoFrameCallback 避免阻塞
+            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const fullResFrame = cv.matFromImageData(imageData);
+            fullResFrames.push(fullResFrame);
+
+            // 创建低分辨率灰度图
+            const lowResFrame = new cv.Mat();
+            const scaleFactor = 0.5;
+            cv.resize(fullResFrame, lowResFrame, new cv.Size(0, 0), scaleFactor, scaleFactor, cv.INTER_AREA);
+            
+            const grayFrame = new cv.Mat();
+            cv.cvtColor(lowResFrame, grayFrame, cv.COLOR_RGBA2GRAY);
+            lowResGrayFrames.push(grayFrame);
+            
+            lowResFrame.delete();
+            
+            frameCount++;
+            lastFrameTime = currentTime;
+
+            // 更新进度
+            const progress = (frameCount / targetFrameCount) * 100;
+            updateProgress(Math.min(progress, 100));
+          }
+
+          // 检查是否完成
+          if (frameCount >= targetFrameCount || videoElement.ended || videoElement.currentTime >= videoElement.duration - 0.1) {
+            isProcessing = false;
+            addLog(`Extracted ${fullResFrames.length} frames.`);
+            resolve({ fullRes: fullResFrames, lowResGray: lowResGrayFrames });
+            return;
+          }
+
+          // 继续处理下一帧
+          videoElement.requestVideoFrameCallback(processFrame);
+
+        } catch (error) {
+          isProcessing = false;
+          reject(error);
+        }
+      };
+
+      // 确保视频已加载元数据
+      if (videoElement.readyState < HTMLMediaElement.HAVE_METADATA) {
+        videoElement.addEventListener('loadedmetadata', () => {
+          videoElement.requestVideoFrameCallback(processFrame);
+          videoElement.play().catch(reject);
+        });
       } else {
-        videoElement.removeEventListener("seeked", onSeeked);
-        addLog(`Extracted ${frames.length} frames.`);
-        resolve(frames);
+        videoElement.requestVideoFrameCallback(processFrame);
+        videoElement.play().catch(reject);
       }
-    };
 
-    videoElement.addEventListener("seeked", onSeeked);
-    videoElement.currentTime = currentTime;
+      // 设置超时保护
+      setTimeout(() => {
+        if (isProcessing) {
+          addLog("Frame extraction timeout");
+          isProcessing = false;
+          reject(new Error("Frame extraction timeout"));
+        }
+      }, Math.max(videoElement.duration * 1000 * 2, 30000)); // 2倍视频时长或30秒
+
+    } catch (error) {
+      addLog(`Frame extraction failed: ${error}`);
+      reject(error);
+    }
   });
 };
 
-const findRefinedScrollingWindow = async (frames: any[], addLog: (message: string) => void) => {
-  addLog("Finding refined scrolling window...");
-  const cv =await getOpenCV();
-  const motionAccumulator = cv.Mat.zeros(frames[0].rows, frames[0].cols, cv.CV_32F);
 
-  for (let i = 0; i < frames.length - 1; i++) {
-    const gray1 = new cv.Mat();
-    cv.cvtColor(frames[i], gray1, cv.COLOR_RGBA2GRAY);
-    const gray2 = new cv.Mat();
-    cv.cvtColor(frames[i + 1], gray2, cv.COLOR_RGBA2GRAY);
+const findRefinedScrollingWindow = async (lowResGrayFrames: any[], addLog: (message: string) => void) => {
+  addLog("Finding refined scrolling window...");
+  const cv = await getOpenCV();
+  
+  // 检查输入帧是否有效
+  if (lowResGrayFrames.length === 0 || !lowResGrayFrames[0]) {
+    addLog("Error: No valid frames to process");
+    return null;
+  }
+
+  const motionAccumulator = cv.Mat.zeros(lowResGrayFrames[0].rows, lowResGrayFrames[0].cols, cv.CV_32F);
+
+  for (let i = 0; i < lowResGrayFrames.length - 1; i++) {
+    // 检查当前帧和下一帧是否有效
+    if (!lowResGrayFrames[i] || !lowResGrayFrames[i + 1]) {
+      addLog(`Warning: Invalid frame at index ${i}, skipping`);
+      continue;
+    }
 
     const diff = new cv.Mat();
-    cv.absdiff(gray1, gray2, diff);
+    cv.absdiff(lowResGrayFrames[i], lowResGrayFrames[i + 1], diff);
 
     const thresh = new cv.Mat();
     cv.threshold(diff, thresh, 30, 255, cv.THRESH_BINARY);
@@ -66,8 +138,6 @@ const findRefinedScrollingWindow = async (frames: any[], addLog: (message: strin
 
     cv.add(motionAccumulator, thresh32F, motionAccumulator);
 
-    gray1.delete();
-    gray2.delete();
     diff.delete();
     thresh.delete();
     thresh32F.delete();
@@ -86,6 +156,8 @@ const findRefinedScrollingWindow = async (frames: any[], addLog: (message: strin
 
   if (contours.size() === 0) {
     addLog("No consistent motion detected.");
+    motionMask.delete();
+    contours.delete();
     return null;
   }
 
@@ -101,11 +173,18 @@ const findRefinedScrollingWindow = async (frames: any[], addLog: (message: strin
   }
 
   const boundingRect = cv.boundingRect(largestContour!);
-  const frameWidth = frames[0].cols;
+  const frameWidth = lowResGrayFrames[0].cols;
 
-  const originalFullWidthWindow = { x: 0, y: boundingRect.y, width: frameWidth, height: boundingRect.height };
+  // 由于是低分辨率，需要将坐标和尺寸缩放到全分辨率
+  const scaleFactor = 2; // 因为下采样比例是0.5
+  const originalFullWidthWindow = {
+    x: 0,
+    y: boundingRect.y * scaleFactor,
+    width: frameWidth * scaleFactor,
+    height: boundingRect.height * scaleFactor
+  };
 
-  const outsideMask = cv.Mat.ones(frames[0].rows, frames[0].cols, cv.CV_8U);
+  const outsideMask = cv.Mat.ones(lowResGrayFrames[0].rows, lowResGrayFrames[0].cols, cv.CV_8U);
   outsideMask.setTo(new cv.Scalar(255));
   const roi = new cv.Rect(0, boundingRect.y, frameWidth, boundingRect.height);
   const outsideMaskRoi = outsideMask.roi(roi);
@@ -115,33 +194,58 @@ const findRefinedScrollingWindow = async (frames: any[], addLog: (message: strin
   const insetPixels = Math.floor(boundingRect.height * 0.1);
   const refinedWindow = {
     x: 0,
-    y: boundingRect.y + insetPixels,
-    width: frameWidth,
-    height: boundingRect.height - insetPixels * 2,
+    y: (boundingRect.y + insetPixels) * scaleFactor,
+    width: frameWidth * scaleFactor,
+    height: (boundingRect.height - insetPixels * 2) * scaleFactor,
   };
 
   addLog(`Detected refined window: { x: ${refinedWindow.x}, y: ${refinedWindow.y}, width: ${refinedWindow.width}, height: ${refinedWindow.height} }`);
 
   contours.delete();
+  motionMask.delete();
 
   return { refinedWindow, originalFullWidthWindow, outsideMask };
 };
 
-const selectKeyframes =async (frames: any[], refinedWindow: any, addLog: (message: string) => void): Promise<any[]> => {
+const selectKeyframes = async (lowResGrayFrames: any[], refinedWindow: any, addLog: (message: string) => void): Promise<number[]> => {
   addLog("Selecting keyframes...");
-  const cv =await getOpenCV();
-  const { x, y, width, height } = refinedWindow;
+  const cv = await getOpenCV();
+  
+  // 检查输入帧是否有效
+  if (lowResGrayFrames.length === 0) {
+    addLog("Error: No frames to process");
+    return [0];
+  }
 
-  const candidateKeyframes: any[] = [frames[0]];
+  // 将全分辨率窗口坐标转换为低分辨率坐标
+  const scaleFactor = 0.5; // 因为下采样比例是0.5
+  const x = refinedWindow.x * scaleFactor;
+  const y = refinedWindow.y * scaleFactor;
+  const width = refinedWindow.width * scaleFactor;
+  const height = refinedWindow.height * scaleFactor;
+
+  const candidateKeyframeIndices: number[] = [0];
   let lastKeyframeIndex = 0;
 
-  while (lastKeyframeIndex < frames.length - 1) {
+  while (lastKeyframeIndex < lowResGrayFrames.length - 1) {
     let accumulatedOffset = 0;
-    let lastFrameInChunk = frames[lastKeyframeIndex];
+    let lastFrameInChunk = lowResGrayFrames[lastKeyframeIndex];
+
+    // 检查当前帧是否有效
+    if (!lastFrameInChunk) {
+      addLog("Warning: Invalid frame detected, stopping keyframe selection");
+      break;
+    }
 
     let foundNextKeyframe = false;
-    for (let i = lastKeyframeIndex + 1; i < frames.length; i++) {
-      const currentFrame = frames[i];
+    for (let i = lastKeyframeIndex + 1; i < lowResGrayFrames.length; i++) {
+      const currentFrame = lowResGrayFrames[i];
+
+      // 检查当前帧是否有效
+      if (!currentFrame) {
+        addLog(`Warning: Invalid frame at index ${i}, skipping`);
+        continue;
+      }
 
       const templateHeight = Math.floor(height / 4);
       const templateYStart = y + Math.floor(height / 2) - Math.floor(templateHeight / 2);
@@ -168,7 +272,7 @@ const selectKeyframes =async (frames: any[], refinedWindow: any, addLog: (messag
       lastFrameInChunk = currentFrame;
 
       if (accumulatedOffset > height * 0.5) {
-        candidateKeyframes.push(currentFrame);
+        candidateKeyframeIndices.push(i);
         lastKeyframeIndex = i;
         foundNextKeyframe = true;
         break;
@@ -180,25 +284,57 @@ const selectKeyframes =async (frames: any[], refinedWindow: any, addLog: (messag
     }
   }
 
-  if (lastKeyframeIndex !== frames.length - 1) {
-    candidateKeyframes.push(frames[frames.length - 1]);
+  if (lastKeyframeIndex !== lowResGrayFrames.length - 1) {
+    candidateKeyframeIndices.push(lowResGrayFrames.length - 1);
   }
 
-  addLog(`Selected ${candidateKeyframes.length} candidate keyframes.`);
-  return candidateKeyframes;
+  addLog(`Selected ${candidateKeyframeIndices.length} candidate keyframes.`);
+  return candidateKeyframeIndices;
 };
 
-const filterKeyframes =async (candidateKeyframes: any[], originalFullWidthWindow: any, outsideMask: any, addLog: (message: string) => void): Promise<any[]> => {
+const filterKeyframes = async (
+  candidateKeyframeIndices: number[],
+  lowResGrayFrames: any[],
+  originalFullWidthWindow: any,
+  outsideMask: any,
+  addLog: (message: string) => void
+): Promise<number[]> => {
   addLog("Filtering keyframes...");
-  const cv =await getOpenCV();
+  const cv = await getOpenCV();
 
-  const cleanKeyframes: any[] = [candidateKeyframes[0]];
+  if (candidateKeyframeIndices.length === 0) {
+    return [];
+  }
 
-  for (let i = 1; i < candidateKeyframes.length; i++) {
-    const gray1 = new cv.Mat();
-    cv.cvtColor(candidateKeyframes[i - 1], gray1, cv.COLOR_RGBA2GRAY);
-    const gray2 = new cv.Mat();
-    cv.cvtColor(candidateKeyframes[i], gray2, cv.COLOR_RGBA2GRAY);
+  const firstIndex = candidateKeyframeIndices[0];
+  if (firstIndex === undefined) {
+    return [];
+  }
+
+  // 检查 outsideMask 是否有效
+  if (!outsideMask || outsideMask.rows === 0 || outsideMask.cols === 0) {
+    addLog("Warning: outsideMask is invalid, skipping filtering");
+    return candidateKeyframeIndices;
+  }
+
+  const cleanKeyframeIndices: number[] = [firstIndex];
+
+  for (let i = 1; i < candidateKeyframeIndices.length; i++) {
+    const prevIndex = candidateKeyframeIndices[i - 1];
+    const currIndex = candidateKeyframeIndices[i];
+    
+    if (prevIndex === undefined || currIndex === undefined) {
+      continue;
+    }
+    
+    const gray1 = lowResGrayFrames[prevIndex];
+    const gray2 = lowResGrayFrames[currIndex];
+
+    // 检查帧是否有效
+    if (!gray1 || !gray2) {
+      addLog("Warning: Invalid frame detected, skipping comparison");
+      continue;
+    }
 
     const diff = new cv.Mat();
     cv.absdiff(gray1, gray2, diff);
@@ -208,44 +344,71 @@ const filterKeyframes =async (candidateKeyframes: any[], originalFullWidthWindow
 
     const changesOutside = new cv.Mat();
 
-    addLog(`thresh type: ${thresh.type()}, size: ${thresh.size().width}x${thresh.size().height}`);
-    addLog(`outsideMask type: ${outsideMask.type()}, size: ${outsideMask.size().width}x${outsideMask.size().height}`);
-
     try {
-      cv.bitwise_and(thresh, thresh, changesOutside, outsideMask);
+      // 检查掩码和阈值图像的尺寸是否匹配
+      if (thresh.rows === outsideMask.rows && thresh.cols === outsideMask.cols) {
+        cv.bitwise_and(thresh, thresh, changesOutside, outsideMask);
+      } else {
+        addLog("Warning: Mask and threshold image size mismatch, skipping bitwise operation");
+        // 如果尺寸不匹配，直接跳过这个关键帧
+        diff.delete();
+        thresh.delete();
+        changesOutside.delete();
+        continue;
+      }
     }
     catch (e: any) {
       addLog(`Error in cv.bitwise_and: ${e.message}`);
-      throw e; // Re-throw to stop execution
+      diff.delete();
+      thresh.delete();
+      changesOutside.delete();
+      continue; // 继续处理下一个关键帧而不是停止执行
     }
 
     const totalOutsidePixels = cv.countNonZero(outsideMask);
     const changedOutsidePixels = cv.countNonZero(changesOutside);
-    const changePercentage = (changedOutsidePixels / totalOutsidePixels) * 100;
+    const changePercentage = totalOutsidePixels > 0 ? (changedOutsidePixels / totalOutsidePixels) * 100 : 0;
 
-    gray1.delete();
-    gray2.delete();
     diff.delete();
     thresh.delete();
     changesOutside.delete();
 
     if (changePercentage < 1) {
-      cleanKeyframes.push(candidateKeyframes[i]);
+      cleanKeyframeIndices.push(currIndex);
     }
   }
 
-  addLog(`Selected ${cleanKeyframes.length} final keyframes after filtering.`);
-  return cleanKeyframes;
+  addLog(`Selected ${cleanKeyframeIndices.length} final keyframes after filtering.`);
+  return cleanKeyframeIndices;
 };
 
-const stitchKeyframes =async (keyframes: any[], refinedWindow: any, addLog: (message: string) => void): Promise<any> => {
+const stitchKeyframes = async (
+  keyframeIndices: number[],
+  fullResFrames: any[],
+  refinedWindow: any,
+  addLog: (message: string) => void
+): Promise<any> => {
   addLog("Stitching keyframes...");
-  const cv =await getOpenCV();
+  const cv = await getOpenCV();
   const { x, y, width, height } = refinedWindow;
-  const frameWidth = keyframes[0].cols;
-
-  if (keyframes.length === 0) {
+  
+  // 检查输入帧是否有效
+  if (keyframeIndices.length === 0 || fullResFrames.length === 0) {
+    addLog("Error: No keyframes or frames to stitch");
     return null;
+  }
+
+  const frameWidth = fullResFrames[0].cols;
+
+  // 获取全分辨率的关键帧
+  const keyframes = keyframeIndices.map(index => fullResFrames[index]);
+
+  // 检查关键帧是否有效
+  for (const frame of keyframes) {
+    if (!frame) {
+      addLog("Error: Invalid keyframe detected");
+      return null;
+    }
   }
 
   // 1. Calculate Offsets
@@ -325,7 +488,10 @@ const stitchKeyframes =async (keyframes: any[], refinedWindow: any, addLog: (mes
   header.delete();
   footer.delete();
 
-  return stitchedImage.roi(new cv.Rect(0, 0, frameWidth, currentY));
+  const finalImage = stitchedImage.roi(new cv.Rect(0, 0, frameWidth, currentY));
+  stitchedImage.delete(); // 删除原始的大图像
+
+  return finalImage;
 };
 
 export const processVideo = async (
@@ -337,41 +503,56 @@ export const processVideo = async (
   addLog("Processing video with OpenCV.js");
   updateProgress(5);
   
+  let fullRes: any[] = [];
+  let lowResGray: any[] = [];
+  let outsideMask: any = null;
+  
   try {
-    const cv =await getOpenCV();
+    const cv = await getOpenCV();
     addLog(`OpenCV.js version: ${cv.CV_8U}`);
-  updateProgress(10);
+    updateProgress(10);
 
     updateProgress(10);
-    const frames = await extractFrames(videoElement, addLog, (p) =>
+    const frameResult = await extractFrames(videoElement, addLog, (p) =>
       updateProgress(10 + p * 0.2)
     ); // 10-30%
-    if (frames.length < 2) {
+    fullRes = frameResult.fullRes;
+    lowResGray = frameResult.lowResGray;
+    
+    if (fullRes.length < 2) {
       addLog("Not enough frames to process.");
+      // 清理已提取的帧
+      fullRes.forEach((frame: any) => frame.delete());
+      lowResGray.forEach((frame: any) => frame.delete());
       return;
     }
     updateProgress(30);
 
-    const windowInfo =await findRefinedScrollingWindow(frames, addLog);
+    const windowInfo = await findRefinedScrollingWindow(lowResGray, addLog);
     if (!windowInfo) {
+      // 清理已提取的帧
+      fullRes.forEach((frame: any) => frame.delete());
+      lowResGray.forEach((frame: any) => frame.delete());
       return;
     }
     updateProgress(50);
 
-    const { refinedWindow, originalFullWidthWindow, outsideMask } = windowInfo;
+    const { refinedWindow, originalFullWidthWindow, outsideMask: mask } = windowInfo;
+    outsideMask = mask;
 
-    const candidateKeyframes = await selectKeyframes(frames, refinedWindow, addLog);
+    const candidateKeyframeIndices = await selectKeyframes(lowResGray, refinedWindow, addLog);
     updateProgress(70);
 
-    const cleanKeyframes = await filterKeyframes(
-      candidateKeyframes,
+    const cleanKeyframeIndices = await filterKeyframes(
+      candidateKeyframeIndices,
+      lowResGray,
       originalFullWidthWindow,
       outsideMask,
       addLog
     );
     updateProgress(85);
 
-    const stitchedImage = await stitchKeyframes(cleanKeyframes, refinedWindow, addLog);
+    const stitchedImage = await stitchKeyframes(cleanKeyframeIndices, fullRes, refinedWindow, addLog);
     updateProgress(95);
 
     if (stitchedImage) {
@@ -379,11 +560,30 @@ export const processVideo = async (
       stitchedImage.delete();
     }
 
-    outsideMask.delete();
-    frames.forEach((frame: any) => frame.delete());
     updateProgress(100);
   } catch (error) {
     addLog(`OpenCV.js 处理错误: ${error}`);
     console.error('OpenCV.js error:', error);
+  } finally {
+    // 确保清理所有资源
+    try {
+      if (outsideMask) {
+        outsideMask.delete();
+      }
+      
+      fullRes.forEach((frame: any) => {
+        if (frame) {
+          frame.delete();
+        }
+      });
+      
+      lowResGray.forEach((frame: any) => {
+        if (frame) {
+          frame.delete();
+        }
+      });
+    } catch (cleanupError) {
+      console.error('Error during cleanup:', cleanupError);
+    }
   }
 };
