@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
 
 const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const demoVideoPath = path.join(repoRoot, "demo.MP4");
+const demoVideoPath = path.join(repoRoot, "demo.mp4");
 const testVideoPath = path.join(repoRoot, "test-video.mp4");
 
 /**
@@ -100,11 +100,11 @@ test.describe("Picsew", () => {
     await expect(page.getByText("Select Video")).toBeVisible();
   });
 
-  test("demo.MP4: upload through processing to preview", async ({ page }) => {
-    // Optional local asset (*.MP4 is gitignored); CI runs smoke test only.
-    test.skip(!existsSync(demoVideoPath), "demo.MP4 not found at project root");
+  test("demo.mp4: upload through processing to preview", async ({ page }) => {
+    // Optional local asset (*.mp4 may be gitignored); CI runs smoke test only.
+    test.skip(!existsSync(demoVideoPath), "demo.mp4 not found at project root");
 
-    await runVideoProcessingTest(page, demoVideoPath, "demo.MP4");
+    await runVideoProcessingTest(page, demoVideoPath, "demo.mp4");
   });
 
   test("test-video.mp4: upload through processing to preview", async ({
