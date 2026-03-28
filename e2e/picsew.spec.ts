@@ -111,10 +111,20 @@ function extractProcessingStats(consoleLogs: string[]): ProcessingStats {
     `Missing final keyframe log in: ${consoleLogs.join("\n")}`,
   ).toBeTruthy();
 
+  const lowResFrameCount = lowResFrames?.[1];
+  const candidateKeyframeCount = candidateKeyframes?.[1];
+  const finalKeyframeCount = finalKeyframes?.[1];
+
+  if (!lowResFrameCount || !candidateKeyframeCount || !finalKeyframeCount) {
+    throw new Error(
+      "Failed to extract processing statistics from console logs",
+    );
+  }
+
   return {
-    lowResFrames: parseInt(lowResFrames![1], 10),
-    candidateKeyframes: parseInt(candidateKeyframes![1], 10),
-    finalKeyframes: parseInt(finalKeyframes![1], 10),
+    lowResFrames: parseInt(lowResFrameCount, 10),
+    candidateKeyframes: parseInt(candidateKeyframeCount, 10),
+    finalKeyframes: parseInt(finalKeyframeCount, 10),
   };
 }
 
