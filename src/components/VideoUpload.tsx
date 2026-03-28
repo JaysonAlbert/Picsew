@@ -1,3 +1,4 @@
+import type { VideoSelectionSource } from "../lib/analytics-events";
 import { useRef, useState } from "react";
 import { Upload, Video, X, Play } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +8,7 @@ import { Card } from "./ui/card";
 interface VideoUploadProps {
   selectedVideo: File | null;
   videoPreviewUrl: string | null;
-  onVideoSelect: (file: File) => void;
+  onVideoSelect: (file: File | null, source?: VideoSelectionSource) => void;
   onStartProcessing: () => void;
   isOpenCVReady: boolean;
 }
@@ -39,14 +40,14 @@ export function VideoUpload({
 
     const file = e.dataTransfer.files?.[0];
     if (file && file.type.startsWith("video/")) {
-      onVideoSelect(file);
+      onVideoSelect(file, "drop");
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith("video/")) {
-      onVideoSelect(file);
+      onVideoSelect(file, "picker");
     }
   };
 
@@ -54,7 +55,7 @@ export function VideoUpload({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    onVideoSelect(null as unknown as File);
+    onVideoSelect(null);
   };
 
   return (

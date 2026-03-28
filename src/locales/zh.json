@@ -8,6 +8,67 @@
       "previewDownload": "预览下载"
     }
   },
+  "feedback": {
+    "trigger": "反馈",
+    "title": "提交反馈",
+    "description": "告诉我们哪里出了问题，或者什么功能会让 Picsew 更好用。",
+    "submit": "提交",
+    "submitting": "提交中...",
+    "cancel": "取消",
+    "contextTitle": "将附带以下诊断信息",
+    "contextMeta": "时长：{{duration}} 秒，分辨率：{{width}}x{{height}}，日志：{{logs}} 条",
+    "category": {
+      "label": "反馈类型",
+      "placeholder": "请选择反馈类型",
+      "options": {
+        "bugReport": "问题反馈",
+        "featureRequest": "功能建议",
+        "processingFailure": "处理失败"
+      }
+    },
+    "stage": {
+      "label": "发生阶段",
+      "placeholder": "问题发生在哪一步？",
+      "upload": "上传",
+      "processing": "处理",
+      "preview": "预览",
+      "export": "导出"
+    },
+    "severity": {
+      "label": "严重程度",
+      "placeholder": "问题有多严重？",
+      "blocker": "无法使用",
+      "major": "影响较大",
+      "minor": "轻微问题"
+    },
+    "useCase": {
+      "label": "使用场景",
+      "placeholder": "你通常想用 Picsew 生成什么内容？"
+    },
+    "requestedFeature": {
+      "label": "希望新增的功能",
+      "placeholder": "哪个功能最能帮到你？"
+    },
+    "errorMessage": {
+      "label": "错误详情",
+      "placeholder": "粘贴错误信息或描述失败现象。"
+    },
+    "message": {
+      "label": "补充说明",
+      "placeholder": "描述实际发生了什么、你的预期是什么，以及任何有帮助的信息。"
+    },
+    "email": {
+      "label": "邮箱（可选）",
+      "placeholder": "name@example.com"
+    },
+    "success": {
+      "remote": "感谢反馈，已成功提交。",
+      "localQueue": "反馈已保存在本地。接入后端接口后即可远程接收。"
+    },
+    "error": {
+      "generic": "提交反馈时发生错误。"
+    }
+  },
   "upload": {
     "title": "上传录屏视频",
     "dragDrop": "点击上传视频",
