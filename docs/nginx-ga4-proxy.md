@@ -43,7 +43,7 @@ location /ga/ {
 ## How it works
 
 1.  **Script Proxy**: Requests to `/ga/js` on your server are forwarded to `https://www.googletagmanager.com/gtag/js`.
-2.  **Collection Proxy**: Requests to `/ga/collect` on your server are forwarded to `https://www.google-analytics.com/g/collect`.
+2.  **Collection Proxy**: GA4 appends `/g/collect` to the configured `transport_url`, so a client-side `transport_url` of `/ga` will produce requests to `/ga/g/collect` on your server.
 3.  **Headers**: We set the `Host` header so Google's servers accept the request, and forward the client's IP so GA4 sees the user's IP (partial success depending on privacy settings).
 
 ## Client-Side Update
@@ -61,9 +61,10 @@ export const initGA = () => {
   ReactGA.initialize(GA_MEASUREMENT_ID, {
     // Point to your proxy for the script
     gtagUrl: "/ga/js",
-    // Configure the tracker to send data to your proxy
+    // Configure the tracker to send data to your proxy.
+    // GA4 appends /g/collect internally, so keep this as /ga instead of /ga/collect.
     gtagOptions: {
-      transport_url: "/ga/collect",
+      transport_url: "/ga",
     },
   });
 };
@@ -71,3 +72,25 @@ export const initGA = () => {
 
 > [!NOTE]
 > Ensure that the path `/ga/` in your client code matches the `location` block in your Nginx config.
+
+## Troubleshooting 502 Bad Gateway
+
+If the browser shows a `502 Bad Gateway` for `/ga/g/collect`, the request already reached **your** Nginx server and failed when Nginx tried to talk to Google's upstream. That usually means an upstream connectivity, DNS, or TLS handshake problem on the server side rather than a client-side path mismatch.
+
+Common checks:
+
+1.  Verify that the server itself can reach Google:
+    ```bash
+    curl -I https://www.google-analytics.com/g/collect
+    curl -I https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX
+    ```
+2.  Check Nginx error logs right after a failed request:
+    ```bash
+    tail -f /var/log/nginx/error.log
+    ```
+3.  If your server has unstable DNS or IPv6 routing, add an explicit resolver and force IPv4:
+    ```nginx
+    resolver 8.8.8.8 1.1.1.1 ipv6=off valid=300s;
+    resolver_timeout 5s;
+    ```
+4.  Keep `proxy_ssl_server_name on;` enabled so the TLS SNI matches Google's certificate.

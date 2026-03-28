@@ -20,12 +20,12 @@ describe("getFullResDecodeScale", () => {
     expect(getFullResDecodeScale(16384, 100, false)).toBeCloseTo(0.5, 5);
   });
 
-  it("uses 2048 cap on iOS", () => {
-    expect(getFullResDecodeScale(3000, 2000, true)).toBeCloseTo(2048 / 3000, 5);
+  it("uses 1536 cap on iOS", () => {
+    expect(getFullResDecodeScale(3000, 2000, true)).toBeCloseTo(1536 / 3000, 5);
   });
 
-  it("returns 1 on iOS when within 2048 cap", () => {
-    expect(getFullResDecodeScale(2048, 100, true)).toBe(1);
+  it("returns 1 on iOS when within 1536 cap", () => {
+    expect(getFullResDecodeScale(1536, 100, true)).toBe(1);
   });
 });
 
