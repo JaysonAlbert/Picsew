@@ -35,6 +35,7 @@ export default function App() {
     if (selectedVideo && videoRef.current) {
       const url = URL.createObjectURL(selectedVideo);
       videoRef.current.src = url;
+      videoRef.current.load();
       setVideoPreviewUrl(url);
 
       return () => {
@@ -235,7 +236,13 @@ export default function App() {
       </div>
 
       {/* Hidden elements for processing */}
-      <video ref={videoRef} className="hidden" muted playsInline />
+      <video
+        ref={videoRef}
+        className="hidden"
+        muted
+        playsInline
+        preload="metadata"
+      />
       <canvas ref={canvasRef} className="hidden" />
     </div>
   );

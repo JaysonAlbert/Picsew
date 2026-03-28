@@ -17,6 +17,8 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --grep-invert \"\\[video\\]\"",
+    "test:e2e:video": "PICSEW_VIDEO_E2E=1 playwright test --grep \"\\[video\\]\"",
     "test:e2e:ui": "playwright test --ui",
     "prepare": "husky"
   },
