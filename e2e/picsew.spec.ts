@@ -6,6 +6,117 @@ import { existsSync } from "node:fs";
 const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const demoVideoPath = path.join(repoRoot, "demo.mp4");
 const testVideoPath = path.join(repoRoot, "test-video.mp4");
+const runVideoE2E = process.env.PICSEW_VIDEO_E2E === "1";
+const videoE2ESkipReason =
+  "Set PICSEW_VIDEO_E2E=1 and run with a codec-capable Chrome browser.";
+const demoVideoExpectations = [
+  {
+    fileName: "demo.mp4",
+    videoPath: path.join(repoRoot, "demo.mp4"),
+    stats: { lowResFrames: 42, candidateKeyframes: 4, finalKeyframes: 4 },
+  },
+  {
+    fileName: "demo1.mp4",
+    videoPath: path.join(repoRoot, "demo1.mp4"),
+    stats: { lowResFrames: 97, candidateKeyframes: 12, finalKeyframes: 12 },
+  },
+  {
+    fileName: "demo2.mp4",
+    videoPath: path.join(repoRoot, "demo2.mp4"),
+    stats: { lowResFrames: 117, candidateKeyframes: 10, finalKeyframes: 10 },
+  },
+  {
+    fileName: "demo3.mp4",
+    videoPath: path.join(repoRoot, "demo3.mp4"),
+    stats: { lowResFrames: 64, candidateKeyframes: 8, finalKeyframes: 7 },
+  },
+  {
+    fileName: "demo4.mp4",
+    videoPath: path.join(repoRoot, "demo4.mp4"),
+    stats: { lowResFrames: 163, candidateKeyframes: 31, finalKeyframes: 31 },
+  },
+] as const;
+
+type ProcessingStats = {
+  lowResFrames: number;
+  candidateKeyframes: number;
+  finalKeyframes: number;
+};
+
+async function mockAnalytics(page: Page) {
+  await page.route("https://picsew.ibotcloud.top/**", async (route) => {
+    const url = route.request().url();
+
+    if (url.includes("/ga/js")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        body: "",
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 204,
+      contentType: "text/plain",
+      body: "",
+    });
+  });
+}
+
+async function waitForProcessingVideoMetadata(page: Page) {
+  await page.waitForFunction(() => {
+    const processingVideo = document.querySelector("video.hidden");
+
+    return (
+      processingVideo instanceof HTMLVideoElement &&
+      processingVideo.readyState >= HTMLMediaElement.HAVE_METADATA &&
+      processingVideo.videoWidth > 0 &&
+      processingVideo.videoHeight > 0
+    );
+  });
+}
+
+function extractProcessingStats(consoleLogs: string[]): ProcessingStats {
+  const lowResLog = consoleLogs.find((log) =>
+    log.includes("Successfully extracted"),
+  );
+  const candidateLog = consoleLogs.find((log) =>
+    log.includes("candidate keyframes"),
+  );
+  const finalLog = consoleLogs.find((log) =>
+    log.includes("final keyframes after filtering"),
+  );
+
+  const lowResFrames = lowResLog?.match(
+    /Successfully extracted (\d+) low-res frames\./,
+  );
+  const candidateKeyframes = candidateLog?.match(
+    /Selected (\d+) candidate keyframes\./,
+  );
+  const finalKeyframes = finalLog?.match(
+    /Selected (\d+) final keyframes after filtering\./,
+  );
+
+  expect(
+    lowResFrames?.[1],
+    `Missing low-res frame log in: ${consoleLogs.join("\n")}`,
+  ).toBeTruthy();
+  expect(
+    candidateKeyframes?.[1],
+    `Missing candidate keyframe log in: ${consoleLogs.join("\n")}`,
+  ).toBeTruthy();
+  expect(
+    finalKeyframes?.[1],
+    `Missing final keyframe log in: ${consoleLogs.join("\n")}`,
+  ).toBeTruthy();
+
+  return {
+    lowResFrames: parseInt(lowResFrames![1], 10),
+    candidateKeyframes: parseInt(candidateKeyframes![1], 10),
+    finalKeyframes: parseInt(finalKeyframes![1], 10),
+  };
+}
 
 /**
  * Helper function to run video processing test with console error detection
@@ -14,7 +125,8 @@ async function runVideoProcessingTest(
   page: Page,
   videoPath: string,
   videoName: string,
-) {
+  waitFor: "complete" | "stats" = "complete",
+): Promise<{ consoleLogs: string[]; stats: ProcessingStats }> {
   // Capture console logs and errors
   const consoleLogs: string[] = [];
   const consoleErrors: string[] = [];
@@ -34,6 +146,7 @@ async function runVideoProcessingTest(
     pageErrors.push(error.message);
   });
 
+  await mockAnalytics(page);
   await page.goto("/");
 
   // Use setInputFiles for video upload
@@ -42,19 +155,35 @@ async function runVideoProcessingTest(
     .setInputFiles(videoPath);
 
   await expect(page.getByText(videoName, { exact: true })).toBeVisible();
+  await waitForProcessingVideoMetadata(page);
 
   const startBtn = page.getByRole("button", { name: /Start Processing/i });
   await expect(startBtn).toBeEnabled({ timeout: 180_000 });
 
   await startBtn.click();
 
-  // Wait for processing to complete
-  await expect(page.getByText("Processing Complete")).toBeVisible({
-    timeout: 900_000,
-  });
-  await expect(
-    page.getByRole("button", { name: /Download Image/i }),
-  ).toBeVisible();
+  if (waitFor === "complete") {
+    await expect(page.getByText("Processing Complete")).toBeVisible({
+      timeout: 900_000,
+    });
+    await expect(
+      page.getByRole("button", { name: /Download Image/i }),
+    ).toBeVisible();
+  } else {
+    await expect
+      .poll(
+        () =>
+          consoleLogs.some((log) =>
+            log.includes("final keyframes after filtering"),
+          ),
+        {
+          timeout: 900_000,
+          message:
+            "Timed out waiting for final keyframe statistics to appear in logs",
+        },
+      )
+      .toBe(true);
+  }
 
   // Verify no console errors occurred (excluding known environment-specific issues)
   const criticalErrors = consoleErrors.filter(
@@ -77,17 +206,10 @@ async function runVideoProcessingTest(
     `Page errors detected: ${criticalPageErrors.join(", ")}`,
   ).toHaveLength(0);
 
-  // Verify at least 2 keyframes were detected (if logs available)
-  const keyframeLog = consoleLogs.find((log) =>
-    log.includes("final keyframes"),
-  );
-  if (keyframeLog) {
-    const keyframeMatch = keyframeLog.match(/(\d+) final keyframes/);
-    if (keyframeMatch && keyframeMatch[1]) {
-      const keyframeCount = parseInt(keyframeMatch[1], 10);
-      expect(keyframeCount).toBeGreaterThanOrEqual(2);
-    }
-  }
+  return {
+    consoleLogs,
+    stats: extractProcessingStats(consoleLogs),
+  };
 }
 
 test.describe("Picsew", () => {
@@ -100,16 +222,20 @@ test.describe("Picsew", () => {
     await expect(page.getByText("Select Video")).toBeVisible();
   });
 
-  test("demo.mp4: upload through processing to preview", async ({ page }) => {
+  test("[video] demo.mp4: upload through processing to preview", async ({
+    page,
+  }) => {
+    test.skip(!runVideoE2E, videoE2ESkipReason);
     // Optional local asset (*.mp4 may be gitignored); CI runs smoke test only.
     test.skip(!existsSync(demoVideoPath), "demo.mp4 not found at project root");
 
     await runVideoProcessingTest(page, demoVideoPath, "demo.mp4");
   });
 
-  test("test-video.mp4: upload through processing to preview", async ({
+  test("[video] test-video.mp4: upload through processing to preview", async ({
     page,
   }) => {
+    test.skip(!runVideoE2E, videoE2ESkipReason);
     // Optional local asset
     test.skip(
       !existsSync(testVideoPath),
@@ -118,4 +244,25 @@ test.describe("Picsew", () => {
 
     await runVideoProcessingTest(page, testVideoPath, "test-video.mp4");
   });
+
+  for (const { fileName, videoPath, stats } of demoVideoExpectations) {
+    test(`[video] ${fileName}: processing stats stay stable`, async ({
+      page,
+    }) => {
+      test.skip(!runVideoE2E, videoE2ESkipReason);
+      test.skip(
+        !existsSync(videoPath),
+        `${fileName} not found at project root`,
+      );
+
+      const result = await runVideoProcessingTest(
+        page,
+        videoPath,
+        fileName,
+        "stats",
+      );
+
+      expect(result.stats).toEqual(stats);
+    });
+  }
 });
