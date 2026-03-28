@@ -1,3 +1,8 @@
+import type {
+  AnalyticsEventName,
+  AnalyticsEventParams,
+} from "./analytics-events";
+
 const GA_MEASUREMENT_ID = "G-BBQ1PPGCCE";
 
 declare global {
@@ -38,11 +43,21 @@ export const logPageView = (path: string) => {
   }
 };
 
-export const logEvent = (category: string, action: string, label?: string) => {
+export const trackEvent = (
+  eventName: AnalyticsEventName,
+  params: AnalyticsEventParams = {},
+) => {
   if (typeof window.gtag === "function") {
-    window.gtag("event", action, {
-      event_category: category,
-      event_label: label,
+    window.gtag("event", eventName, {
+      platform: "web",
+      ...params,
     });
   }
+};
+
+export const logEvent = (category: string, action: string, label?: string) => {
+  trackEvent(action as AnalyticsEventName, {
+    event_category: category,
+    event_label: label,
+  });
 };

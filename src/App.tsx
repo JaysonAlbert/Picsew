@@ -1,15 +1,28 @@
 import { useState, useRef, useEffect } from "react";
 import { Upload, Image, Play, Check, Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { FeedbackDialog } from "./components/FeedbackDialog";
 import { VideoUpload } from "./components/VideoUpload";
 import { ProcessingView } from "./components/ProcessingView";
 import { PreviewView } from "./components/PreviewView";
 import { LanguageSwitcher } from "./components/LanguageSwitcher";
 import { processVideo as picsewProcessVideo } from "./lib/picsew";
-import { initGA, logPageView } from "./lib/analytics";
+import { initGA, logPageView, trackEvent } from "./lib/analytics";
+import {
+  ANALYTICS_EVENTS,
+  getVideoFileAnalytics,
+  getVideoMetadataAnalytics,
+  sanitizeAnalyticsErrorMessage,
+  type VideoSelectionSource,
+} from "./lib/analytics-events";
 import SEO from "./components/SEO";
 
 type AppStep = "upload" | "processing" | "preview";
+type VideoMetadata = {
+  durationSeconds?: number;
+  width?: number;
+  height?: number;
+};
 
 export default function App() {
   const { t } = useTranslation();
@@ -19,6 +32,11 @@ export default function App() {
   const [processProgress, setProcessProgress] = useState(0);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isOpenCVReady, setIsOpenCVReady] = useState(false);
+  const [videoMetadata, setVideoMetadata] = useState<VideoMetadata>({});
+  const [processingLogs, setProcessingLogs] = useState<string[]>([]);
+  const [lastProcessingError, setLastProcessingError] = useState<string | null>(
+    null,
+  );
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,13 +50,44 @@ export default function App() {
   }, [currentStep]);
 
   useEffect(() => {
+    if (currentStep === "preview" && generatedImage) {
+      trackEvent(ANALYTICS_EVENTS.previewShown);
+    }
+  }, [currentStep, generatedImage]);
+
+  useEffect(() => {
     if (selectedVideo && videoRef.current) {
       const url = URL.createObjectURL(selectedVideo);
-      videoRef.current.src = url;
-      videoRef.current.load();
+      const videoElement = videoRef.current;
+
+      const handleLoadedMetadata = () => {
+        setVideoMetadata({
+          durationSeconds: videoElement.duration,
+          width: videoElement.videoWidth,
+          height: videoElement.videoHeight,
+        });
+        trackEvent(ANALYTICS_EVENTS.uploadCompleted, {
+          ...getVideoFileAnalytics(selectedVideo),
+          ...getVideoMetadataAnalytics(
+            videoElement.duration,
+            videoElement.videoWidth,
+            videoElement.videoHeight,
+          ),
+        });
+      };
+
+      videoElement.addEventListener("loadedmetadata", handleLoadedMetadata, {
+        once: true,
+      });
+      videoElement.src = url;
+      videoElement.load();
       setVideoPreviewUrl(url);
 
       return () => {
+        videoElement.removeEventListener(
+          "loadedmetadata",
+          handleLoadedMetadata,
+        );
         URL.revokeObjectURL(url);
       };
     }
@@ -56,26 +105,73 @@ export default function App() {
     loadOpenCV();
   }, []);
 
-  const handleVideoSelect = (file: File) => {
+  const handleVideoSelect = (
+    file: File | null,
+    source: VideoSelectionSource = "picker",
+  ) => {
+    if (file) {
+      trackEvent(
+        ANALYTICS_EVENTS.uploadStarted,
+        getVideoFileAnalytics(file, source),
+      );
+    } else {
+      setVideoMetadata({});
+    }
     setSelectedVideo(file);
   };
 
   const handleStartProcessing = async (): Promise<void> => {
     setCurrentStep("processing");
     setProcessProgress(0);
+    setProcessingLogs([]);
+    setLastProcessingError(null);
 
     if (videoRef.current && canvasRef.current) {
+      const startedAt = performance.now();
+      const addProcessingLog = (message: string) => {
+        console.log(message);
+        setProcessingLogs((previous) => [...previous.slice(-199), message]);
+      };
       try {
+        trackEvent(ANALYTICS_EVENTS.processingStarted, {
+          ...(selectedVideo ? getVideoFileAnalytics(selectedVideo) : {}),
+          ...getVideoMetadataAnalytics(
+            videoRef.current.duration,
+            videoRef.current.videoWidth,
+            videoRef.current.videoHeight,
+          ),
+        });
+
         await picsewProcessVideo(
           videoRef.current,
-          console.log, // or a state-based logger
+          addProcessingLog,
           canvasRef.current,
           (p) => setProcessProgress(Math.round(p)),
         );
         const imageUrl = canvasRef.current.toDataURL("image/png");
+        trackEvent(ANALYTICS_EVENTS.processingCompleted, {
+          processing_time_ms: Math.round(performance.now() - startedAt),
+          ...getVideoMetadataAnalytics(
+            videoRef.current.duration,
+            videoRef.current.videoWidth,
+            videoRef.current.videoHeight,
+          ),
+        });
         setGeneratedImage(imageUrl);
         setCurrentStep("preview");
       } catch (error) {
+        setLastProcessingError(
+          error instanceof Error ? error.message : String(error),
+        );
+        trackEvent(ANALYTICS_EVENTS.processingFailed, {
+          error_message: sanitizeAnalyticsErrorMessage(error),
+          processing_time_ms: Math.round(performance.now() - startedAt),
+          ...getVideoMetadataAnalytics(
+            videoRef.current.duration,
+            videoRef.current.videoWidth,
+            videoRef.current.videoHeight,
+          ),
+        });
         console.error("Processing failed:", error);
         alert(
           `Processing failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -95,6 +191,9 @@ export default function App() {
     setVideoPreviewUrl(null);
     setProcessProgress(0);
     setGeneratedImage(null);
+    setVideoMetadata({});
+    setProcessingLogs([]);
+    setLastProcessingError(null);
     if (videoRef.current) {
       videoRef.current.src = "";
     }
@@ -102,10 +201,12 @@ export default function App() {
 
   const handleDownload = () => {
     if (generatedImage) {
+      trackEvent(ANALYTICS_EVENTS.exportStarted);
       const link = document.createElement("a");
       link.href = generatedImage;
       link.download = "long-screenshot.png";
       link.click();
+      trackEvent(ANALYTICS_EVENTS.exportCompleted);
     }
   };
 
@@ -129,7 +230,15 @@ export default function App() {
                 <p className="text-xs text-gray-500">{t("app.subtitle")}</p>
               </div>
             </div>
-            <LanguageSwitcher />
+            <div className="flex items-center gap-2">
+              <FeedbackDialog
+                currentStep={currentStep}
+                videoMetadata={videoMetadata}
+                lastProcessingError={lastProcessingError}
+                processingLogs={processingLogs}
+              />
+              <LanguageSwitcher />
+            </div>
           </div>
         </div>
       </div>

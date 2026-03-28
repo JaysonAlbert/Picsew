@@ -6,6 +6,9 @@ on:
 
 env:
   NODE_VERSION: '20'
+  VITE_FEEDBACK_ENDPOINT: ${{ vars.VITE_FEEDBACK_ENDPOINT }}
+  VITE_FEEDBACK_ANON_KEY: ${{ vars.VITE_FEEDBACK_ANON_KEY }}
+  VITE_APP_VERSION: ${{ github.sha }}
 
 jobs:
   deploy:

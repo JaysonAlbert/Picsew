@@ -8,6 +8,67 @@
       "previewDownload": "Preview & Download"
     }
   },
+  "feedback": {
+    "trigger": "Feedback",
+    "title": "Send Feedback",
+    "description": "Tell us what went wrong or what would make Picsew more useful.",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "cancel": "Cancel",
+    "contextTitle": "Diagnostic context included",
+    "contextMeta": "Duration: {{duration}}s, Resolution: {{width}}x{{height}}, Logs: {{logs}}",
+    "category": {
+      "label": "Category",
+      "placeholder": "Select a feedback type",
+      "options": {
+        "bugReport": "Bug report",
+        "featureRequest": "Feature request",
+        "processingFailure": "Processing failure"
+      }
+    },
+    "stage": {
+      "label": "Stage",
+      "placeholder": "Where did this happen?",
+      "upload": "Upload",
+      "processing": "Processing",
+      "preview": "Preview",
+      "export": "Export"
+    },
+    "severity": {
+      "label": "Severity",
+      "placeholder": "How serious is it?",
+      "blocker": "Blocker",
+      "major": "Major",
+      "minor": "Minor"
+    },
+    "useCase": {
+      "label": "Use case",
+      "placeholder": "What are you trying to create with Picsew?"
+    },
+    "requestedFeature": {
+      "label": "Requested feature",
+      "placeholder": "What feature would help most?"
+    },
+    "errorMessage": {
+      "label": "Error details",
+      "placeholder": "Paste the error or describe what failed."
+    },
+    "message": {
+      "label": "Details",
+      "placeholder": "Describe what happened, what you expected, and anything we should know."
+    },
+    "email": {
+      "label": "Email (optional)",
+      "placeholder": "name@example.com"
+    },
+    "success": {
+      "remote": "Thanks. Your feedback was submitted successfully.",
+      "localQueue": "Feedback saved locally. Connect a backend endpoint to deliver submissions remotely."
+    },
+    "error": {
+      "generic": "Something went wrong while sending feedback."
+    }
+  },
   "upload": {
     "title": "Upload Screen Recording",
     "dragDrop": "Click to upload video",

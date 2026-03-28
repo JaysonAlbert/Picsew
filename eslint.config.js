@@ -11,7 +11,9 @@ const config = [
       "build/**",
       "out/**",
       "dist/**",
+      "ios/**",
       "node_modules/**",
+      "supabase/functions/**",
       "test-results/**",
       "playwright-report/**",
       "blob-report/**",
@@ -56,6 +58,14 @@ const config = [
   },
   {
     files: ["playwright.config.ts"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+  {
+    files: ["capacitor.config.ts"],
     languageOptions: {
       globals: {
         ...globals.node,
