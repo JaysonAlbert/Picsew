@@ -15,6 +15,31 @@ const isLikelyIOS =
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
 
+const clampRectToFrame = (
+  rect: { x: number; y: number; width: number; height: number },
+  frameWidth: number,
+  frameHeight: number,
+) => {
+  const safeX = Math.max(
+    0,
+    Math.min(Math.round(rect.x), Math.max(0, frameWidth - 1)),
+  );
+  const safeY = Math.max(
+    0,
+    Math.min(Math.round(rect.y), Math.max(0, frameHeight - 1)),
+  );
+  const safeWidth = Math.max(
+    1,
+    Math.min(Math.round(rect.width), Math.max(1, frameWidth - safeX)),
+  );
+  const safeHeight = Math.max(
+    1,
+    Math.min(Math.round(rect.height), Math.max(1, frameHeight - safeY)),
+  );
+
+  return { x: safeX, y: safeY, width: safeWidth, height: safeHeight };
+};
+
 /**
  * Helper function to seek the video to a specific time and wait for
  * the 'seeked' event to ensure the frame is ready.
@@ -167,76 +192,6 @@ const extractFrames = async (
     // Return empty arrays to prevent downstream errors
     throw new Error(errorMessage);
   }
-};
-
-/**
- * After analysis, fetch full-resolution (or capped on iOS) ImageData only for keyframe times.
- * Avoids holding hundreds of full-size frames in JS heap at once.
- */
-const extractFullResKeyframes = async (
-  videoElement: HTMLVideoElement,
-  keyframeIndices: number[],
-  refinedWindow: { x: number; y: number; width: number; height: number },
-  addLog: (message: string) => void,
-  updateProgress: (progress: number) => void,
-): Promise<{
-  keyframeImageData: ImageData[];
-  refinedWindowForStitch: typeof refinedWindow;
-}> => {
-  addLog("Extracting full-resolution keyframes only...");
-  const vw = videoElement.videoWidth;
-  const vh = videoElement.videoHeight;
-  const decodeScale = getFullResDecodeScale(vw, vh, isLikelyIOS);
-  const refinedWindowForStitch =
-    decodeScale === 1 ? refinedWindow : scaleRect(refinedWindow, decodeScale);
-
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) {
-    throw new Error("Could not get 2D context for keyframe extraction");
-  }
-  canvas.width = Math.max(1, Math.floor(vw * decodeScale));
-  canvas.height = Math.max(1, Math.floor(vh * decodeScale));
-
-  if (decodeScale < 1) {
-    addLog(
-      `Decoding keyframes at ${canvas.width}x${canvas.height} (scale ${decodeScale.toFixed(3)}) to reduce memory.`,
-    );
-  }
-
-  videoElement.muted = true;
-  videoElement.pause();
-
-  const frameInterval = 1 / FRAME_RATE;
-  const sortedUnique = [...new Set(keyframeIndices)].sort((a, b) => a - b);
-  const indexToImage = new Map<number, ImageData>();
-
-  for (let i = 0; i < sortedUnique.length; i++) {
-    const idx = sortedUnique[i];
-    if (idx === undefined) continue;
-    const t = idx * frameInterval;
-    await seekTo(videoElement, t);
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-    indexToImage.set(
-      idx,
-      context.getImageData(0, 0, canvas.width, canvas.height),
-    );
-    const progress = ((i + 1) / sortedUnique.length) * 100;
-    updateProgress(Math.min(progress, 100));
-  }
-
-  const keyframeImageData: ImageData[] = [];
-  for (const idx of keyframeIndices) {
-    const img = indexToImage.get(idx);
-    if (img) {
-      keyframeImageData.push(img);
-    } else {
-      addLog(`Warning: missing full-res frame for index ${idx}`);
-    }
-  }
-
-  addLog(`Loaded ${keyframeImageData.length} full-res keyframe(s).`);
-  return { keyframeImageData, refinedWindowForStitch };
 };
 
 const findRefinedScrollingWindow = async (
@@ -556,52 +511,102 @@ const filterKeyframes = async (
 };
 
 const stitchKeyframes = async (
-  keyframeImageData: ImageData[],
+  videoElement: HTMLVideoElement,
+  keyframeIndices: number[],
   refinedWindow: any,
   addLog: (message: string) => void,
+  updateProgress: (progress: number) => void,
 ): Promise<any> => {
-  addLog("Stitching keyframes...");
+  addLog("Extracting full-resolution keyframes only...");
   const cv = await getOpenCV();
-  const { x, y, width, height } = refinedWindow;
+  const orderedKeyframeIndices = [...new Set(keyframeIndices)].sort(
+    (a, b) => a - b,
+  );
 
-  // 检查输入帧是否有效
-  if (keyframeImageData.length === 0) {
-    addLog("Error: No keyframes or frames to stitch");
+  if (orderedKeyframeIndices.length === 0) {
+    addLog("Error: No keyframes to stitch");
     return null;
   }
 
-  const frameWidth = keyframeImageData[0]?.width || 0;
-  if (!frameWidth) {
-    addLog("Error: Invalid first frame width");
-    return null;
+  const vw = videoElement.videoWidth;
+  const vh = videoElement.videoHeight;
+  const decodeScale = getFullResDecodeScale(vw, vh, isLikelyIOS);
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) {
+    throw new Error("Could not get 2D context for keyframe extraction");
+  }
+  canvas.width = Math.max(1, Math.floor(vw * decodeScale));
+  canvas.height = Math.max(1, Math.floor(vh * decodeScale));
+
+  if (decodeScale < 1) {
+    addLog(
+      `Decoding keyframes at ${canvas.width}x${canvas.height} (scale ${decodeScale.toFixed(3)}) to reduce memory.`,
+    );
   }
 
-  // Convert ONLY selected keyframes from ImageData to cv.Mat
-  // We must remember to delete these manually later!
-  const keyframes: any[] = [];
+  const refinedWindowForStitch = clampRectToFrame(
+    decodeScale === 1 ? refinedWindow : scaleRect(refinedWindow, decodeScale),
+    canvas.width,
+    canvas.height,
+  );
+  const { x, y, width, height } = refinedWindowForStitch;
+
+  videoElement.muted = true;
+  videoElement.pause();
+
+  const frameInterval = 1 / FRAME_RATE;
+  const totalPasses = 2;
+  const updateDecodeProgress = (
+    passIndex: number,
+    itemIndex: number,
+    total: number,
+  ) => {
+    const safeTotal = Math.max(1, total);
+    const completed = passIndex + itemIndex / safeTotal;
+    updateProgress(Math.min((completed / totalPasses) * 100, 100));
+  };
+
+  const decodeMatAtIndex = async (frameIndex: number) => {
+    await seekTo(videoElement, frameIndex * frameInterval);
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    return cv.matFromImageData(
+      context.getImageData(0, 0, canvas.width, canvas.height),
+    );
+  };
+
+  addLog(
+    `Streaming ${orderedKeyframeIndices.length} full-res keyframe(s) to reduce memory.`,
+  );
+  addLog("Stitching keyframes...");
+
+  let stitchedImage: any = null;
   try {
-    for (let i = 0; i < keyframeImageData.length; i++) {
-      const imgData = keyframeImageData[i];
-      if (imgData) {
-        keyframes.push(cv.matFromImageData(imgData));
-      } else {
-        addLog(`Warning: Valid ImageData missing for keyframe ${i}`);
-      }
-    }
-
-    if (keyframes.length === 0) {
-      addLog("Error: No valid keyframes converted");
+    const firstIndex = orderedKeyframeIndices[0];
+    if (firstIndex === undefined) {
+      addLog("Error: Invalid first keyframe index");
       return null;
     }
 
-    // 1. Calculate Offsets
-    const offsets: { v_offset: number; h_offset: number }[] = [];
-    for (let i = 0; i < keyframes.length - 1; i++) {
-      const frame1 = keyframes[i];
-      const frame2 = keyframes[i + 1];
+    let previousFrame = await decodeMatAtIndex(firstIndex);
+    const frameWidth = previousFrame.cols;
+    const frameHeight = previousFrame.rows;
+    const frameType = previousFrame.type();
+    const headerHeight = y;
+    const footerHeight = Math.max(0, frameHeight - (y + height));
 
-      const window1 = frame1.roi(new cv.Rect(x, y, width, height));
-      const window2 = frame2.roi(new cv.Rect(x, y, width, height));
+    const offsets: { v_offset: number; h_offset: number }[] = [];
+    for (let i = 1; i < orderedKeyframeIndices.length; i++) {
+      const frameIndex = orderedKeyframeIndices[i];
+      if (frameIndex === undefined) {
+        continue;
+      }
+
+      const currentFrame = await decodeMatAtIndex(frameIndex);
+
+      const window1 = previousFrame.roi(new cv.Rect(x, y, width, height));
+      const window2 = currentFrame.roi(new cv.Rect(x, y, width, height));
 
       const templateHeight = Math.floor(height / 3);
       const template = window1.roi(
@@ -621,62 +626,87 @@ const stitchKeyframes = async (
       window2.delete();
       template.delete();
       res.delete();
+
+      previousFrame.delete();
+      previousFrame = currentFrame;
+      updateDecodeProgress(0, i, orderedKeyframeIndices.length - 1);
     }
+    previousFrame.delete();
 
-    // 2. Stitch the Images
-    const header = keyframes[0].roi(new cv.Rect(0, 0, frameWidth, y));
-    const footer = keyframes[keyframes.length - 1].roi(
-      new cv.Rect(0, y + height, frameWidth, keyframes[0].rows - (y + height)),
-    );
-
-    let totalHeight = header.rows + height + footer.rows;
+    let totalHeight = headerHeight + height + footerHeight;
     for (const offset of offsets) {
-      totalHeight += offset.v_offset;
+      totalHeight += Math.max(0, offset.v_offset);
     }
 
-    const stitchedImage = new cv.Mat(
+    stitchedImage = new cv.Mat(
       totalHeight,
       frameWidth,
-      keyframes[0].type(),
+      frameType,
       new cv.Scalar(0, 0, 0, 0),
     );
 
+    const firstFrame = await decodeMatAtIndex(firstIndex);
     let currentY = 0;
-    const headerRoi = new cv.Rect(0, 0, frameWidth, header.rows);
-    header.copyTo(stitchedImage.roi(headerRoi));
-    currentY += header.rows;
+    if (headerHeight > 0) {
+      const header = firstFrame.roi(
+        new cv.Rect(0, 0, frameWidth, headerHeight),
+      );
+      const headerRoi = new cv.Rect(0, 0, frameWidth, header.rows);
+      header.copyTo(stitchedImage.roi(headerRoi));
+      currentY += header.rows;
+      header.delete();
+    }
 
     const firstWindowRoi = new cv.Rect(0, y, frameWidth, height);
-    keyframes[0]
-      .roi(firstWindowRoi)
-      .copyTo(stitchedImage.roi(new cv.Rect(0, currentY, frameWidth, height)));
+    const firstWindow = firstFrame.roi(firstWindowRoi);
+    firstWindow.copyTo(
+      stitchedImage.roi(new cv.Rect(0, currentY, frameWidth, height)),
+    );
+    firstWindow.delete();
+    firstFrame.delete();
     currentY += height;
+    updateDecodeProgress(1, 0, orderedKeyframeIndices.length);
 
     for (let i = 0; i < offsets.length; i++) {
       const offset = offsets[i];
       if (!offset) continue;
       const { v_offset, h_offset } = offset;
-      const keyframe = keyframes[i + 1];
+      const frameIndex = orderedKeyframeIndices[i + 1];
+      if (frameIndex === undefined) {
+        continue;
+      }
+
+      const keyframe = await decodeMatAtIndex(frameIndex);
       const scrollingWindow = keyframe.roi(new cv.Rect(x, y, width, height));
+      const safeVOffset = Math.max(0, Math.min(v_offset, height));
 
       const newPart = scrollingWindow.roi(
-        new cv.Rect(0, height - v_offset, width, v_offset),
+        new cv.Rect(0, height - safeVOffset, width, safeVOffset),
       );
 
       if (newPart.rows > 0) {
         const newSlice = new cv.Mat(
           newPart.rows,
           width,
-          keyframes[0].type(),
+          frameType,
           new cv.Scalar(0, 0, 0, 0),
         );
-        const newSliceRoi = new cv.Rect(
-          h_offset,
-          0,
-          newPart.cols,
-          newPart.rows,
+
+        const sourceX = h_offset < 0 ? Math.min(-h_offset, newPart.cols) : 0;
+        const targetX = Math.max(0, h_offset);
+        const copyWidth = Math.min(
+          newPart.cols - sourceX,
+          Math.max(0, width - targetX),
         );
-        newPart.copyTo(newSlice.roi(newSliceRoi));
+
+        if (copyWidth > 0) {
+          const sourceRoi = newPart.roi(
+            new cv.Rect(sourceX, 0, copyWidth, newPart.rows),
+          );
+          const newSliceRoi = new cv.Rect(targetX, 0, copyWidth, newPart.rows);
+          sourceRoi.copyTo(newSlice.roi(newSliceRoi));
+          sourceRoi.delete();
+        }
 
         const stitchedImageSliceRoi = new cv.Rect(
           0,
@@ -690,30 +720,38 @@ const stitchKeyframes = async (
       }
       newPart.delete();
       scrollingWindow.delete();
+      keyframe.delete();
+      updateDecodeProgress(1, i + 1, orderedKeyframeIndices.length);
     }
 
-    const footerStitchedRoi = new cv.Rect(0, currentY, frameWidth, footer.rows);
-    footer.copyTo(stitchedImage.roi(footerStitchedRoi));
-    currentY += footer.rows;
-
-    header.delete();
-    footer.delete();
-
-    const finalImage = stitchedImage.roi(
-      new cv.Rect(0, 0, frameWidth, currentY),
-    );
-    stitchedImage.delete(); // Delete the original large image
-
-    return finalImage;
-  } finally {
-    // ALWAYS clean up the temporary cv.Mat keyframes
-    keyframes.forEach((frame) => {
-      try {
-        frame.delete();
-      } catch {
-        // Ignore deletion errors
+    if (footerHeight > 0) {
+      const lastIndex =
+        orderedKeyframeIndices[orderedKeyframeIndices.length - 1];
+      if (lastIndex !== undefined) {
+        const lastFrame = await decodeMatAtIndex(lastIndex);
+        const footer = lastFrame.roi(
+          new cv.Rect(0, y + height, frameWidth, footerHeight),
+        );
+        const footerStitchedRoi = new cv.Rect(
+          0,
+          currentY,
+          frameWidth,
+          footer.rows,
+        );
+        footer.copyTo(stitchedImage.roi(footerStitchedRoi));
+        currentY += footer.rows;
+        footer.delete();
+        lastFrame.delete();
       }
-    });
+    }
+
+    addLog(`Streamed ${orderedKeyframeIndices.length} full-res keyframe(s).`);
+    return stitchedImage;
+  } catch (error) {
+    if (stitchedImage) {
+      stitchedImage.delete();
+    }
+    throw error;
   }
 };
 
@@ -732,7 +770,9 @@ export const processVideo = async (
 
   try {
     const cv = await getOpenCV();
-    addLog(`OpenCV.js version: ${cv.CV_8U}`);
+    addLog(
+      `OpenCV.js runtime ready${isLikelyIOS ? " (iOS memory mode)" : ""}.`,
+    );
     updateProgress(10);
 
     updateProgress(10);
@@ -784,20 +824,12 @@ export const processVideo = async (
       return;
     }
 
-    const { keyframeImageData, refinedWindowForStitch } =
-      await extractFullResKeyframes(
-        videoElement,
-        cleanKeyframeIndices,
-        refinedWindow,
-        addLog,
-        (p) => updateProgress(80 + p * 0.05),
-      );
-    updateProgress(85);
-
     stitchedImage = await stitchKeyframes(
-      keyframeImageData,
-      refinedWindowForStitch,
+      videoElement,
+      cleanKeyframeIndices,
+      refinedWindow,
       addLog,
+      (p) => updateProgress(80 + p * 0.15),
     );
     updateProgress(95);
 

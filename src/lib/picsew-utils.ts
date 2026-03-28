@@ -9,7 +9,8 @@ export function getFullResDecodeScale(
 ): number {
   const maxEdge = Math.max(videoWidth, videoHeight);
   if (maxEdge <= 1) return 1;
-  const cap = isLikelyIOS ? 2048 : 8192;
+  // iOS WebKit tabs are much more memory-constrained than desktop browsers.
+  const cap = isLikelyIOS ? 1536 : 8192;
   if (maxEdge <= cap) return 1;
   return cap / maxEdge;
 }
