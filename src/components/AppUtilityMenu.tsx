@@ -1,29 +1,18 @@
 import { Globe2, Menu, MessageSquareMore, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { FeedbackDialog } from "./FeedbackDialog";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { Button } from "./ui/button";
 
 type AppUtilityMenuProps = {
-  currentStep: "upload" | "processing" | "preview";
-  videoMetadata: {
-    durationSeconds?: number;
-    width?: number;
-    height?: number;
-  };
-  lastProcessingError: string | null;
-  processingLogs: string[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenFeedbackPage: () => void;
 };
 
 export function AppUtilityMenu({
-  currentStep,
-  videoMetadata,
-  lastProcessingError,
-  processingLogs,
   open,
   onOpenChange,
+  onOpenFeedbackPage,
 }: AppUtilityMenuProps) {
   const { t } = useTranslation();
 
@@ -67,14 +56,15 @@ export function AppUtilityMenu({
             </div>
 
             <div className="app-utility-sheet-actions">
-              <FeedbackDialog
-                currentStep={currentStep}
-                videoMetadata={videoMetadata}
-                lastProcessingError={lastProcessingError}
-                processingLogs={processingLogs}
-                triggerClassName="app-utility-action"
-                icon={<MessageSquareMore className="h-4.5 w-4.5" />}
-              />
+              <Button
+                type="button"
+                variant="outline"
+                className="app-utility-action"
+                onClick={onOpenFeedbackPage}
+              >
+                <MessageSquareMore className="h-4.5 w-4.5" />
+                {t("feedback.trigger")}
+              </Button>
               <LanguageSwitcher
                 className="app-utility-action"
                 icon={<Globe2 className="h-4.5 w-4.5" />}

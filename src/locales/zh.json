@@ -46,6 +46,11 @@
     "trigger": "反馈",
     "title": "提交反馈",
     "description": "告诉我们哪里出了问题，或者什么功能会让 Picsew 更好用。",
+    "page": {
+      "kicker": "支持与反馈",
+      "description": "你可以提交问题、功能建议或处理失败信息。我们会结合附带的诊断信息持续改进 Picsew。",
+      "back": "返回"
+    },
     "submit": "提交",
     "submitting": "提交中...",
     "cancel": "取消",

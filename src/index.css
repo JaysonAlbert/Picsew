@@ -522,6 +522,30 @@ body {
   backdrop-filter: blur(18px);
 }
 
+.app-secondary-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0.8rem 0.9rem;
+  box-shadow: 0 22px 54px -42px rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(18px);
+}
+
+.app-secondary-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  color: rgb(37 99 235);
+  padding: 0.2rem 0.15rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
 .app-utility-brand-mark {
   display: flex;
   height: 2.45rem;
