@@ -139,6 +139,47 @@ public struct PicsewFullResolutionKeyframeBatch: Sendable, Equatable {
     }
 }
 
+public struct PicsewFullResolutionColorFrame: Sendable, Equatable {
+    public let index: Int
+    public let timestampSeconds: Double
+    public let width: Int
+    public let height: Int
+    public let bytesPerRow: Int
+    public let pixels: Data
+
+    public init(
+        index: Int,
+        timestampSeconds: Double,
+        width: Int,
+        height: Int,
+        bytesPerRow: Int,
+        pixels: Data
+    ) {
+        self.index = index
+        self.timestampSeconds = timestampSeconds
+        self.width = width
+        self.height = height
+        self.bytesPerRow = bytesPerRow
+        self.pixels = pixels
+    }
+}
+
+public struct PicsewFullResolutionColorKeyframeBatch: Sendable, Equatable {
+    public let metadata: PicsewVideoMetadata
+    public let keyframeIndices: [Int]
+    public let frames: [PicsewFullResolutionColorFrame]
+
+    public init(
+        metadata: PicsewVideoMetadata,
+        keyframeIndices: [Int],
+        frames: [PicsewFullResolutionColorFrame]
+    ) {
+        self.metadata = metadata
+        self.keyframeIndices = keyframeIndices
+        self.frames = frames
+    }
+}
+
 public enum PicsewMediaError: Error, LocalizedError {
     case missingVideoTrack
     case invalidImageContext
@@ -255,6 +296,40 @@ public struct PicsewMediaAnalyzer: Sendable {
         )
     }
 
+    public func extractFullResolutionColorKeyframes(
+        from url: URL,
+        keyframeIndices: [Int],
+        request: PicsewFrameExtractionRequest = .referenceBaseline
+    ) async throws -> PicsewFullResolutionColorKeyframeBatch {
+        let metadata = try await loadMetadata(from: url, request: request)
+        let asset = AVURLAsset(url: url)
+        let imageGenerator = AVAssetImageGenerator(asset: asset)
+        imageGenerator.appliesPreferredTrackTransform = true
+        imageGenerator.requestedTimeToleranceBefore = .zero
+        imageGenerator.requestedTimeToleranceAfter = .zero
+
+        let frames = try keyframeIndices.map { frameIndex in
+            guard frameIndex >= 0 else {
+                throw PicsewMediaError.invalidFrameIndex(frameIndex)
+            }
+
+            let timestampSeconds = Double(frameIndex) * metadata.frameIntervalSeconds
+            let time = CMTime(seconds: timestampSeconds, preferredTimescale: 600)
+            let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
+            return try makeFullResolutionColorFrame(
+                from: cgImage,
+                index: frameIndex,
+                timestampSeconds: timestampSeconds
+            )
+        }
+
+        return PicsewFullResolutionColorKeyframeBatch(
+            metadata: metadata,
+            keyframeIndices: keyframeIndices,
+            frames: frames
+        )
+    }
+
     private func loadVideoTrack(from asset: AVAsset) async throws -> AVAssetTrack {
         let tracks = try await asset.loadTracks(withMediaType: .video)
         guard let videoTrack = tracks.first else {
@@ -302,6 +377,25 @@ public struct PicsewMediaAnalyzer: Sendable {
         )
     }
 
+    private func makeFullResolutionColorFrame(
+        from image: CGImage,
+        index: Int,
+        timestampSeconds: Double
+    ) throws -> PicsewFullResolutionColorFrame {
+        let raster = try makeColorRaster(
+            from: image,
+            timestampSeconds: timestampSeconds
+        )
+        return PicsewFullResolutionColorFrame(
+            index: index,
+            timestampSeconds: timestampSeconds,
+            width: raster.width,
+            height: raster.height,
+            bytesPerRow: raster.bytesPerRow,
+            pixels: raster.pixels
+        )
+    }
+
     private func makeGrayRaster(
         from image: CGImage,
         timestampSeconds: Double,
@@ -337,5 +431,40 @@ public struct PicsewMediaAnalyzer: Sendable {
 
         let pixels = Data(bytes: rawData, count: bytesPerRow * height)
         return (width, height, pixels)
+    }
+
+    private func makeColorRaster(
+        from image: CGImage,
+        timestampSeconds: Double
+    ) throws -> (width: Int, height: Int, bytesPerRow: Int, pixels: Data) {
+        let width = image.width
+        let height = image.height
+        let bytesPerRow = width * 4
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo
+        ) else {
+            throw PicsewMediaError.invalidImageContext
+        }
+
+        context.interpolationQuality = .medium
+        context.translateBy(x: 0, y: CGFloat(height))
+        context.scaleBy(x: 1, y: -1)
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        guard let rawData = context.data else {
+            throw PicsewMediaError.failedToReadFrame(timestampSeconds)
+        }
+
+        let pixels = Data(bytes: rawData, count: bytesPerRow * height)
+        return (width, height, bytesPerRow, pixels)
     }
 }

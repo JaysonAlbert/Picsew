@@ -78,6 +78,26 @@ func fullResolutionKeyframeExtractionPreservesVideoDimensions() async throws {
     #expect(batch.frames.map(\.index) == [0, 3, 6])
 }
 
+@Test("full-resolution color keyframe extraction preserves rgba row layout")
+func fullResolutionColorKeyframeExtractionPreservesRGBA() async throws {
+    let analyzer = PicsewMediaAnalyzer()
+    let url = try sampleVideoURL()
+
+    let batch = try await analyzer.extractFullResolutionColorKeyframes(
+        from: url,
+        keyframeIndices: [0, 4]
+    )
+
+    #expect(batch.metadata.width == 756)
+    #expect(batch.metadata.height == 1022)
+    #expect(batch.keyframeIndices == [0, 4])
+    #expect(batch.frames.count == 2)
+    #expect(batch.frames.allSatisfy { $0.width == 756 })
+    #expect(batch.frames.allSatisfy { $0.height == 1022 })
+    #expect(batch.frames.allSatisfy { $0.bytesPerRow == 756 * 4 })
+    #expect(batch.frames.allSatisfy { $0.pixels.count == 756 * 1022 * 4 })
+}
+
 private func sampleVideoURL(filePath: String = #filePath) throws -> URL {
     var candidate = URL(fileURLWithPath: filePath)
 
