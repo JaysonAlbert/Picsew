@@ -8,4 +8,4 @@ This folder reserves the structure for the native app target.
 - `Resources/`: app assets, localized strings, design tokens
 - `Support/`: app-specific support files and build helpers
 
-These directories are intentionally empty in phase 1 so the migration can start without disrupting the current shipping web and Capacitor paths.
+Phase 2 adds starter files so future native implementation work has stable landing zones before the final Xcode app target is created.

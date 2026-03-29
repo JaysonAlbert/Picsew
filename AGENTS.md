@@ -74,6 +74,7 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Do not remove the iOS project from version control just because Capacitor generated the initial shell.
 - When changing iOS project configuration or native code, run a simulator build validation before handoff.
 - Treat the root `ios/` directory as transitional during the native migration until `apps/ios-native/` becomes the active app path.
+- New native foundation code should land in `apps/ios-native/Packages/` or `apps/ios-native/PicsewApp/`, not inside the transitional Capacitor shell unless the task is explicitly maintaining that shell.
 
 ## Algorithm Parity Rule
 
@@ -81,6 +82,15 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Use the reference implementation under `src/lib/` as the migration baseline until it is formally relocated into `reference/web-algorithm/`.
 - Before accepting a native algorithm rewrite, add or update parity fixtures that cover the relevant pipeline stage.
 - Keep performance optimizations and algorithm behavior changes as separate deliveries whenever possible.
+
+## Native Module Rule
+
+- Keep reusable native logic in local Swift packages whenever practical:
+  - `PicsewAlgorithm`
+  - `PicsewMedia`
+  - `PicsewDesignSystem`
+- Keep app-only composition, routing, and feature wiring under `apps/ios-native/PicsewApp/`.
+- Do not collapse algorithm, media, and design system concerns into one package just for convenience.
 
 ## Local Config And Secrets
 
