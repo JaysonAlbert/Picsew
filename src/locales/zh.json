@@ -1,10 +1,12 @@
 {
   "app": {
     "title": "长截图生成器",
+    "brandTitle": "Picsew",
     "subtitle": "录屏转长图工具",
     "steps": {
       "selectVideo": "选择视频",
       "processing": "处理中",
+      "preview": "预览",
       "previewDownload": "预览下载"
     }
   },
