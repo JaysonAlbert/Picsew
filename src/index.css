@@ -494,6 +494,7 @@
 body {
   min-height: 100vh;
   min-height: 100dvh;
+  background-color: #f8fafc;
 }
 
 .ios-app-shell {
@@ -512,9 +513,41 @@ body {
   backdrop-filter: blur(18px);
 }
 
+.app-shell-panel {
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  border-radius: 1.9rem;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 1rem;
+  box-shadow: 0 24px 60px -42px rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell-brand-mark {
+  display: flex;
+  height: 2.75rem;
+  width: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.1rem;
+  background: linear-gradient(135deg, rgb(37 99 235), rgb(14 165 233));
+  box-shadow: 0 14px 32px -18px rgba(37, 99, 235, 0.75);
+}
+
+.app-shell-caption {
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(148 163 184);
+}
+
 .app-shell-title {
-  line-height: 1.05;
+  line-height: 1.08;
   overflow-wrap: anywhere;
+  color: rgb(15 23 42);
+  font-weight: 600;
 }
 
 .app-shell-subtitle {
@@ -526,10 +559,189 @@ body {
   line-height: 1.3;
 }
 
+.app-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+  margin-top: 1rem;
+}
+
+.app-step-pill {
+  display: flex;
+  min-height: 4.65rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 1.25rem;
+  border: 1px solid transparent;
+  padding: 0.7rem 0.5rem;
+  text-align: center;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.app-step-pill-active {
+  border-color: rgba(59, 130, 246, 0.16);
+  background: linear-gradient(
+    180deg,
+    rgba(239, 246, 255, 0.98),
+    rgba(219, 234, 254, 0.88)
+  );
+  color: rgb(29 78 216);
+}
+
+.app-step-pill-complete {
+  border-color: rgba(16, 185, 129, 0.12);
+  background: rgba(236, 253, 245, 0.92);
+  color: rgb(5 150 105);
+}
+
+.app-step-pill-pending {
+  border-color: rgba(148, 163, 184, 0.08);
+  background: rgba(248, 250, 252, 0.88);
+  color: rgb(148 163 184);
+}
+
+.app-step-pill-icon {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.app-step-pill-label {
+  font-size: 0.72rem;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.app-stage-card {
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 1.9rem;
+  background: rgba(255, 255, 255, 0.84);
+  padding: 1.25rem;
+  box-shadow: 0 24px 64px -44px rgba(15, 23, 42, 0.25);
+  backdrop-filter: blur(20px);
+}
+
+.app-stage-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.app-stage-kicker {
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgb(148 163 184);
+}
+
+.app-stage-title {
+  font-size: 1.45rem;
+  line-height: 1.08;
+  font-weight: 600;
+  color: rgb(15 23 42);
+}
+
+.app-stage-description {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: rgb(100 116 139);
+}
+
+.app-upload-dropzone {
+  border-radius: 1.75rem;
+  border: 1.5px dashed rgba(148, 163, 184, 0.3);
+  padding: 1.9rem 1.25rem;
+  text-align: center;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.app-upload-dropzone-idle {
+  background: rgba(248, 250, 252, 0.72);
+}
+
+.app-upload-dropzone-active {
+  border-color: rgba(37, 99, 235, 0.45);
+  background: rgba(239, 246, 255, 0.9);
+  transform: translateY(-1px);
+}
+
+.app-upload-orb {
+  display: flex;
+  height: 4rem;
+  width: 4rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  margin: 0 auto 1rem;
+  background: linear-gradient(
+    180deg,
+    rgba(219, 234, 254, 0.95),
+    rgba(239, 246, 255, 0.95)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 16px 32px -24px rgba(37, 99, 235, 0.5);
+}
+
+.app-guidance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+.app-guidance-chip {
+  display: flex;
+  min-height: 5rem;
+  flex-direction: column;
+  gap: 0.55rem;
+  border-radius: 1.25rem;
+  background: rgba(248, 250, 252, 0.92);
+  padding: 0.9rem 0.8rem;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: rgb(71 85 105);
+}
+
+.app-media-frame {
+  overflow: hidden;
+  border-radius: 1.6rem;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgb(15 23 42));
+  padding: 0.35rem;
+  box-shadow: 0 24px 60px -38px rgba(15, 23, 42, 0.45);
+}
+
+.app-inline-note {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 1.2rem;
+  background: rgba(248, 250, 252, 0.94);
+  padding: 0.85rem 0.95rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: rgb(100 116 139);
+}
+
 .preview-status-orb {
   display: flex;
-  height: 2.5rem;
-  width: 2.5rem;
+  height: 2rem;
+  width: 2rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -541,10 +753,82 @@ body {
   align-items: center;
   gap: 0.375rem;
   border-radius: 9999px;
-  padding: 0.35rem 0.7rem;
+  padding: 0.38rem 0.72rem;
   font-size: 0.72rem;
   font-weight: 600;
   line-height: 1;
+}
+
+.processing-hero-orb {
+  position: relative;
+  display: flex;
+  height: 6rem;
+  width: 6rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.2rem;
+}
+
+.processing-hero-orb::before {
+  content: "";
+  position: absolute;
+  inset: 0.55rem;
+  border-radius: 9999px;
+  background: linear-gradient(
+    180deg,
+    rgba(219, 234, 254, 0.98),
+    rgba(239, 246, 255, 0.98)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 18px 34px -24px rgba(37, 99, 235, 0.5);
+}
+
+.processing-hero-orb-core {
+  position: relative;
+  z-index: 1;
+}
+
+.processing-hero-spinner {
+  position: absolute;
+  inset: 0;
+  animation: spin 1.3s linear infinite;
+}
+
+.processing-progress-panel {
+  border-radius: 1.35rem;
+  background: rgba(248, 250, 252, 0.95);
+  padding: 1rem;
+}
+
+.processing-milestones {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.processing-milestone {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.8rem;
+  color: rgb(100 116 139);
+}
+
+.processing-milestone-dot {
+  height: 0.6rem;
+  width: 0.6rem;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.processing-milestone-dot-complete {
+  background: rgb(16 185 129);
+}
+
+.processing-milestone-dot-pending {
+  background: rgb(203 213 225);
 }
 
 .preview-stage-surface {
@@ -581,6 +865,12 @@ body {
 }
 
 .preview-action-bar {
+  position: sticky;
+  bottom: calc(var(--picsew-safe-bottom) + 0.75rem);
+  z-index: 10;
+}
+
+.app-actions-tray {
   position: sticky;
   bottom: calc(var(--picsew-safe-bottom) + 0.75rem);
   z-index: 10;

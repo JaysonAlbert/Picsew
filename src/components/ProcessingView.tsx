@@ -28,57 +28,72 @@ export function ProcessingView({ progress }: ProcessingViewProps) {
 
   const stage = getProcessingStage();
   const StageIcon = stage.icon;
+  const milestones = [
+    {
+      label: t("processing.steps.analysis"),
+      complete: progress >= 30,
+    },
+    {
+      label: t("processing.steps.selection"),
+      complete: progress >= 70,
+    },
+    {
+      label: t("processing.steps.generation"),
+      complete: progress >= 100,
+    },
+  ];
 
   return (
-    <div className="max-w-md mx-auto">
-      <Card className="p-8">
-        <div className="text-center space-y-6">
-          <div className="relative w-24 h-24 mx-auto">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full opacity-20 animate-pulse" />
-            <div className="absolute inset-2 bg-white rounded-full flex items-center justify-center">
-              <StageIcon className="w-10 h-10 text-blue-600" />
-            </div>
-            <Loader2 className="w-24 h-24 text-blue-600 animate-spin" />
+    <div className="mx-auto max-w-md">
+      <Card
+        data-testid="processing-stage-card"
+        className="app-stage-card overflow-hidden p-6"
+      >
+        <div className="text-center">
+          <div className="app-stage-header items-center text-center">
+            <p className="app-stage-kicker">{stage.text}</p>
+            <h2 className="app-stage-title">{t("processing.title")}</h2>
+            <p className="app-stage-description">
+              {t("processing.waitMessage")}
+            </p>
           </div>
 
-          <div>
-            <h2 className="mb-2">{t("processing.title")}</h2>
-            <p className="text-sm text-gray-500">{stage.text}</p>
+          <div className="processing-hero-orb">
+            <div className="processing-hero-orb-core">
+              <StageIcon className="h-10 w-10 text-blue-600" />
+            </div>
+            <Loader2 className="processing-hero-spinner h-24 w-24 text-blue-600" />
           </div>
 
-          <div className="space-y-2">
-            <Progress value={progress} className="h-2" />
-            <p className="text-sm text-gray-600">{progress}%</p>
+          <div className="processing-progress-panel">
+            <div className="mb-3 flex items-center justify-between text-sm">
+              <span className="font-medium text-slate-700">{stage.text}</span>
+              <span className="text-slate-400">{progress}%</span>
+            </div>
+            <Progress value={progress} className="h-2.5" />
           </div>
 
-          <div className="pt-4 space-y-2 text-left">
-            <div className="flex items-center gap-3 text-xs text-gray-500">
-              <div
-                className={`w-2 h-2 rounded-full transition-colors ${progress >= 30 ? "bg-green-500" : "bg-gray-300"}`}
-              />
-              <span>{t("processing.steps.analysis")}</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-gray-500">
-              <div
-                className={`w-2 h-2 rounded-full transition-colors ${progress >= 70 ? "bg-green-500" : "bg-gray-300"}`}
-              />
-              <span>{t("processing.steps.selection")}</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-gray-500">
-              <div
-                className={`w-2 h-2 rounded-full transition-colors ${progress >= 100 ? "bg-green-500" : "bg-gray-300"}`}
-              />
-              <span>{t("processing.steps.generation")}</span>
-            </div>
+          <div className="processing-milestones">
+            {milestones.map((milestone) => (
+              <div key={milestone.label} className="processing-milestone">
+                <div
+                  className={`processing-milestone-dot ${
+                    milestone.complete
+                      ? "processing-milestone-dot-complete"
+                      : "processing-milestone-dot-pending"
+                  }`}
+                />
+                <span>{milestone.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="app-inline-note mx-auto mt-4 max-w-[18rem] justify-center text-center">
+            <Film className="h-4.5 w-4.5 flex-shrink-0 text-blue-500" />
+            <span>{t("processing.stages.generating")}</span>
           </div>
         </div>
       </Card>
-
-      <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-xl">
-        <p className="text-xs text-amber-800 text-center">
-          {t("processing.waitMessage")}
-        </p>
-      </div>
     </div>
   );
 }

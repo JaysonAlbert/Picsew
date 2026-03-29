@@ -50,6 +50,48 @@ export default function App() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const steps = [
+    {
+      key: "upload",
+      label: t("app.steps.selectVideo"),
+      icon:
+        currentStep === "upload" ? (
+          <Upload className="h-4.5 w-4.5" />
+        ) : (
+          <Check className="h-4.5 w-4.5" />
+        ),
+      state: currentStep === "upload" ? "active" : "complete",
+    },
+    {
+      key: "processing",
+      label: t("app.steps.processing"),
+      icon:
+        currentStep === "preview" ? (
+          <Check className="h-4.5 w-4.5" />
+        ) : (
+          <Play className="h-4.5 w-4.5" />
+        ),
+      state:
+        currentStep === "upload"
+          ? "pending"
+          : currentStep === "processing"
+            ? "active"
+            : "complete",
+    },
+    {
+      key: "preview",
+      label: isNativeIos
+        ? t("app.steps.preview")
+        : t("app.steps.previewDownload"),
+      icon:
+        currentStep === "preview" ? (
+          <Check className="h-4.5 w-4.5" />
+        ) : (
+          <Image className="h-4.5 w-4.5" />
+        ),
+      state: currentStep === "preview" ? "active" : "pending",
+    },
+  ] as const;
 
   useEffect(() => {
     initGA();
@@ -256,7 +298,7 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 ${
+      className={`min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.16),_transparent_32%),linear-gradient(180deg,_#f8fafc_0%,_#ffffff_42%,_#f6f8fc_100%)] ${
         isNativeIos ? "ios-app-shell" : ""
       }`}
     >
@@ -265,126 +307,68 @@ export default function App() {
         description={t("app.subtitle")}
         keywords="screenshot, stitching, long screenshot, video to image, picsew"
       />
-      {/* Header */}
-      <div className="ios-app-header bg-white/95 border-b shadow-sm">
-        <div className="ios-safe-top px-4 pb-4 pt-3">
+      <div className="ios-app-header">
+        <div className="ios-safe-top px-4 pb-3 pt-3">
           <div className="mx-auto max-w-md">
-            <div className="flex items-start gap-3">
-              <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
-                <Smartphone className="w-5 h-5 text-white" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <h1 className="app-shell-title text-xl">
-                      {isNativeIos ? t("app.brandTitle") : t("app.title")}
-                    </h1>
-                    <p className="app-shell-subtitle text-sm text-gray-500">
-                      {t("app.subtitle")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <FeedbackDialog
-                      currentStep={currentStep}
-                      videoMetadata={videoMetadata}
-                      lastProcessingError={lastProcessingError}
-                      processingLogs={processingLogs}
-                      compact={isNativeIos}
-                    />
-                    <LanguageSwitcher />
+            <div className="app-shell-panel">
+              <div className="flex items-start gap-3">
+                <div className="app-shell-brand-mark">
+                  <Smartphone className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="app-shell-caption">{t("app.brandTitle")}</p>
+                      <h1 className="app-shell-title text-[1.15rem]">
+                        {t("app.brandTitle")}
+                      </h1>
+                      <p className="app-shell-subtitle text-sm text-gray-500">
+                        {t("app.subtitle")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <FeedbackDialog
+                        currentStep={currentStep}
+                        videoMetadata={videoMetadata}
+                        lastProcessingError={lastProcessingError}
+                        processingLogs={processingLogs}
+                        compact
+                      />
+                      <LanguageSwitcher />
+                    </div>
                   </div>
                 </div>
               </div>
+
+              <div
+                className="app-step-grid"
+                data-testid="app-stepper"
+                aria-label="Progress"
+              >
+                {steps.map((step) => (
+                  <div
+                    key={step.key}
+                    className={`app-step-pill ${
+                      step.state === "complete"
+                        ? "app-step-pill-complete"
+                        : step.state === "active"
+                          ? "app-step-pill-active"
+                          : "app-step-pill-pending"
+                    }`}
+                  >
+                    <div className="app-step-pill-icon">{step.icon}</div>
+                    <span className="app-step-pill-label">{step.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Progress Steps */}
-      <div
-        className={`px-4 bg-white border-b ${isNativeIos ? "py-4" : "py-6"}`}
-      >
-        <div className="flex items-center justify-between max-w-md mx-auto">
-          <div className="flex flex-col items-center gap-2 flex-1">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                currentStep === "upload"
-                  ? "bg-blue-500 text-white"
-                  : "bg-green-500 text-white"
-              }`}
-            >
-              {currentStep === "upload" ? (
-                <Upload className="w-5 h-5" />
-              ) : (
-                <Check className="w-5 h-5" />
-              )}
-            </div>
-            <span className="text-xs text-center">
-              {t("app.steps.selectVideo")}
-            </span>
-          </div>
-
-          <div
-            className={`h-0.5 flex-1 mx-2 ${
-              currentStep === "upload" ? "bg-gray-200" : "bg-green-500"
-            }`}
-          />
-
-          <div className="flex flex-col items-center gap-2 flex-1">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                currentStep === "upload"
-                  ? "bg-gray-200 text-gray-400"
-                  : currentStep === "processing"
-                    ? "bg-blue-500 text-white"
-                    : "bg-green-500 text-white"
-              }`}
-            >
-              {currentStep === "preview" ? (
-                <Check className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5" />
-              )}
-            </div>
-            <span className="text-xs text-center">
-              {t("app.steps.processing")}
-            </span>
-          </div>
-
-          <div
-            className={`h-0.5 flex-1 mx-2 ${
-              currentStep === "preview" ? "bg-green-500" : "bg-gray-200"
-            }`}
-          />
-
-          <div className="flex flex-col items-center gap-2 flex-1">
-            <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                currentStep === "preview"
-                  ? "bg-green-500 text-white"
-                  : "bg-gray-200 text-gray-400"
-              }`}
-            >
-              {currentStep === "preview" ? (
-                <Check className="w-5 h-5" />
-              ) : (
-                <Image className="w-5 h-5" />
-              )}
-            </div>
-            <span className="text-xs text-center">
-              {isNativeIos
-                ? t("app.steps.preview")
-                : t("app.steps.previewDownload")}
-            </span>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
       <div
-        className={`px-4 ${
-          currentStep === "preview" ? "pb-10 pt-5" : "py-6 pb-24"
-        }`}
+        className={`px-4 ${currentStep === "preview" ? "pb-10 pt-5" : "pb-24 pt-5"}`}
       >
         {currentStep === "upload" && (
           <VideoUpload

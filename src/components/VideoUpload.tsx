@@ -1,6 +1,14 @@
 import type { VideoSelectionSource } from "../lib/analytics-events";
 import { useRef, useState } from "react";
-import { Upload, Video, X, Play, Images, FolderOpen } from "lucide-react";
+import {
+  Upload,
+  Video,
+  X,
+  Play,
+  Images,
+  FolderOpen,
+  Sparkles,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -67,28 +75,38 @@ export function VideoUpload({
   };
 
   return (
-    <div className="max-w-md mx-auto space-y-4">
-      <Card className="p-6">
-        <h2 className="mb-4">{t("upload.title")}</h2>
+    <div className="mx-auto max-w-md space-y-4">
+      <Card
+        data-testid="upload-stage-card"
+        className="app-stage-card overflow-hidden"
+      >
+        <div className="app-stage-header">
+          <p className="app-stage-kicker">{t("upload.title")}</p>
+          <h2 className="app-stage-title">{t("app.title")}</h2>
+          <p className="app-stage-description">{t("app.subtitle")}</p>
+        </div>
 
         {!selectedVideo ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div
+              data-testid="upload-dropzone"
               onClick={() => fileInputRef.current?.click()}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
+              className={`app-upload-dropzone ${
                 isDragging
-                  ? "border-blue-500 bg-blue-50"
-                  : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50"
+                  ? "app-upload-dropzone-active"
+                  : "app-upload-dropzone-idle"
               }`}
             >
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Upload className="w-8 h-8 text-blue-600" />
+              <div className="app-upload-orb">
+                <Upload className="h-7 w-7 text-blue-600" />
               </div>
-              <p className="text-gray-600 mb-2">{t("upload.dragDrop")}</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-sm font-medium text-slate-700">
+                {t("upload.dragDrop")}
+              </p>
+              <p className="mt-2 text-xs text-slate-400">
                 {t("upload.supportFormat")}
               </p>
             </div>
@@ -98,7 +116,7 @@ export function VideoUpload({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12"
+                  className="h-12 rounded-2xl border-slate-200 bg-white/85"
                   disabled={isPickingNativeVideo}
                   onClick={() => void onPickFromPhotos?.()}
                 >
@@ -108,7 +126,7 @@ export function VideoUpload({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-12"
+                  className="h-12 rounded-2xl border-slate-200 bg-white/85"
                   disabled={isPickingNativeVideo}
                   onClick={() => void onPickFromFiles?.()}
                 >
@@ -117,30 +135,47 @@ export function VideoUpload({
                 </Button>
               </div>
             )}
+
+            <div className="app-guidance-grid">
+              <div className="app-guidance-chip">
+                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                <span>{t("upload.instructions.step1")}</span>
+              </div>
+              <div className="app-guidance-chip">
+                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                <span>{t("upload.instructions.step2")}</span>
+              </div>
+              <div className="app-guidance-chip">
+                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
+                <span>{t("upload.instructions.step3")}</span>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="relative bg-black rounded-2xl overflow-hidden">
+            <div className="app-media-frame relative">
               {videoPreviewUrl && (
                 <video
                   src={videoPreviewUrl}
                   controls
-                  className="w-full max-h-80 object-contain"
+                  className="w-full max-h-80 rounded-[1.4rem] object-contain"
                 />
               )}
               <button
                 onClick={handleClearVideo}
-                className="absolute top-3 right-3 w-8 h-8 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/80"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
-              <Video className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="app-inline-note items-start">
+              <Video className="mt-0.5 h-4.5 w-4.5 flex-shrink-0 text-blue-600" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm truncate">{selectedVideo.name}</p>
-                <p className="text-xs text-gray-500">
+                <p className="truncate text-sm font-medium text-slate-700">
+                  {selectedVideo.name}
+                </p>
+                <p className="text-xs text-slate-500">
                   {(selectedVideo.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
@@ -158,33 +193,26 @@ export function VideoUpload({
       </Card>
 
       {selectedVideo && (
-        <Button
-          onClick={onStartProcessing}
-          disabled={!isOpenCVReady}
-          className="w-full h-14 text-base bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        <div
+          data-testid="upload-action-tray"
+          className="app-actions-tray rounded-[28px] border border-white/70 bg-white/88 p-3 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur"
         >
-          {isOpenCVReady ? (
-            <>
-              <Play className="w-5 h-5 mr-2" />
-              {t("upload.startProcessing")}
-            </>
-          ) : (
-            t("upload.loadingResources")
-          )}
-        </Button>
+          <Button
+            onClick={onStartProcessing}
+            disabled={!isOpenCVReady}
+            className="h-14 w-full rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-base font-medium shadow-[0_16px_30px_-18px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isOpenCVReady ? (
+              <>
+                <Play className="mr-2 h-5 w-5" />
+                {t("upload.startProcessing")}
+              </>
+            ) : (
+              t("upload.loadingResources")
+            )}
+          </Button>
+        </div>
       )}
-
-      <Card className="p-4 bg-blue-50 border-blue-100">
-        <h3 className="text-sm mb-2 text-blue-900">
-          {t("upload.instructions.title")}
-        </h3>
-        <ul className="text-xs text-blue-700 space-y-1">
-          <li>• {t("upload.instructions.step1")}</li>
-          <li>• {t("upload.instructions.step2")}</li>
-          <li>• {t("upload.instructions.step3")}</li>
-          <li>• {t("upload.instructions.step4")}</li>
-        </ul>
-      </Card>
     </div>
   );
 }
