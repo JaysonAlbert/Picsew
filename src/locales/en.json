@@ -74,6 +74,11 @@
     "dragDrop": "Click to upload video",
     "dragDropActive": "Drop video here",
     "supportFormat": "Supports MP4, MOV, AVI, etc.",
+    "native": {
+      "fromPhotos": "Photos",
+      "fromFiles": "Files",
+      "failed": "We couldn't import that video. Please try again."
+    },
     "startProcessing": "Start Processing",
     "loadingResources": "Loading Resources...",
     "instructions": {
@@ -114,6 +119,7 @@
     },
     "actions": {
       "download": "Download Image",
+      "save": "Save to Photos",
       "share": "Share",
       "startOver": "Start Over"
     },
@@ -128,6 +134,10 @@
       "title": "Long Screenshot",
       "text": "Check out my long screenshot",
       "failed": "Share cancelled or failed"
+    },
+    "save": {
+      "success": "Saved to Photos.",
+      "failed": "Saving to Photos failed."
     }
   }
 }

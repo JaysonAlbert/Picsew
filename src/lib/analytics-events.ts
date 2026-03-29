@@ -17,7 +17,11 @@ export type AnalyticsEventName =
 export type AnalyticsPrimitive = string | number | boolean | null | undefined;
 export type AnalyticsEventParams = Record<string, AnalyticsPrimitive>;
 
-export type VideoSelectionSource = "picker" | "drop";
+export type VideoSelectionSource =
+  | "picker"
+  | "drop"
+  | "native_photos"
+  | "native_files";
 
 const fileSizeBucketThresholdsMb = [10, 25, 50, 100, 250, 500];
 const durationBucketThresholdsSec = [10, 30, 60, 120, 300];

@@ -3,49 +3,35 @@ import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { shareGeneratedImage, supportsImageSharing } from "../lib/native-media";
 
 interface PreviewViewProps {
   imageUrl: string;
-  onDownload: () => void;
+  onDownload: () => Promise<void> | void;
   onReset: () => void;
+  isNativeSave?: boolean;
 }
 
 export function PreviewView({
   imageUrl,
   onDownload,
   onReset,
+  isNativeSave = false,
 }: PreviewViewProps) {
   const { t } = useTranslation();
 
   const handleShare = async () => {
-    if (!navigator.share) {
-      // Fallback for browsers that don't support Web Share API
+    if (!supportsImageSharing()) {
       alert(t("preview.share.unsupported"));
       return;
     }
 
     try {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const file = new File([blob], "long-screenshot.png", {
-        type: "image/png",
+      await shareGeneratedImage(imageUrl, {
+        title: t("preview.share.title"),
+        text: t("preview.share.text"),
+        fileName: "long-screenshot.png",
       });
-      const files = [file];
-
-      if (navigator.canShare && navigator.canShare({ files })) {
-        await navigator.share({
-          files: files,
-          title: t("preview.share.title"),
-          text: t("preview.share.text"),
-        });
-      } else {
-        // Fallback for browsers that support Web Share API but not file sharing
-        await navigator.share({
-          title: t("preview.share.title"),
-          text: t("preview.share.text"),
-          url: imageUrl,
-        });
-      }
     } catch (err) {
       console.log(t("preview.share.failed"), err);
     }
@@ -91,10 +77,12 @@ export function PreviewView({
           className="h-14 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
         >
           <Download className="w-5 h-5 mr-2" />
-          {t("preview.actions.download")}
+          {isNativeSave
+            ? t("preview.actions.save")
+            : t("preview.actions.download")}
         </Button>
 
-        {navigator.share !== undefined && (
+        {supportsImageSharing() && (
           <Button onClick={handleShare} variant="outline" className="h-14">
             <Share2 className="w-5 h-5 mr-2" />
             {t("preview.actions.share")}

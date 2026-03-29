@@ -74,6 +74,11 @@
     "dragDrop": "点击上传视频",
     "dragDropActive": "松开上传视频",
     "supportFormat": "支持 MP4, MOV, AVI 等格式",
+    "native": {
+      "fromPhotos": "从相册选择",
+      "fromFiles": "从文件选择",
+      "failed": "导入视频失败，请重试。"
+    },
     "startProcessing": "开始处理",
     "loadingResources": "正在加载资源...",
     "instructions": {
@@ -114,6 +119,7 @@
     },
     "actions": {
       "download": "下载图片",
+      "save": "保存到相册",
       "share": "分享",
       "startOver": "重新开始"
     },
@@ -128,6 +134,10 @@
       "title": "长截图",
       "text": "查看我生成的长截图",
       "failed": "分享已取消或失败"
+    },
+    "save": {
+      "success": "已保存到相册。",
+      "failed": "保存到相册失败。"
     }
   }
 }
