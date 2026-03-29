@@ -46,6 +46,11 @@
     "trigger": "Feedback",
     "title": "Send Feedback",
     "description": "Tell us what went wrong or what would make Picsew more useful.",
+    "page": {
+      "kicker": "Support",
+      "description": "Share a bug, request, or processing issue. We will use the attached diagnostics to improve Picsew.",
+      "back": "Back"
+    },
     "submit": "Submit",
     "submitting": "Submitting...",
     "cancel": "Cancel",

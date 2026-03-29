@@ -5,6 +5,11 @@ import { AppUtilityMenu } from "./AppUtilityMenu";
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
     t: (key: string) => key,
+    i18n: {
+      language: "en",
+      resolvedLanguage: "en",
+      changeLanguage: () => undefined,
+    },
   }),
 }));
 
@@ -12,12 +17,9 @@ describe("AppUtilityMenu", () => {
   it("renders the compact utility button and sheet content when open", () => {
     const markup = renderToStaticMarkup(
       <AppUtilityMenu
-        currentStep="upload"
-        videoMetadata={{}}
-        lastProcessingError={null}
-        processingLogs={[]}
         open
         onOpenChange={() => undefined}
+        onOpenFeedbackPage={() => undefined}
       />,
     );
 

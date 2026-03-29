@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Smartphone } from "lucide-react";
+import { ChevronLeft, Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AppUtilityMenu } from "./components/AppUtilityMenu";
+import { FeedbackPage } from "./components/FeedbackPage";
 import { OnboardingDialog } from "./components/OnboardingDialog";
 import { VideoUpload } from "./components/VideoUpload";
 import { ProcessingView } from "./components/ProcessingView";
@@ -26,6 +27,7 @@ import {
 } from "./lib/native-media";
 
 type AppStep = "upload" | "processing" | "preview";
+type AppView = "main" | "feedback";
 type VideoMetadata = {
   durationSeconds?: number;
   width?: number;
@@ -38,6 +40,7 @@ export default function App() {
   const { t } = useTranslation();
   const isNativeIos = isNativeIosApp();
   const [currentStep, setCurrentStep] = useState<AppStep>("upload");
+  const [currentView, setCurrentView] = useState<AppView>("main");
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [processProgress, setProcessProgress] = useState(0);
@@ -60,8 +63,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    logPageView(`/${currentStep}`);
-  }, [currentStep]);
+    logPageView(currentView === "feedback" ? "/feedback" : `/${currentStep}`);
+  }, [currentStep, currentView]);
 
   useEffect(() => {
     if (currentStep === "preview" && generatedImage) {
@@ -153,6 +156,7 @@ export default function App() {
 
   const handleStartProcessing = async (): Promise<void> => {
     setIsUtilityMenuOpen(false);
+    setCurrentView("main");
     setCurrentStep("processing");
     setProcessProgress(0);
     setProcessingLogs([]);
@@ -219,6 +223,7 @@ export default function App() {
 
   const handleReset = () => {
     setIsUtilityMenuOpen(false);
+    setCurrentView("main");
     setCurrentStep("upload");
     setSelectedVideo(null);
     setVideoPreviewUrl(null);
@@ -277,6 +282,14 @@ export default function App() {
     }
   };
 
+  const handleOpenFeedbackPage = () => {
+    setIsUtilityMenuOpen(false);
+    setCurrentView("feedback");
+    trackEvent(ANALYTICS_EVENTS.feedbackOpened, {
+      feedback_stage: currentStep,
+    });
+  };
+
   return (
     <div
       className={`min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.16),_transparent_32%),linear-gradient(180deg,_#f8fafc_0%,_#ffffff_42%,_#f6f8fc_100%)] ${
@@ -291,25 +304,39 @@ export default function App() {
       <div className="ios-app-header">
         <div className="ios-safe-top px-4 pb-2 pt-2">
           <div className="mx-auto max-w-md">
-            <div className="app-utility-bar">
-              <div className="flex items-center gap-3">
-                <div className="app-utility-brand-mark">
-                  <Smartphone className="h-4.5 w-4.5 text-white" />
-                </div>
+            {currentView === "feedback" ? (
+              <div className="app-secondary-bar">
+                <button
+                  type="button"
+                  className="app-secondary-back"
+                  onClick={() => setCurrentView("main")}
+                >
+                  <ChevronLeft className="h-4.5 w-4.5" />
+                  <span>{t("feedback.page.back")}</span>
+                </button>
                 <div className="min-w-0 flex-1">
                   <p className="app-shell-caption">{t("app.brandTitle")}</p>
-                  <h1 className="app-utility-title">{t("app.brandTitle")}</h1>
+                  <h1 className="app-utility-title">{t("feedback.title")}</h1>
                 </div>
-                <AppUtilityMenu
-                  currentStep={currentStep}
-                  videoMetadata={videoMetadata}
-                  lastProcessingError={lastProcessingError}
-                  processingLogs={processingLogs}
-                  open={isUtilityMenuOpen}
-                  onOpenChange={setIsUtilityMenuOpen}
-                />
               </div>
-            </div>
+            ) : (
+              <div className="app-utility-bar">
+                <div className="flex items-center gap-3">
+                  <div className="app-utility-brand-mark">
+                    <Smartphone className="h-4.5 w-4.5 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="app-shell-caption">{t("app.brandTitle")}</p>
+                    <h1 className="app-utility-title">{t("app.brandTitle")}</h1>
+                  </div>
+                  <AppUtilityMenu
+                    open={isUtilityMenuOpen}
+                    onOpenChange={setIsUtilityMenuOpen}
+                    onOpenFeedbackPage={handleOpenFeedbackPage}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -318,7 +345,15 @@ export default function App() {
       <div
         className={`px-4 ${currentStep === "preview" ? "pb-10 pt-5" : "pb-24 pt-5"}`}
       >
-        {currentStep === "upload" && (
+        {currentView === "feedback" ? (
+          <FeedbackPage
+            currentStep={currentStep}
+            videoMetadata={videoMetadata}
+            lastProcessingError={lastProcessingError}
+            processingLogs={processingLogs}
+            onBack={() => setCurrentView("main")}
+          />
+        ) : currentStep === "upload" ? (
           <VideoUpload
             selectedVideo={selectedVideo}
             videoPreviewUrl={videoPreviewUrl}
@@ -334,15 +369,11 @@ export default function App() {
               handlePickNativeVideo("files", "native_files")
             }
           />
-        )}
-
-        {currentStep === "processing" && (
+        ) : currentStep === "processing" ? (
           <ProcessingView progress={processProgress} />
-        )}
-
-        {currentStep === "preview" && generatedImage && (
+        ) : (
           <PreviewView
-            imageUrl={generatedImage}
+            imageUrl={generatedImage!}
             onDownload={handleDownload}
             onReset={handleReset}
             isNativeSave={canUseNativePhotoSave()}
