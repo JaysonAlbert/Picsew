@@ -1,0 +1,5 @@
+// Shared committed iOS app identity and release metadata.
+PICSEW_APP_DISPLAY_NAME = Picsew
+PICSEW_BUNDLE_IDENTIFIER = top.ibotcloud.picsew
+PICSEW_MARKETING_VERSION = 1.0
+PICSEW_BUILD_NUMBER = 1
