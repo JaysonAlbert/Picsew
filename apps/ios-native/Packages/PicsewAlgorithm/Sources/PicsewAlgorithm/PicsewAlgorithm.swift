@@ -98,6 +98,14 @@ public struct PicsewKeyframeSelection: Sendable, Equatable {
     }
 }
 
+public struct PicsewFilteredKeyframes: Sendable, Equatable {
+    public let cleanIndices: [Int]
+
+    public init(cleanIndices: [Int]) {
+        self.cleanIndices = cleanIndices
+    }
+}
+
 public enum PicsewKeyframeSelectionError: Error, LocalizedError {
     case noFrames
     case invalidRefinedWindow
@@ -111,6 +119,20 @@ public enum PicsewKeyframeSelectionError: Error, LocalizedError {
             return "The refined window is outside the low-resolution frame bounds."
         case .mismatchedFrameDimensions:
             return "Low-resolution frame dimensions do not match."
+        }
+    }
+}
+
+public enum PicsewKeyframeFilteringError: Error, LocalizedError {
+    case invalidOutsideMask
+    case mismatchedFrameDimensions
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidOutsideMask:
+            return "The outside mask is invalid for keyframe filtering."
+        case .mismatchedFrameDimensions:
+            return "Low-resolution frame dimensions do not match for keyframe filtering."
         }
     }
 }
@@ -325,6 +347,7 @@ public struct PicsewScrollingWindowDetector: Sendable {
     }
 }
 
+
 public struct PicsewKeyframeSelector: Sendable {
     public let matchThreshold: Double
 
@@ -529,5 +552,96 @@ public struct PicsewKeyframeSelector: Sendable {
             let centered = Double(value) - mean
             return partialResult + centered * centered
         }
+    }
+}
+
+public struct PicsewKeyframeFilter: Sendable {
+    public let differenceThreshold: UInt8
+    public let outsideChangeThresholdPercent: Double
+
+    public init(
+        differenceThreshold: UInt8 = 30,
+        outsideChangeThresholdPercent: Double = 1
+    ) {
+        self.differenceThreshold = differenceThreshold
+        self.outsideChangeThresholdPercent = outsideChangeThresholdPercent
+    }
+
+    public func filter(
+        candidateIndices: [Int],
+        in batch: PicsewLowResolutionFrameBatch,
+        outsideMask: PicsewOutsideMask
+    ) throws -> PicsewFilteredKeyframes {
+        try filter(
+            candidateIndices: candidateIndices,
+            frames: batch.frames,
+            outsideMask: outsideMask
+        )
+    }
+
+    public func filter(
+        candidateIndices: [Int],
+        frames: [PicsewLowResolutionGrayFrame],
+        outsideMask: PicsewOutsideMask
+    ) throws -> PicsewFilteredKeyframes {
+        guard !candidateIndices.isEmpty else {
+            return PicsewFilteredKeyframes(cleanIndices: [])
+        }
+
+        guard let firstFrame = frames.first else {
+            return PicsewFilteredKeyframes(cleanIndices: [])
+        }
+
+        guard outsideMask.width == firstFrame.width,
+              outsideMask.height == firstFrame.height else {
+            throw PicsewKeyframeFilteringError.invalidOutsideMask
+        }
+
+        let lowResWidth = firstFrame.width
+        let lowResHeight = firstFrame.height
+        guard frames.allSatisfy({ $0.width == lowResWidth && $0.height == lowResHeight }) else {
+            throw PicsewKeyframeFilteringError.mismatchedFrameDimensions
+        }
+
+        let maskPixels = [UInt8](outsideMask.pixels)
+        let totalOutsidePixels = maskPixels.reduce(0) { partialResult, value in
+            partialResult + (value > 0 ? 1 : 0)
+        }
+
+        guard totalOutsidePixels > 0 else {
+            return PicsewFilteredKeyframes(cleanIndices: candidateIndices)
+        }
+
+        var cleanIndices = [candidateIndices[0]]
+
+        for index in 1..<candidateIndices.count {
+            let previousIndex = candidateIndices[index - 1]
+            let currentIndex = candidateIndices[index]
+            guard previousIndex < frames.count, currentIndex < frames.count else {
+                continue
+            }
+
+            let previousPixels = [UInt8](frames[previousIndex].pixels)
+            let currentPixels = [UInt8](frames[currentIndex].pixels)
+            var changedOutsidePixels = 0
+
+            for pixelIndex in 0..<maskPixels.count {
+                guard maskPixels[pixelIndex] > 0 else {
+                    continue
+                }
+
+                let difference = abs(Int(previousPixels[pixelIndex]) - Int(currentPixels[pixelIndex]))
+                if difference > Int(differenceThreshold) {
+                    changedOutsidePixels += 1
+                }
+            }
+
+            let outsideChangePercent = (Double(changedOutsidePixels) / Double(totalOutsidePixels)) * 100
+            if outsideChangePercent < outsideChangeThresholdPercent {
+                cleanIndices.append(currentIndex)
+            }
+        }
+
+        return PicsewFilteredKeyframes(cleanIndices: cleanIndices)
     }
 }
