@@ -248,6 +248,19 @@ test.describe("Picsew", () => {
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByText("Send Feedback")).toBeVisible();
 
+    const dialogPositioning = await page.evaluate(() => {
+      const overlay = document.querySelector('[data-slot="dialog-overlay"]');
+      const content = document.querySelector('[data-slot="dialog-content"]');
+
+      return {
+        overlayPosition: overlay ? getComputedStyle(overlay).position : null,
+        contentPosition: content ? getComputedStyle(content).position : null,
+      };
+    });
+
+    expect(dialogPositioning.overlayPosition).toBe("fixed");
+    expect(dialogPositioning.contentPosition).toBe("fixed");
+
     await page.getByRole("button", { name: /cancel/i }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
 
@@ -256,6 +269,24 @@ test.describe("Picsew", () => {
         message.includes("Function components cannot be given refs"),
       ),
     ).toHaveLength(0);
+  });
+
+  test("feedback dialog stays inside the viewport on mobile", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 400, height: 922 });
+    await mockAnalytics(page);
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /feedback/i }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+
+    const dialogBox = await dialog.boundingBox();
+    expect(dialogBox).not.toBeNull();
+    expect(dialogBox?.y ?? Number.POSITIVE_INFINITY).toBeLessThan(922);
+    expect((dialogBox?.y ?? 0) + (dialogBox?.height ?? 0)).toBeGreaterThan(0);
   });
 
   test("[video] demo.mp4: upload through processing to preview", async ({

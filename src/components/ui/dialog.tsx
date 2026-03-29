@@ -37,7 +37,7 @@ DialogClose.displayName = DialogPrimitive.Close.displayName;
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => {
+>(({ className, style, ...props }, ref) => {
   return (
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
@@ -46,6 +46,13 @@ const DialogOverlay = React.forwardRef<
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50",
         className,
       )}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 50,
+        backgroundColor: "rgb(0 0 0 / 0.5)",
+        ...style,
+      }}
       {...props}
     />
   );
@@ -55,7 +62,7 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => {
+>(({ className, children, style, ...props }, ref) => {
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -66,6 +73,25 @@ const DialogContent = React.forwardRef<
           "bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
           className,
         )}
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: "50%",
+          zIndex: 51,
+          width: "min(calc(100% - 2rem), 32rem)",
+          maxWidth: "32rem",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          transform: "translate(-50%, -50%)",
+          backgroundColor: "var(--background, #fff)",
+          color: "var(--foreground, #111827)",
+          border: "1px solid var(--border, rgba(0, 0, 0, 0.1))",
+          borderRadius: "0.75rem",
+          padding: "1.5rem",
+          boxShadow:
+            "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+          ...style,
+        }}
         {...props}
       >
         {children}
