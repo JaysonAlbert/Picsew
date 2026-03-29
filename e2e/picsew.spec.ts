@@ -9,6 +9,7 @@ const testVideoPath = path.join(repoRoot, "test-video.mp4");
 const runVideoE2E = process.env.PICSEW_VIDEO_E2E === "1";
 const videoE2ESkipReason =
   "Set PICSEW_VIDEO_E2E=1 and run with a codec-capable Chrome browser.";
+const onboardingStorageKey = "picsew:onboarding-seen:v1";
 const demoVideoExpectations = [
   {
     fileName: "demo.mp4",
@@ -223,16 +224,38 @@ async function runVideoProcessingTest(
 }
 
 test.describe("Picsew", () => {
-  test("home page shows upload flow", async ({ page }) => {
+  test("onboarding appears once and can be dismissed", async ({ page }) => {
     await page.goto("/");
+    await expect(page.getByTestId("app-onboarding")).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Long Screenshot Generator" }),
+      page.getByRole("heading", {
+        name: "Turn a screen recording into one long screenshot",
+      }),
     ).toBeVisible();
-    await expect(page.getByText("Upload Screen Recording")).toBeVisible();
-    await expect(page.getByText("Select Video")).toBeVisible();
+
+    await page.getByRole("button", { name: "Start" }).click();
+    await expect(page.getByTestId("app-onboarding")).toHaveCount(0);
+
+    await page.reload();
+    await expect(page.getByTestId("app-onboarding")).toHaveCount(0);
   });
 
-  test("feedback dialog opens from header trigger", async ({ page }) => {
+  test("home page shows simplified upload flow", async ({ page }) => {
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, "1");
+    }, onboardingStorageKey);
+
+    await page.goto("/");
+    await expect(page.getByRole("heading", { name: "Picsew" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Select a screen recording" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Everything is processed on your device."),
+    ).toBeVisible();
+  });
+
+  test("feedback dialog opens from utility menu", async ({ page }) => {
     const consoleErrors: string[] = [];
 
     page.on("console", (msg) => {
@@ -242,8 +265,12 @@ test.describe("Picsew", () => {
     });
 
     await mockAnalytics(page);
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, "1");
+    }, onboardingStorageKey);
     await page.goto("/");
 
+    await page.getByRole("button", { name: /open menu/i }).click();
     await page.getByRole("button", { name: /feedback/i }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByText("Send Feedback")).toBeVisible();
@@ -276,8 +303,12 @@ test.describe("Picsew", () => {
   }) => {
     await page.setViewportSize({ width: 400, height: 922 });
     await mockAnalytics(page);
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(storageKey, "1");
+    }, onboardingStorageKey);
     await page.goto("/");
 
+    await page.getByRole("button", { name: /open menu/i }).click();
     await page.getByRole("button", { name: /feedback/i }).click();
 
     const dialog = page.getByRole("dialog");

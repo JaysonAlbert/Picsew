@@ -1,10 +1,4 @@
-import {
-  Download,
-  RotateCcw,
-  Share2,
-  CheckCircle2,
-  Sparkles,
-} from "lucide-react";
+import { Download, RotateCcw, Share2, CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -51,21 +45,20 @@ export function PreviewView({
         className="app-stage-card overflow-hidden"
       >
         <div className="app-stage-header">
-          <div className="mb-1 flex items-center gap-2">
+          <p className="app-stage-kicker">{t("app.flow.step3")}</p>
+          <div className="preview-success-row">
             <div className="preview-status-orb bg-emerald-100 text-emerald-700">
               <CheckCircle2 className="h-4.5 w-4.5" />
             </div>
-            <span className="preview-badge bg-emerald-100 text-emerald-700">
-              {t("preview.complete.badge")}
-            </span>
-            <span className="preview-badge bg-slate-100 text-slate-600">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("preview.result.badge")}
-            </span>
+            <div>
+              <h2 className="preview-success-title">
+                {t("preview.complete.title")}
+              </h2>
+              <p className="preview-success-description">
+                {t("preview.complete.desc")}
+              </p>
+            </div>
           </div>
-          <p className="app-stage-kicker">{t("preview.result.eyebrow")}</p>
-          <h2 className="app-stage-title">{t("preview.result.title")}</h2>
-          <p className="app-stage-description">{t("preview.complete.desc")}</p>
         </div>
 
         <div className="preview-stage-surface">
@@ -78,11 +71,6 @@ export function PreviewView({
               />
             </div>
           </div>
-        </div>
-
-        <div className="app-inline-note mt-4">
-          <Sparkles className="h-4.5 w-4.5 flex-shrink-0 text-blue-500" />
-          <span>{t("preview.result.hint")}</span>
         </div>
       </Card>
 

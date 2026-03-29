@@ -28,20 +28,6 @@ export function ProcessingView({ progress }: ProcessingViewProps) {
 
   const stage = getProcessingStage();
   const StageIcon = stage.icon;
-  const milestones = [
-    {
-      label: t("processing.steps.analysis"),
-      complete: progress >= 30,
-    },
-    {
-      label: t("processing.steps.selection"),
-      complete: progress >= 70,
-    },
-    {
-      label: t("processing.steps.generation"),
-      complete: progress >= 100,
-    },
-  ];
 
   return (
     <div className="mx-auto max-w-md">
@@ -51,7 +37,7 @@ export function ProcessingView({ progress }: ProcessingViewProps) {
       >
         <div className="text-center">
           <div className="app-stage-header items-center text-center">
-            <p className="app-stage-kicker">{stage.text}</p>
+            <p className="app-stage-kicker">{t("app.flow.step2")}</p>
             <h2 className="app-stage-title">{t("processing.title")}</h2>
             <p className="app-stage-description">
               {t("processing.waitMessage")}
@@ -71,26 +57,9 @@ export function ProcessingView({ progress }: ProcessingViewProps) {
               <span className="text-slate-400">{progress}%</span>
             </div>
             <Progress value={progress} className="h-2.5" />
-          </div>
-
-          <div className="processing-milestones">
-            {milestones.map((milestone) => (
-              <div key={milestone.label} className="processing-milestone">
-                <div
-                  className={`processing-milestone-dot ${
-                    milestone.complete
-                      ? "processing-milestone-dot-complete"
-                      : "processing-milestone-dot-pending"
-                  }`}
-                />
-                <span>{milestone.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="app-inline-note mx-auto mt-4 max-w-[18rem] justify-center text-center">
-            <Film className="h-4.5 w-4.5 flex-shrink-0 text-blue-500" />
-            <span>{t("processing.stages.generating")}</span>
+            <p className="mt-3 text-sm text-slate-500">
+              {t("processing.keepOpen")}
+            </p>
           </div>
         </div>
       </Card>

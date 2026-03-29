@@ -3,6 +3,38 @@
     "title": "长截图生成器",
     "brandTitle": "Picsew",
     "subtitle": "录屏转长图工具",
+    "flow": {
+      "step1": "第 1 步 / 共 3 步",
+      "step2": "第 2 步 / 共 3 步",
+      "step3": "第 3 步 / 共 3 步"
+    },
+    "menu": {
+      "open": "打开菜单",
+      "title": "工具菜单",
+      "description": "反馈、语言和应用辅助功能都放在这里。"
+    },
+    "onboarding": {
+      "kicker": "使用方式",
+      "title": "把录屏快速变成一张长截图",
+      "subtitle": "Picsew 是一个很轻量的工具。了解一次流程，后面只需要导入、等待、保存。",
+      "stepLabel": "第 {{step}} 步，共 {{total}} 步",
+      "skip": "跳过",
+      "start": "开始使用",
+      "steps": {
+        "import": {
+          "title": "选择一段滚动录屏",
+          "description": "从相册或文件中导入带滚动内容的录屏视频。"
+        },
+        "stitch": {
+          "title": "在本地完成拼接",
+          "description": "Picsew 会识别滚动区域，并在你的设备上生成长截图。"
+        },
+        "save": {
+          "title": "保存或分享结果",
+          "description": "查看生成结果，然后保存到相册或直接分享。"
+        }
+      }
+    },
     "steps": {
       "selectVideo": "选择视频",
       "processing": "处理中",
@@ -73,9 +105,12 @@
   },
   "upload": {
     "title": "上传录屏视频",
+    "heroTitle": "选择一段录屏视频",
+    "heroDescription": "导入一段包含滚动内容的录屏，生成一张完整长截图。",
     "dragDrop": "点击上传视频",
     "dragDropActive": "松开上传视频",
     "supportFormat": "支持 MP4, MOV, AVI 等格式",
+    "localProcessingHint": "所有处理都在你的设备上完成。",
     "native": {
       "fromPhotos": "从相册选择",
       "fromFiles": "从文件选择",
@@ -92,7 +127,7 @@
     }
   },
   "processing": {
-    "title": "处理中",
+    "title": "正在生成长截图",
     "stages": {
       "preparing": "准备中...",
       "extracting": "提取视频帧...",
@@ -107,13 +142,14 @@
       "selection": "关键帧选择",
       "generation": "长截图生成"
     },
-    "waitMessage": "请稍候，处理时间取决于视频长度和内容复杂度"
+    "waitMessage": "请稍候，处理时间会受到视频长度和内容复杂度影响。",
+    "keepOpen": "生成过程中请保持当前页面开启。"
   },
   "preview": {
     "complete": {
       "badge": "已完成",
-      "title": "处理完成",
-      "desc": "长截图已生成，可以预览和下载"
+      "title": "长截图已生成",
+      "desc": "查看结果，然后保存或分享。"
     },
     "result": {
       "eyebrow": "结果",

@@ -9,13 +9,12 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("ProcessingView", () => {
-  it("renders the unified processing stage and milestones", () => {
+  it("renders the simplified processing stage", () => {
     const markup = renderToStaticMarkup(<ProcessingView progress={64} />);
 
     expect(markup).toContain('data-testid="processing-stage-card"');
+    expect(markup).toContain("app.flow.step2");
     expect(markup).toContain("processing.title");
-    expect(markup).toContain("processing.steps.analysis");
-    expect(markup).toContain("processing.steps.selection");
-    expect(markup).toContain("processing.steps.generation");
+    expect(markup).toContain("processing.keepOpen");
   });
 });

@@ -3,6 +3,38 @@
     "title": "Long Screenshot Generator",
     "brandTitle": "Picsew",
     "subtitle": "Screen Recording to Long Image Tool",
+    "flow": {
+      "step1": "Step 1 of 3",
+      "step2": "Step 2 of 3",
+      "step3": "Step 3 of 3"
+    },
+    "menu": {
+      "open": "Open menu",
+      "title": "Tools",
+      "description": "Feedback, language, and app utilities."
+    },
+    "onboarding": {
+      "kicker": "How it works",
+      "title": "Turn a screen recording into one long screenshot",
+      "subtitle": "Picsew is a quick one-task tool. Learn it once, then just import, wait, and save.",
+      "stepLabel": "Step {{step}} of {{total}}",
+      "skip": "Skip",
+      "start": "Start",
+      "steps": {
+        "import": {
+          "title": "Choose a scrolling recording",
+          "description": "Import a screen recording from Photos or Files."
+        },
+        "stitch": {
+          "title": "We stitch it locally",
+          "description": "Picsew analyzes the scrolling area and generates one long image on your device."
+        },
+        "save": {
+          "title": "Save or share the result",
+          "description": "Preview the finished screenshot, then save it to Photos or share it anywhere."
+        }
+      }
+    },
     "steps": {
       "selectVideo": "Select Video",
       "processing": "Processing",
@@ -73,9 +105,12 @@
   },
   "upload": {
     "title": "Upload Screen Recording",
+    "heroTitle": "Select a screen recording",
+    "heroDescription": "Import a scrolling screen recording to generate one long image.",
     "dragDrop": "Click to upload video",
     "dragDropActive": "Drop video here",
     "supportFormat": "Supports MP4, MOV, AVI, etc.",
+    "localProcessingHint": "Everything is processed on your device.",
     "native": {
       "fromPhotos": "Photos",
       "fromFiles": "Files",
@@ -92,7 +127,7 @@
     }
   },
   "processing": {
-    "title": "Processing",
+    "title": "Creating your long screenshot",
     "stages": {
       "preparing": "Preparing...",
       "extracting": "Extracting frames...",
@@ -107,13 +142,14 @@
       "selection": "Keyframe Selection",
       "generation": "Generation"
     },
-    "waitMessage": "Please wait, processing time depends on video length and complexity"
+    "waitMessage": "This usually takes a moment, depending on video length and complexity.",
+    "keepOpen": "Keep this screen open while we finish the image."
   },
   "preview": {
     "complete": {
       "badge": "Ready",
-      "title": "Processing Complete",
-      "desc": "Long screenshot generated, ready for preview and download"
+      "title": "Long screenshot ready",
+      "desc": "Review the result, then save or share it."
     },
     "result": {
       "eyebrow": "Result",
