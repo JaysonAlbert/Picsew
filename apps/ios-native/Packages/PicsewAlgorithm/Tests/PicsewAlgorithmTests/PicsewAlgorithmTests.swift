@@ -162,6 +162,68 @@ func sampleVideoKeyframeFiltering() async throws {
     #expect(!filtered.cleanIndices.isEmpty)
 }
 
+@Test("offset calculator returns known synthetic vertical offsets")
+func syntheticOffsetCalculation() throws {
+    let calculator = PicsewOffsetCalculator()
+    let refinedWindow = PicsewRect(x: 0, y: 0, width: 12, height: 18)
+
+    let frames = [
+        makeFullResolutionGradientFrame(width: 12, height: 18, shift: 0),
+        makeFullResolutionGradientFrame(width: 12, height: 18, shift: 3),
+        makeFullResolutionGradientFrame(width: 12, height: 18, shift: 6),
+    ]
+
+    let calculation = try calculator.calculate(
+        frames: frames,
+        refinedWindow: refinedWindow
+    )
+
+    #expect(calculation.offsets == [
+        PicsewStitchOffset(vOffset: 3, hOffset: 0),
+        PicsewStitchOffset(vOffset: 3, hOffset: 0),
+    ])
+    #expect(calculation.headerHeight == 0)
+    #expect(calculation.footerHeight == 0)
+    #expect(calculation.totalHeight == 24)
+}
+
+@Test("offset calculator returns stable offsets for the sample video")
+func sampleVideoOffsetCalculation() async throws {
+    let analyzer = PicsewMediaAnalyzer()
+    let detector = PicsewScrollingWindowDetector()
+    let selector = PicsewKeyframeSelector()
+    let filter = PicsewKeyframeFilter()
+    let calculator = PicsewOffsetCalculator()
+    let url = try sampleVideoURL()
+
+    let lowResBatch = try await analyzer.extractLowResolutionGrayFrames(from: url)
+    let detection = try detector.detect(in: lowResBatch)
+    let selection = try selector.selectCandidates(
+        in: lowResBatch,
+        refinedWindow: detection.refinedWindow
+    )
+    let filtered = try filter.filter(
+        candidateIndices: selection.candidateIndices,
+        in: lowResBatch,
+        outsideMask: detection.outsideMask
+    )
+    let fullResBatch = try await analyzer.extractFullResolutionGrayKeyframes(
+        from: url,
+        keyframeIndices: filtered.cleanIndices
+    )
+    let calculation = try calculator.calculate(
+        in: fullResBatch,
+        refinedWindow: detection.refinedWindow
+    )
+
+    #expect(calculation.offsets.count == max(0, filtered.cleanIndices.count - 1))
+    #expect(calculation.headerHeight == detection.refinedWindow.y)
+    #expect(calculation.footerHeight == max(0, fullResBatch.metadata.height - (detection.refinedWindow.y + detection.refinedWindow.height)))
+    #expect(calculation.offsets.allSatisfy { $0.vOffset >= 0 && $0.vOffset <= detection.refinedWindow.height })
+    #expect(calculation.offsets.allSatisfy { $0.hOffset == 0 })
+    #expect(calculation.totalHeight >= fullResBatch.metadata.height)
+}
+
 private func makeSyntheticFrame(
     width: Int,
     height: Int,
@@ -201,6 +263,35 @@ private func makeGradientFrame(
     }
 
     return PicsewLowResolutionGrayFrame(
+        index: shift,
+        timestampSeconds: Double(shift),
+        width: width,
+        height: height,
+        pixels: Data(pixels)
+    )
+}
+
+private func makeFullResolutionGradientFrame(
+    width: Int,
+    height: Int,
+    shift: Int
+) -> PicsewFullResolutionGrayFrame {
+    var pixels = Array(repeating: UInt8(0), count: width * height)
+
+    for row in 0..<height {
+        for column in 0..<width {
+            let sourceRow = row + shift
+            let hashedValue = (
+                (sourceRow * 73)
+                + (column * 29)
+                + (sourceRow * column * 3)
+                + (sourceRow * sourceRow)
+            ) % 251
+            pixels[row * width + column] = UInt8(hashedValue)
+        }
+    }
+
+    return PicsewFullResolutionGrayFrame(
         index: shift,
         timestampSeconds: Double(shift),
         width: width,
