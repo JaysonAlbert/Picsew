@@ -14,13 +14,22 @@ let package = Package(
             targets: ["PicsewAlgorithm"]
         ),
     ],
+    dependencies: [
+        .package(path: "../PicsewMedia"),
+    ],
     targets: [
         .target(
-            name: "PicsewAlgorithm"
+            name: "PicsewAlgorithm",
+            dependencies: [
+                .product(name: "PicsewMedia", package: "PicsewMedia"),
+            ]
         ),
         .testTarget(
             name: "PicsewAlgorithmTests",
-            dependencies: ["PicsewAlgorithm"]
+            dependencies: [
+                "PicsewAlgorithm",
+                .product(name: "PicsewMedia", package: "PicsewMedia"),
+            ]
         ),
     ]
 )

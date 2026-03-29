@@ -212,6 +212,10 @@ public struct PicsewMediaAnalyzer: Sendable {
         }
 
         context.interpolationQuality = .medium
+        // Match image-space orientation so downstream window detection lines up
+        // with the TypeScript/browser pipeline instead of a vertically flipped buffer.
+        context.translateBy(x: 0, y: CGFloat(height))
+        context.scaleBy(x: 1, y: -1)
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         guard let rawData = context.data else {
