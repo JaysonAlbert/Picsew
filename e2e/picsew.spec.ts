@@ -232,6 +232,32 @@ test.describe("Picsew", () => {
     await expect(page.getByText("Select Video")).toBeVisible();
   });
 
+  test("feedback dialog opens from header trigger", async ({ page }) => {
+    const consoleErrors: string[] = [];
+
+    page.on("console", (msg) => {
+      if (msg.type() === "error") {
+        consoleErrors.push(msg.text());
+      }
+    });
+
+    await mockAnalytics(page);
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /feedback/i }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByText("Send Feedback")).toBeVisible();
+
+    await page.getByRole("button", { name: /cancel/i }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    expect(
+      consoleErrors.filter((message) =>
+        message.includes("Function components cannot be given refs"),
+      ),
+    ).toHaveLength(0);
+  });
+
   test("[video] demo.mp4: upload through processing to preview", async ({
     page,
   }) => {
