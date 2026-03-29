@@ -43,3 +43,45 @@ All feature work, bug fixes, and meaningful product changes in this repository s
   3. Open a PR/MR.
   4. Enable auto-merge when the repository settings allow it.
 - If validation is not clean, Codex should stop before delivery and report the blocker clearly.
+
+## Branch Scope
+
+- Start new work from the latest `main`.
+- Keep each branch focused on one concern only:
+  - one feature
+  - one bug fix
+  - one infra or config cleanup
+- Do not mix unrelated UI, native config, analytics, and processing changes in the same delivery branch unless they are directly coupled.
+
+## Web And iOS Product Rule
+
+- Treat Picsew as one product with two surfaces: Web and iOS.
+- Shared product decisions should consider the full upload -> processing -> preview journey, not just one screen in isolation.
+- When changing shared mobile UI structure, review all three primary screens for consistency before handoff.
+
+## iOS Project Rules
+
+- The `ios/` directory is source code and should remain in git.
+- Build output, generated artifacts, and machine-local state should stay ignored.
+- Do not remove the iOS project from version control just because Capacitor generated the initial shell.
+- When changing iOS project configuration or native code, run a simulator build validation before handoff.
+
+## Local Config And Secrets
+
+- Never commit machine-local Apple signing data or other account-specific identifiers directly into shared project settings when a local config override can be used.
+- Prefer committed shared config plus ignored local override files.
+- Every ignored local config should have a committed example template when practical.
+- If Xcode writes local signing metadata back into `project.pbxproj`, move it into local config or revert it before merge.
+
+## UI Design Rules
+
+- Prefer one main stage card and one primary action area per screen.
+- Remove redundant helper cards before adding new ones.
+- Keep copy concise and let hierarchy do the work.
+- UI redesign work should document the intended shell, stage, and action structure before implementation.
+
+## Validation Additions
+
+- Shared UI changes should include the smallest useful regression test for the affected screen structure.
+- iOS project or signing changes should include an `xcodebuild` simulator verification when feasible.
+- If validation is skipped because a tool is unavailable, call that out explicitly in the handoff.
