@@ -20,6 +20,7 @@ import {
   canUseNativePhotoSave,
   canUseNativeVideoImport,
   isLikelyUserCancellation,
+  isNativeIosApp,
   pickNativeVideo,
   saveImageToPhotos,
 } from "./lib/native-media";
@@ -33,6 +34,7 @@ type VideoMetadata = {
 
 export default function App() {
   const { t } = useTranslation();
+  const isNativeIos = isNativeIosApp();
   const [currentStep, setCurrentStep] = useState<AppStep>("upload");
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
@@ -253,40 +255,55 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div
+      className={`min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 ${
+        isNativeIos ? "ios-app-shell" : ""
+      }`}
+    >
       <SEO
         title={t("app.title")}
         description={t("app.subtitle")}
         keywords="screenshot, stitching, long screenshot, video to image, picsew"
       />
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+      <div className="ios-app-header bg-white/95 border-b shadow-sm">
+        <div className="ios-safe-top px-4 pb-4 pt-3">
+          <div className="mx-auto max-w-md">
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-sm flex-shrink-0">
                 <Smartphone className="w-5 h-5 text-white" />
               </div>
-              <div>
-                <h1 className="text-lg">{t("app.title")}</h1>
-                <p className="text-xs text-gray-500">{t("app.subtitle")}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <h1 className="app-shell-title text-xl">
+                      {isNativeIos ? t("app.brandTitle") : t("app.title")}
+                    </h1>
+                    <p className="app-shell-subtitle text-sm text-gray-500">
+                      {t("app.subtitle")}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <FeedbackDialog
+                      currentStep={currentStep}
+                      videoMetadata={videoMetadata}
+                      lastProcessingError={lastProcessingError}
+                      processingLogs={processingLogs}
+                      compact={isNativeIos}
+                    />
+                    <LanguageSwitcher />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <FeedbackDialog
-                currentStep={currentStep}
-                videoMetadata={videoMetadata}
-                lastProcessingError={lastProcessingError}
-                processingLogs={processingLogs}
-              />
-              <LanguageSwitcher />
             </div>
           </div>
         </div>
       </div>
 
       {/* Progress Steps */}
-      <div className="px-4 py-6 bg-white border-b">
+      <div
+        className={`px-4 bg-white border-b ${isNativeIos ? "py-4" : "py-6"}`}
+      >
         <div className="flex items-center justify-between max-w-md mx-auto">
           <div className="flex flex-col items-center gap-2 flex-1">
             <div
@@ -355,14 +372,20 @@ export default function App() {
               )}
             </div>
             <span className="text-xs text-center">
-              {t("app.steps.previewDownload")}
+              {isNativeIos
+                ? t("app.steps.preview")
+                : t("app.steps.previewDownload")}
             </span>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="px-4 py-6 pb-24">
+      <div
+        className={`px-4 ${
+          currentStep === "preview" ? "pb-10 pt-5" : "py-6 pb-24"
+        }`}
+      >
         {currentStep === "upload" && (
           <VideoUpload
             selectedVideo={selectedVideo}

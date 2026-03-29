@@ -1,10 +1,12 @@
 {
   "app": {
     "title": "Long Screenshot Generator",
+    "brandTitle": "Picsew",
     "subtitle": "Screen Recording to Long Image Tool",
     "steps": {
       "selectVideo": "Select Video",
       "processing": "Processing",
+      "preview": "Preview",
       "previewDownload": "Preview & Download"
     }
   },
@@ -109,10 +111,13 @@
   },
   "preview": {
     "complete": {
+      "badge": "Ready",
       "title": "Processing Complete",
       "desc": "Long screenshot generated, ready for preview and download"
     },
     "result": {
+      "eyebrow": "Result",
+      "badge": "Scrollable Preview",
       "title": "Preview Result",
       "alt": "Generated long screenshot",
       "hint": "Long screenshot generated, swipe up to view full content"
@@ -122,12 +127,6 @@
       "save": "Save to Photos",
       "share": "Share",
       "startOver": "Start Over"
-    },
-    "tips": {
-      "title": "Tips",
-      "save": "Long press image to save to gallery",
-      "download": "Click download button to save locally",
-      "share": "Use share button to send to friends"
     },
     "share": {
       "unsupported": "Your browser does not support sharing.",

@@ -42,6 +42,7 @@ interface FeedbackDialogProps {
   videoMetadata: VideoMetadata;
   lastProcessingError: string | null;
   processingLogs: string[];
+  compact?: boolean;
 }
 
 const DEFAULT_CATEGORY: FeedbackCategory = "bug_report";
@@ -65,6 +66,7 @@ export function FeedbackDialog({
   videoMetadata,
   lastProcessingError,
   processingLogs,
+  compact = false,
 }: FeedbackDialogProps) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -189,9 +191,18 @@ export function FeedbackDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size={compact ? "icon" : "sm"}
+          className={compact ? "h-10 w-10 rounded-xl" : ""}
+          title={t("feedback.trigger")}
+        >
           <MessageSquareMore className="w-4 h-4" />
-          {t("feedback.trigger")}
+          {compact ? (
+            <span className="sr-only">{t("feedback.trigger")}</span>
+          ) : (
+            t("feedback.trigger")
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto">

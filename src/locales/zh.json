@@ -1,10 +1,12 @@
 {
   "app": {
     "title": "长截图生成器",
+    "brandTitle": "Picsew",
     "subtitle": "录屏转长图工具",
     "steps": {
       "selectVideo": "选择视频",
       "processing": "处理中",
+      "preview": "预览",
       "previewDownload": "预览下载"
     }
   },
@@ -109,10 +111,13 @@
   },
   "preview": {
     "complete": {
+      "badge": "已完成",
       "title": "处理完成",
       "desc": "长截图已生成，可以预览和下载"
     },
     "result": {
+      "eyebrow": "结果",
+      "badge": "可滚动预览",
       "title": "预览结果",
       "alt": "生成的长截图",
       "hint": "长截图已生成，向上滑动查看完整内容"
@@ -122,12 +127,6 @@
       "save": "保存到相册",
       "share": "分享",
       "startOver": "重新开始"
-    },
-    "tips": {
-      "title": "提示",
-      "save": "长按图片可以保存到相册",
-      "download": "点击下载按钮保存到本地",
-      "share": "可以通过分享按钮发送给好友"
     },
     "share": {
       "unsupported": "您的浏览器不支持分享功能",
