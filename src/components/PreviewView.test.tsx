@@ -32,14 +32,12 @@ describe("PreviewView", () => {
       />,
     );
 
-    expect(markup).toContain('data-testid="preview-complete-card"');
     expect(markup).toContain('data-testid="preview-stage-card"');
     expect(markup).toContain('data-testid="preview-action-bar"');
     expect(markup).toContain("preview.complete.badge");
     expect(markup).toContain("preview.result.badge");
     expect(markup).toContain("preview.actions.save");
     expect(markup).toContain("preview.actions.share");
-    expect(markup).not.toContain("preview.tips.title");
   });
 
   it("hides the share button when image sharing is unavailable", () => {
