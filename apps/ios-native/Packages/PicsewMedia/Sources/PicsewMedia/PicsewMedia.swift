@@ -101,10 +101,49 @@ public struct PicsewLowResolutionFrameBatch: Sendable, Equatable {
     }
 }
 
+public struct PicsewFullResolutionGrayFrame: Sendable, Equatable {
+    public let index: Int
+    public let timestampSeconds: Double
+    public let width: Int
+    public let height: Int
+    public let pixels: Data
+
+    public init(
+        index: Int,
+        timestampSeconds: Double,
+        width: Int,
+        height: Int,
+        pixels: Data
+    ) {
+        self.index = index
+        self.timestampSeconds = timestampSeconds
+        self.width = width
+        self.height = height
+        self.pixels = pixels
+    }
+}
+
+public struct PicsewFullResolutionKeyframeBatch: Sendable, Equatable {
+    public let metadata: PicsewVideoMetadata
+    public let keyframeIndices: [Int]
+    public let frames: [PicsewFullResolutionGrayFrame]
+
+    public init(
+        metadata: PicsewVideoMetadata,
+        keyframeIndices: [Int],
+        frames: [PicsewFullResolutionGrayFrame]
+    ) {
+        self.metadata = metadata
+        self.keyframeIndices = keyframeIndices
+        self.frames = frames
+    }
+}
+
 public enum PicsewMediaError: Error, LocalizedError {
     case missingVideoTrack
     case invalidImageContext
     case failedToReadFrame(Double)
+    case invalidFrameIndex(Int)
 
     public var errorDescription: String? {
         switch self {
@@ -114,6 +153,8 @@ public enum PicsewMediaError: Error, LocalizedError {
             return "Unable to create a grayscale rendering context."
         case let .failedToReadFrame(timestamp):
             return "Unable to read a frame at \(timestamp) seconds."
+        case let .invalidFrameIndex(index):
+            return "The requested frame index \(index) is invalid."
         }
     }
 }
@@ -180,6 +221,40 @@ public struct PicsewMediaAnalyzer: Sendable {
         return PicsewLowResolutionFrameBatch(metadata: metadata, frames: frames)
     }
 
+    public func extractFullResolutionGrayKeyframes(
+        from url: URL,
+        keyframeIndices: [Int],
+        request: PicsewFrameExtractionRequest = .referenceBaseline
+    ) async throws -> PicsewFullResolutionKeyframeBatch {
+        let metadata = try await loadMetadata(from: url, request: request)
+        let asset = AVURLAsset(url: url)
+        let imageGenerator = AVAssetImageGenerator(asset: asset)
+        imageGenerator.appliesPreferredTrackTransform = true
+        imageGenerator.requestedTimeToleranceBefore = .zero
+        imageGenerator.requestedTimeToleranceAfter = .zero
+
+        let frames = try keyframeIndices.map { frameIndex in
+            guard frameIndex >= 0 else {
+                throw PicsewMediaError.invalidFrameIndex(frameIndex)
+            }
+
+            let timestampSeconds = Double(frameIndex) * metadata.frameIntervalSeconds
+            let time = CMTime(seconds: timestampSeconds, preferredTimescale: 600)
+            let cgImage = try imageGenerator.copyCGImage(at: time, actualTime: nil)
+            return try makeFullResolutionGrayFrame(
+                from: cgImage,
+                index: frameIndex,
+                timestampSeconds: timestampSeconds
+            )
+        }
+
+        return PicsewFullResolutionKeyframeBatch(
+            metadata: metadata,
+            keyframeIndices: keyframeIndices,
+            frames: frames
+        )
+    }
+
     private func loadVideoTrack(from asset: AVAsset) async throws -> AVAssetTrack {
         let tracks = try await asset.loadTracks(withMediaType: .video)
         guard let videoTrack = tracks.first else {
@@ -194,6 +269,44 @@ public struct PicsewMediaAnalyzer: Sendable {
         timestampSeconds: Double,
         resizeScale: Double
     ) throws -> PicsewLowResolutionGrayFrame {
+        let raster = try makeGrayRaster(
+            from: image,
+            timestampSeconds: timestampSeconds,
+            resizeScale: resizeScale
+        )
+        return PicsewLowResolutionGrayFrame(
+            index: index,
+            timestampSeconds: timestampSeconds,
+            width: raster.width,
+            height: raster.height,
+            pixels: raster.pixels
+        )
+    }
+
+    private func makeFullResolutionGrayFrame(
+        from image: CGImage,
+        index: Int,
+        timestampSeconds: Double
+    ) throws -> PicsewFullResolutionGrayFrame {
+        let raster = try makeGrayRaster(
+            from: image,
+            timestampSeconds: timestampSeconds,
+            resizeScale: 1
+        )
+        return PicsewFullResolutionGrayFrame(
+            index: index,
+            timestampSeconds: timestampSeconds,
+            width: raster.width,
+            height: raster.height,
+            pixels: raster.pixels
+        )
+    }
+
+    private func makeGrayRaster(
+        from image: CGImage,
+        timestampSeconds: Double,
+        resizeScale: Double
+    ) throws -> (width: Int, height: Int, pixels: Data) {
         let width = max(1, Int((Double(image.width) * resizeScale).rounded()))
         let height = max(1, Int((Double(image.height) * resizeScale).rounded()))
         let bytesPerRow = width
@@ -212,8 +325,8 @@ public struct PicsewMediaAnalyzer: Sendable {
         }
 
         context.interpolationQuality = .medium
-        // Match image-space orientation so downstream window detection lines up
-        // with the TypeScript/browser pipeline instead of a vertically flipped buffer.
+        // Match image-space orientation so downstream analysis lines up with
+        // the browser pipeline instead of a vertically flipped buffer.
         context.translateBy(x: 0, y: CGFloat(height))
         context.scaleBy(x: 1, y: -1)
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
@@ -223,12 +336,6 @@ public struct PicsewMediaAnalyzer: Sendable {
         }
 
         let pixels = Data(bytes: rawData, count: bytesPerRow * height)
-        return PicsewLowResolutionGrayFrame(
-            index: index,
-            timestampSeconds: timestampSeconds,
-            width: width,
-            height: height,
-            pixels: pixels
-        )
+        return (width, height, pixels)
     }
 }

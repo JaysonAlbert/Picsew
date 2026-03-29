@@ -106,6 +106,35 @@ public struct PicsewFilteredKeyframes: Sendable, Equatable {
     }
 }
 
+public struct PicsewStitchOffset: Sendable, Equatable {
+    public let vOffset: Int
+    public let hOffset: Int
+
+    public init(vOffset: Int, hOffset: Int) {
+        self.vOffset = vOffset
+        self.hOffset = hOffset
+    }
+}
+
+public struct PicsewOffsetCalculation: Sendable, Equatable {
+    public let offsets: [PicsewStitchOffset]
+    public let headerHeight: Int
+    public let footerHeight: Int
+    public let totalHeight: Int
+
+    public init(
+        offsets: [PicsewStitchOffset],
+        headerHeight: Int,
+        footerHeight: Int,
+        totalHeight: Int
+    ) {
+        self.offsets = offsets
+        self.headerHeight = headerHeight
+        self.footerHeight = footerHeight
+        self.totalHeight = totalHeight
+    }
+}
+
 public enum PicsewKeyframeSelectionError: Error, LocalizedError {
     case noFrames
     case invalidRefinedWindow
@@ -133,6 +162,23 @@ public enum PicsewKeyframeFilteringError: Error, LocalizedError {
             return "The outside mask is invalid for keyframe filtering."
         case .mismatchedFrameDimensions:
             return "Low-resolution frame dimensions do not match for keyframe filtering."
+        }
+    }
+}
+
+public enum PicsewOffsetCalculationError: Error, LocalizedError {
+    case noFrames
+    case invalidRefinedWindow
+    case mismatchedFrameDimensions
+
+    public var errorDescription: String? {
+        switch self {
+        case .noFrames:
+            return "No full-resolution keyframes were provided for offset calculation."
+        case .invalidRefinedWindow:
+            return "The refined window is outside the full-resolution frame bounds."
+        case .mismatchedFrameDimensions:
+            return "Full-resolution keyframe dimensions do not match."
         }
     }
 }
@@ -643,5 +689,219 @@ public struct PicsewKeyframeFilter: Sendable {
         }
 
         return PicsewFilteredKeyframes(cleanIndices: cleanIndices)
+    }
+}
+
+public struct PicsewOffsetCalculator: Sendable {
+    public init() {}
+
+    public func calculate(
+        in batch: PicsewFullResolutionKeyframeBatch,
+        refinedWindow: PicsewRect
+    ) throws -> PicsewOffsetCalculation {
+        try calculate(frames: batch.frames, refinedWindow: refinedWindow)
+    }
+
+    public func calculate(
+        frames: [PicsewFullResolutionGrayFrame],
+        refinedWindow: PicsewRect
+    ) throws -> PicsewOffsetCalculation {
+        guard let firstFrame = frames.first else {
+            throw PicsewOffsetCalculationError.noFrames
+        }
+
+        let frameWidth = firstFrame.width
+        let frameHeight = firstFrame.height
+        guard frames.allSatisfy({ $0.width == frameWidth && $0.height == frameHeight }) else {
+            throw PicsewOffsetCalculationError.mismatchedFrameDimensions
+        }
+
+        let x = refinedWindow.x
+        let y = refinedWindow.y
+        let width = refinedWindow.width
+        let height = refinedWindow.height
+
+        guard x >= 0, y >= 0, width > 0, height > 0,
+              x + width <= frameWidth,
+              y + height <= frameHeight else {
+            throw PicsewOffsetCalculationError.invalidRefinedWindow
+        }
+
+        let headerHeight = y
+        let footerHeight = max(0, frameHeight - (y + height))
+        let templateHeight = max(1, height / 3)
+        var offsets = [PicsewStitchOffset]()
+        offsets.reserveCapacity(max(0, frames.count - 1))
+
+        for index in 1..<frames.count {
+            let previousWindow = extractRegion(
+                from: frames[index - 1],
+                x: x,
+                y: y,
+                width: width,
+                height: height
+            )
+            let currentWindow = extractRegion(
+                from: frames[index],
+                x: x,
+                y: y,
+                width: width,
+                height: height
+            )
+
+            let templateYStart = max(0, height - templateHeight)
+            let template = extractRegion(
+                pixels: previousWindow,
+                frameWidth: width,
+                x: 0,
+                y: templateYStart,
+                width: width,
+                height: templateHeight
+            )
+
+            let match = bestTemplateMatch(
+                template: template,
+                templateWidth: width,
+                templateHeight: templateHeight,
+                searchRegion: currentWindow,
+                searchWidth: width,
+                searchHeight: height
+            )
+
+            let vOffset = height - templateHeight - match.y
+            offsets.append(
+                PicsewStitchOffset(
+                    vOffset: vOffset,
+                    hOffset: match.x
+                )
+            )
+        }
+
+        let totalHeight = headerHeight + height + footerHeight + offsets.reduce(0) { partialResult, offset in
+            partialResult + max(0, offset.vOffset)
+        }
+
+        return PicsewOffsetCalculation(
+            offsets: offsets,
+            headerHeight: headerHeight,
+            footerHeight: footerHeight,
+            totalHeight: totalHeight
+        )
+    }
+
+    private func extractRegion(
+        from frame: PicsewFullResolutionGrayFrame,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int
+    ) -> [UInt8] {
+        extractRegion(
+            pixels: [UInt8](frame.pixels),
+            frameWidth: frame.width,
+            x: x,
+            y: y,
+            width: width,
+            height: height
+        )
+    }
+
+    private func extractRegion(
+        pixels: [UInt8],
+        frameWidth: Int,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int
+    ) -> [UInt8] {
+        var region = Array<UInt8>()
+        region.reserveCapacity(width * height)
+
+        for row in y..<(y + height) {
+            let rowStart = row * frameWidth
+            region.append(contentsOf: pixels[(rowStart + x)..<(rowStart + x + width)])
+        }
+
+        return region
+    }
+
+    private func bestTemplateMatch(
+        template: [UInt8],
+        templateWidth: Int,
+        templateHeight: Int,
+        searchRegion: [UInt8],
+        searchWidth: Int,
+        searchHeight: Int
+    ) -> (x: Int, y: Int, score: Double) {
+        let maxX = searchWidth - templateWidth
+        let maxY = searchHeight - templateHeight
+        precondition(maxX >= 0 && maxY >= 0, "Search region must contain the template")
+
+        let templateMean = mean(of: template)
+        let templateVariance = variance(of: template, mean: templateMean)
+        guard templateVariance > 0 else {
+            return (0, 0, 0)
+        }
+
+        var bestScore = -Double.infinity
+        var bestX = 0
+        var bestY = 0
+
+        for offsetY in 0...maxY {
+            for offsetX in 0...maxX {
+                let window = extractRegion(
+                    pixels: searchRegion,
+                    frameWidth: searchWidth,
+                    x: offsetX,
+                    y: offsetY,
+                    width: templateWidth,
+                    height: templateHeight
+                )
+                let windowMean = mean(of: window)
+                let windowVariance = variance(of: window, mean: windowMean)
+                guard windowVariance > 0 else {
+                    continue
+                }
+
+                var numerator = 0.0
+                for index in 0..<template.count {
+                    numerator += (Double(template[index]) - templateMean) * (Double(window[index]) - windowMean)
+                }
+
+                let denominator = sqrt(templateVariance * windowVariance)
+                guard denominator > 0 else {
+                    continue
+                }
+
+                let score = numerator / denominator
+                if score > bestScore {
+                    bestScore = score
+                    bestX = offsetX
+                    bestY = offsetY
+                }
+            }
+        }
+
+        if !bestScore.isFinite {
+            return (0, 0, 0)
+        }
+
+        return (bestX, bestY, bestScore)
+    }
+
+    private func mean(of values: [UInt8]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let sum = values.reduce(0.0) { partialResult, value in
+            partialResult + Double(value)
+        }
+        return sum / Double(values.count)
+    }
+
+    private func variance(of values: [UInt8], mean: Double) -> Double {
+        guard !values.isEmpty else { return 0 }
+        return values.reduce(0.0) { partialResult, value in
+            let centered = Double(value) - mean
+            return partialResult + centered * centered
+        }
     }
 }
