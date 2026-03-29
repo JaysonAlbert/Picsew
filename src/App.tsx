@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Upload, Image, Play, Check, Smartphone } from "lucide-react";
+import { Smartphone } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { FeedbackDialog } from "./components/FeedbackDialog";
+import { AppUtilityMenu } from "./components/AppUtilityMenu";
+import { OnboardingDialog } from "./components/OnboardingDialog";
 import { VideoUpload } from "./components/VideoUpload";
 import { ProcessingView } from "./components/ProcessingView";
 import { PreviewView } from "./components/PreviewView";
-import { LanguageSwitcher } from "./components/LanguageSwitcher";
 import { processVideo as picsewProcessVideo } from "./lib/picsew";
 import { initGA, logPageView, trackEvent } from "./lib/analytics";
 import {
@@ -32,6 +32,8 @@ type VideoMetadata = {
   height?: number;
 };
 
+const ONBOARDING_STORAGE_KEY = "picsew:onboarding-seen:v1";
+
 export default function App() {
   const { t } = useTranslation();
   const isNativeIos = isNativeIosApp();
@@ -47,51 +49,11 @@ export default function App() {
     null,
   );
   const [isPickingNativeVideo, setIsPickingNativeVideo] = useState(false);
+  const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const steps = [
-    {
-      key: "upload",
-      label: t("app.steps.selectVideo"),
-      icon:
-        currentStep === "upload" ? (
-          <Upload className="h-4.5 w-4.5" />
-        ) : (
-          <Check className="h-4.5 w-4.5" />
-        ),
-      state: currentStep === "upload" ? "active" : "complete",
-    },
-    {
-      key: "processing",
-      label: t("app.steps.processing"),
-      icon:
-        currentStep === "preview" ? (
-          <Check className="h-4.5 w-4.5" />
-        ) : (
-          <Play className="h-4.5 w-4.5" />
-        ),
-      state:
-        currentStep === "upload"
-          ? "pending"
-          : currentStep === "processing"
-            ? "active"
-            : "complete",
-    },
-    {
-      key: "preview",
-      label: isNativeIos
-        ? t("app.steps.preview")
-        : t("app.steps.previewDownload"),
-      icon:
-        currentStep === "preview" ? (
-          <Check className="h-4.5 w-4.5" />
-        ) : (
-          <Image className="h-4.5 w-4.5" />
-        ),
-      state: currentStep === "preview" ? "active" : "pending",
-    },
-  ] as const;
 
   useEffect(() => {
     initGA();
@@ -157,6 +119,23 @@ export default function App() {
     loadOpenCV();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!window.localStorage.getItem(ONBOARDING_STORAGE_KEY)) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
+  const dismissOnboarding = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "1");
+    }
+    setShowOnboarding(false);
+  };
+
   const handleVideoSelect = (
     file: File | null,
     source: VideoSelectionSource = "picker",
@@ -173,6 +152,7 @@ export default function App() {
   };
 
   const handleStartProcessing = async (): Promise<void> => {
+    setIsUtilityMenuOpen(false);
     setCurrentStep("processing");
     setProcessProgress(0);
     setProcessingLogs([]);
@@ -238,6 +218,7 @@ export default function App() {
   };
 
   const handleReset = () => {
+    setIsUtilityMenuOpen(false);
     setCurrentStep("upload");
     setSelectedVideo(null);
     setVideoPreviewUrl(null);
@@ -308,58 +289,25 @@ export default function App() {
         keywords="screenshot, stitching, long screenshot, video to image, picsew"
       />
       <div className="ios-app-header">
-        <div className="ios-safe-top px-4 pb-3 pt-3">
+        <div className="ios-safe-top px-4 pb-2 pt-2">
           <div className="mx-auto max-w-md">
-            <div className="app-shell-panel">
-              <div className="flex items-start gap-3">
-                <div className="app-shell-brand-mark">
-                  <Smartphone className="w-5 h-5 text-white" />
+            <div className="app-utility-bar">
+              <div className="flex items-center gap-3">
+                <div className="app-utility-brand-mark">
+                  <Smartphone className="h-4.5 w-4.5 text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="app-shell-caption">{t("app.brandTitle")}</p>
-                      <h1 className="app-shell-title text-[1.15rem]">
-                        {t("app.brandTitle")}
-                      </h1>
-                      <p className="app-shell-subtitle text-sm text-gray-500">
-                        {t("app.subtitle")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <FeedbackDialog
-                        currentStep={currentStep}
-                        videoMetadata={videoMetadata}
-                        lastProcessingError={lastProcessingError}
-                        processingLogs={processingLogs}
-                        compact
-                      />
-                      <LanguageSwitcher />
-                    </div>
-                  </div>
+                  <p className="app-shell-caption">{t("app.brandTitle")}</p>
+                  <h1 className="app-utility-title">{t("app.brandTitle")}</h1>
                 </div>
-              </div>
-
-              <div
-                className="app-step-grid"
-                data-testid="app-stepper"
-                aria-label="Progress"
-              >
-                {steps.map((step) => (
-                  <div
-                    key={step.key}
-                    className={`app-step-pill ${
-                      step.state === "complete"
-                        ? "app-step-pill-complete"
-                        : step.state === "active"
-                          ? "app-step-pill-active"
-                          : "app-step-pill-pending"
-                    }`}
-                  >
-                    <div className="app-step-pill-icon">{step.icon}</div>
-                    <span className="app-step-pill-label">{step.label}</span>
-                  </div>
-                ))}
+                <AppUtilityMenu
+                  currentStep={currentStep}
+                  videoMetadata={videoMetadata}
+                  lastProcessingError={lastProcessingError}
+                  processingLogs={processingLogs}
+                  open={isUtilityMenuOpen}
+                  onOpenChange={setIsUtilityMenuOpen}
+                />
               </div>
             </div>
           </div>
@@ -411,6 +359,12 @@ export default function App() {
         preload="metadata"
       />
       <canvas ref={canvasRef} className="hidden" />
+
+      <OnboardingDialog
+        open={showOnboarding}
+        onSkip={dismissOnboarding}
+        onStart={dismissOnboarding}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { MessageSquareMore, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { trackEvent } from "../lib/analytics";
@@ -43,6 +43,8 @@ interface FeedbackDialogProps {
   lastProcessingError: string | null;
   processingLogs: string[];
   compact?: boolean;
+  triggerClassName?: string;
+  icon?: ReactNode;
 }
 
 const DEFAULT_CATEGORY: FeedbackCategory = "bug_report";
@@ -67,6 +69,8 @@ export function FeedbackDialog({
   lastProcessingError,
   processingLogs,
   compact = false,
+  triggerClassName = "",
+  icon,
 }: FeedbackDialogProps) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -194,10 +198,10 @@ export function FeedbackDialog({
         <Button
           variant="outline"
           size={compact ? "icon" : "sm"}
-          className={compact ? "h-10 w-10 rounded-xl" : ""}
+          className={`${compact ? "h-10 w-10 rounded-xl" : ""} ${triggerClassName}`.trim()}
           title={t("feedback.trigger")}
         >
-          <MessageSquareMore className="w-4 h-4" />
+          {icon ?? <MessageSquareMore className="w-4 h-4" />}
           {compact ? (
             <span className="sr-only">{t("feedback.trigger")}</span>
           ) : (

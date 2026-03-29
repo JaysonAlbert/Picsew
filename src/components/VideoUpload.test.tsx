@@ -9,7 +9,7 @@ vi.mock("react-i18next", () => ({
 }));
 
 describe("VideoUpload", () => {
-  it("renders the unified upload stage and guidance chips", () => {
+  it("renders the simplified upload stage and local processing note", () => {
     const markup = renderToStaticMarkup(
       <VideoUpload
         selectedVideo={null}
@@ -26,11 +26,12 @@ describe("VideoUpload", () => {
 
     expect(markup).toContain('data-testid="upload-stage-card"');
     expect(markup).toContain('data-testid="upload-dropzone"');
+    expect(markup).toContain("app.flow.step1");
+    expect(markup).toContain("upload.heroTitle");
+    expect(markup).toContain("upload.heroDescription");
     expect(markup).toContain("upload.native.fromPhotos");
     expect(markup).toContain("upload.native.fromFiles");
-    expect(markup).toContain("upload.instructions.step1");
-    expect(markup).toContain("upload.instructions.step2");
-    expect(markup).toContain("upload.instructions.step3");
+    expect(markup).toContain("upload.localProcessingHint");
   });
 
   it("shows the action tray when a video is selected", () => {

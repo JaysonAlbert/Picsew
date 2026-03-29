@@ -1,14 +1,6 @@
 import type { VideoSelectionSource } from "../lib/analytics-events";
 import { useRef, useState } from "react";
-import {
-  Upload,
-  Video,
-  X,
-  Play,
-  Images,
-  FolderOpen,
-  Sparkles,
-} from "lucide-react";
+import { Upload, Video, X, Play, Images, FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -81,9 +73,9 @@ export function VideoUpload({
         className="app-stage-card overflow-hidden"
       >
         <div className="app-stage-header">
-          <p className="app-stage-kicker">{t("upload.title")}</p>
-          <h2 className="app-stage-title">{t("app.title")}</h2>
-          <p className="app-stage-description">{t("app.subtitle")}</p>
+          <p className="app-stage-kicker">{t("app.flow.step1")}</p>
+          <h2 className="app-stage-title">{t("upload.heroTitle")}</h2>
+          <p className="app-stage-description">{t("upload.heroDescription")}</p>
         </div>
 
         {!selectedVideo ? (
@@ -135,20 +127,9 @@ export function VideoUpload({
                 </Button>
               </div>
             )}
-
-            <div className="app-guidance-grid">
-              <div className="app-guidance-chip">
-                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                <span>{t("upload.instructions.step1")}</span>
-              </div>
-              <div className="app-guidance-chip">
-                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                <span>{t("upload.instructions.step2")}</span>
-              </div>
-              <div className="app-guidance-chip">
-                <Sparkles className="h-3.5 w-3.5 text-blue-500" />
-                <span>{t("upload.instructions.step3")}</span>
-              </div>
+            <div className="app-inline-note">
+              <Video className="h-4.5 w-4.5 flex-shrink-0 text-blue-600" />
+              <span>{t("upload.localProcessingHint")}</span>
             </div>
           </div>
         ) : (
