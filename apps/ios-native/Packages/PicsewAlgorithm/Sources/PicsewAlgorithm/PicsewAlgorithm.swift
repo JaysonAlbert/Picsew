@@ -135,6 +135,20 @@ public struct PicsewOffsetCalculation: Sendable, Equatable {
     }
 }
 
+public struct PicsewStitchedImage: Sendable, Equatable {
+    public let width: Int
+    public let height: Int
+    public let bytesPerRow: Int
+    public let pixels: Data
+
+    public init(width: Int, height: Int, bytesPerRow: Int, pixels: Data) {
+        self.width = width
+        self.height = height
+        self.bytesPerRow = bytesPerRow
+        self.pixels = pixels
+    }
+}
+
 public enum PicsewKeyframeSelectionError: Error, LocalizedError {
     case noFrames
     case invalidRefinedWindow
@@ -179,6 +193,26 @@ public enum PicsewOffsetCalculationError: Error, LocalizedError {
             return "The refined window is outside the full-resolution frame bounds."
         case .mismatchedFrameDimensions:
             return "Full-resolution keyframe dimensions do not match."
+        }
+    }
+}
+
+public enum PicsewStitchingError: Error, LocalizedError {
+    case noFrames
+    case invalidRefinedWindow
+    case invalidOffsetCount
+    case mismatchedFrameDimensions
+
+    public var errorDescription: String? {
+        switch self {
+        case .noFrames:
+            return "No full-resolution color keyframes were provided for stitching."
+        case .invalidRefinedWindow:
+            return "The refined window is outside the full-resolution color frame bounds."
+        case .invalidOffsetCount:
+            return "The number of stitch offsets does not match the provided keyframes."
+        case .mismatchedFrameDimensions:
+            return "Full-resolution color keyframe dimensions do not match."
         }
     }
 }
@@ -902,6 +936,163 @@ public struct PicsewOffsetCalculator: Sendable {
         return values.reduce(0.0) { partialResult, value in
             let centered = Double(value) - mean
             return partialResult + centered * centered
+        }
+    }
+}
+
+public struct PicsewStitcher: Sendable {
+    private let bytesPerPixel = 4
+
+    public init() {}
+
+    public func stitch(
+        in batch: PicsewFullResolutionColorKeyframeBatch,
+        refinedWindow: PicsewRect,
+        offsets: PicsewOffsetCalculation
+    ) throws -> PicsewStitchedImage {
+        try stitch(frames: batch.frames, refinedWindow: refinedWindow, offsets: offsets)
+    }
+
+    public func stitch(
+        frames: [PicsewFullResolutionColorFrame],
+        refinedWindow: PicsewRect,
+        offsets: PicsewOffsetCalculation
+    ) throws -> PicsewStitchedImage {
+        guard let firstFrame = frames.first else {
+            throw PicsewStitchingError.noFrames
+        }
+
+        let frameWidth = firstFrame.width
+        let frameHeight = firstFrame.height
+        let frameBytesPerRow = firstFrame.bytesPerRow
+        guard frames.allSatisfy({
+            $0.width == frameWidth && $0.height == frameHeight && $0.bytesPerRow == frameBytesPerRow
+        }) else {
+            throw PicsewStitchingError.mismatchedFrameDimensions
+        }
+
+        let x = refinedWindow.x
+        let y = refinedWindow.y
+        let width = refinedWindow.width
+        let height = refinedWindow.height
+        guard x >= 0, y >= 0, width > 0, height > 0,
+              x + width <= frameWidth,
+              y + height <= frameHeight else {
+            throw PicsewStitchingError.invalidRefinedWindow
+        }
+
+        guard offsets.offsets.count == max(0, frames.count - 1) else {
+            throw PicsewStitchingError.invalidOffsetCount
+        }
+
+        let outputWidth = frameWidth
+        let outputHeight = offsets.totalHeight
+        let outputBytesPerRow = outputWidth * bytesPerPixel
+        var outputPixels = Array<UInt8>(
+            repeating: 0,
+            count: outputHeight * outputBytesPerRow
+        )
+
+        var currentY = 0
+
+        if offsets.headerHeight > 0 {
+            copyRegion(
+                sourcePixels: [UInt8](firstFrame.pixels),
+                sourceBytesPerRow: frameBytesPerRow,
+                sourceX: 0,
+                sourceY: 0,
+                width: frameWidth,
+                height: offsets.headerHeight,
+                destinationPixels: &outputPixels,
+                destinationBytesPerRow: outputBytesPerRow,
+                destinationX: 0,
+                destinationY: currentY
+            )
+            currentY += offsets.headerHeight
+        }
+
+        copyRegion(
+            sourcePixels: [UInt8](firstFrame.pixels),
+            sourceBytesPerRow: frameBytesPerRow,
+            sourceX: x,
+            sourceY: y,
+            width: width,
+            height: height,
+            destinationPixels: &outputPixels,
+            destinationBytesPerRow: outputBytesPerRow,
+            destinationX: x,
+            destinationY: currentY
+        )
+        currentY += height
+
+        for index in 0..<offsets.offsets.count {
+            let offset = offsets.offsets[index]
+            let frame = frames[index + 1]
+            let safeVOffset = max(0, min(offset.vOffset, height))
+            guard safeVOffset > 0 else { continue }
+
+            let sourceX = offset.hOffset < 0 ? min(-offset.hOffset, width) : 0
+            let targetX = max(0, offset.hOffset)
+            let copyWidth = min(width - sourceX, max(0, width - targetX))
+            guard copyWidth > 0 else { continue }
+
+            copyRegion(
+                sourcePixels: [UInt8](frame.pixels),
+                sourceBytesPerRow: frameBytesPerRow,
+                sourceX: x + sourceX,
+                sourceY: y + height - safeVOffset,
+                width: copyWidth,
+                height: safeVOffset,
+                destinationPixels: &outputPixels,
+                destinationBytesPerRow: outputBytesPerRow,
+                destinationX: x + targetX,
+                destinationY: currentY
+            )
+            currentY += safeVOffset
+        }
+
+        if offsets.footerHeight > 0, let lastFrame = frames.last {
+            copyRegion(
+                sourcePixels: [UInt8](lastFrame.pixels),
+                sourceBytesPerRow: frameBytesPerRow,
+                sourceX: 0,
+                sourceY: y + height,
+                width: frameWidth,
+                height: offsets.footerHeight,
+                destinationPixels: &outputPixels,
+                destinationBytesPerRow: outputBytesPerRow,
+                destinationX: 0,
+                destinationY: currentY
+            )
+        }
+
+        return PicsewStitchedImage(
+            width: outputWidth,
+            height: outputHeight,
+            bytesPerRow: outputBytesPerRow,
+            pixels: Data(outputPixels)
+        )
+    }
+
+    private func copyRegion(
+        sourcePixels: [UInt8],
+        sourceBytesPerRow: Int,
+        sourceX: Int,
+        sourceY: Int,
+        width: Int,
+        height: Int,
+        destinationPixels: inout [UInt8],
+        destinationBytesPerRow: Int,
+        destinationX: Int,
+        destinationY: Int
+    ) {
+        let byteWidth = width * bytesPerPixel
+
+        for row in 0..<height {
+            let sourceStart = ((sourceY + row) * sourceBytesPerRow) + (sourceX * bytesPerPixel)
+            let destinationStart = ((destinationY + row) * destinationBytesPerRow) + (destinationX * bytesPerPixel)
+            destinationPixels[destinationStart..<(destinationStart + byteWidth)] =
+                sourcePixels[sourceStart..<(sourceStart + byteWidth)]
         }
     }
 }

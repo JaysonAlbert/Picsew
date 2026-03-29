@@ -224,6 +224,103 @@ func sampleVideoOffsetCalculation() async throws {
     #expect(calculation.totalHeight >= fullResBatch.metadata.height)
 }
 
+@Test("stitcher preserves header body footer ordering for a synthetic sequence")
+func syntheticStitching() throws {
+    let stitcher = PicsewStitcher()
+    let refinedWindow = PicsewRect(x: 0, y: 1, width: 4, height: 4)
+    let offsets = PicsewOffsetCalculation(
+        offsets: [PicsewStitchOffset(vOffset: 2, hOffset: 0)],
+        headerHeight: 1,
+        footerHeight: 1,
+        totalHeight: 8
+    )
+
+    let frame0 = makeFullResolutionColorFrame(
+        width: 4,
+        rows: [
+            .red,
+            .green,
+            .blue,
+            .yellow,
+            .purple,
+            .white,
+        ]
+    )
+    let frame1 = makeFullResolutionColorFrame(
+        width: 4,
+        rows: [
+            .red,
+            .yellow,
+            .purple,
+            .orange,
+            .cyan,
+            .black,
+        ]
+    )
+
+    let stitched = try stitcher.stitch(
+        frames: [frame0, frame1],
+        refinedWindow: refinedWindow,
+        offsets: offsets
+    )
+
+    #expect(stitched.width == 4)
+    #expect(stitched.height == 8)
+    #expect(colorAt(x: 0, y: 0, image: stitched) == .red)
+    #expect(colorAt(x: 0, y: 1, image: stitched) == .green)
+    #expect(colorAt(x: 0, y: 2, image: stitched) == .blue)
+    #expect(colorAt(x: 0, y: 3, image: stitched) == .yellow)
+    #expect(colorAt(x: 0, y: 4, image: stitched) == .purple)
+    #expect(colorAt(x: 0, y: 5, image: stitched) == .orange)
+    #expect(colorAt(x: 0, y: 6, image: stitched) == .cyan)
+    #expect(colorAt(x: 0, y: 7, image: stitched) == .black)
+}
+
+@Test("stitcher returns stable rgba output for the sample video")
+func sampleVideoStitching() async throws {
+    let analyzer = PicsewMediaAnalyzer()
+    let detector = PicsewScrollingWindowDetector()
+    let selector = PicsewKeyframeSelector()
+    let filter = PicsewKeyframeFilter()
+    let offsetCalculator = PicsewOffsetCalculator()
+    let stitcher = PicsewStitcher()
+    let url = try sampleVideoURL()
+
+    let lowResBatch = try await analyzer.extractLowResolutionGrayFrames(from: url)
+    let detection = try detector.detect(in: lowResBatch)
+    let selection = try selector.selectCandidates(
+        in: lowResBatch,
+        refinedWindow: detection.refinedWindow
+    )
+    let filtered = try filter.filter(
+        candidateIndices: selection.candidateIndices,
+        in: lowResBatch,
+        outsideMask: detection.outsideMask
+    )
+    let grayBatch = try await analyzer.extractFullResolutionGrayKeyframes(
+        from: url,
+        keyframeIndices: filtered.cleanIndices
+    )
+    let colorBatch = try await analyzer.extractFullResolutionColorKeyframes(
+        from: url,
+        keyframeIndices: filtered.cleanIndices
+    )
+    let offsetCalculation = try offsetCalculator.calculate(
+        in: grayBatch,
+        refinedWindow: detection.refinedWindow
+    )
+    let stitched = try stitcher.stitch(
+        in: colorBatch,
+        refinedWindow: detection.refinedWindow,
+        offsets: offsetCalculation
+    )
+
+    #expect(stitched.width == colorBatch.metadata.width)
+    #expect(stitched.height == offsetCalculation.totalHeight)
+    #expect(stitched.bytesPerRow == stitched.width * 4)
+    #expect(stitched.pixels.count == stitched.bytesPerRow * stitched.height)
+}
+
 private func makeSyntheticFrame(
     width: Int,
     height: Int,
@@ -300,6 +397,34 @@ private func makeFullResolutionGradientFrame(
     )
 }
 
+private func makeFullResolutionColorFrame(
+    width: Int,
+    rows: [RGBA]
+) -> PicsewFullResolutionColorFrame {
+    let height = rows.count
+    var pixels = Array<UInt8>(repeating: 0, count: width * height * 4)
+
+    for row in 0..<height {
+        for column in 0..<width {
+            let offset = ((row * width) + column) * 4
+            let color = rows[row]
+            pixels[offset] = color.r
+            pixels[offset + 1] = color.g
+            pixels[offset + 2] = color.b
+            pixels[offset + 3] = color.a
+        }
+    }
+
+    return PicsewFullResolutionColorFrame(
+        index: 0,
+        timestampSeconds: 0,
+        width: width,
+        height: height,
+        bytesPerRow: width * 4,
+        pixels: Data(pixels)
+    )
+}
+
 private func makeBinaryFrame(
     width: Int,
     height: Int,
@@ -360,5 +485,33 @@ private func sampleVideoURL(filePath: String = #filePath) throws -> URL {
         domain: "PicsewAlgorithmTests",
         code: 1,
         userInfo: [NSLocalizedDescriptionKey: "Could not locate test-video.mp4 from test bundle path."]
+    )
+}
+
+private struct RGBA: Equatable {
+    let r: UInt8
+    let g: UInt8
+    let b: UInt8
+    let a: UInt8
+
+    static let red = RGBA(r: 255, g: 0, b: 0, a: 255)
+    static let green = RGBA(r: 0, g: 255, b: 0, a: 255)
+    static let blue = RGBA(r: 0, g: 0, b: 255, a: 255)
+    static let yellow = RGBA(r: 255, g: 255, b: 0, a: 255)
+    static let purple = RGBA(r: 128, g: 0, b: 128, a: 255)
+    static let white = RGBA(r: 255, g: 255, b: 255, a: 255)
+    static let orange = RGBA(r: 255, g: 128, b: 0, a: 255)
+    static let cyan = RGBA(r: 0, g: 255, b: 255, a: 255)
+    static let black = RGBA(r: 0, g: 0, b: 0, a: 255)
+}
+
+private func colorAt(x: Int, y: Int, image: PicsewStitchedImage) -> RGBA {
+    let pixels = [UInt8](image.pixels)
+    let offset = (y * image.bytesPerRow) + (x * 4)
+    return RGBA(
+        r: pixels[offset],
+        g: pixels[offset + 1],
+        b: pixels[offset + 2],
+        a: pixels[offset + 3]
     )
 }
