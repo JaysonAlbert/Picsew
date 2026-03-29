@@ -381,7 +381,11 @@ export default function App() {
       </div>
 
       {/* Main Content */}
-      <div className="px-4 py-6 pb-24">
+      <div
+        className={`px-4 ${
+          currentStep === "preview" ? "pb-10 pt-5" : "py-6 pb-24"
+        }`}
+      >
         {currentStep === "upload" && (
           <VideoUpload
             selectedVideo={selectedVideo}
