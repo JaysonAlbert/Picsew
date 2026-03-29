@@ -16,6 +16,13 @@ import {
   type VideoSelectionSource,
 } from "./lib/analytics-events";
 import SEO from "./components/SEO";
+import {
+  canUseNativePhotoSave,
+  canUseNativeVideoImport,
+  isLikelyUserCancellation,
+  pickNativeVideo,
+  saveImageToPhotos,
+} from "./lib/native-media";
 
 type AppStep = "upload" | "processing" | "preview";
 type VideoMetadata = {
@@ -37,6 +44,7 @@ export default function App() {
   const [lastProcessingError, setLastProcessingError] = useState<string | null>(
     null,
   );
+  const [isPickingNativeVideo, setIsPickingNativeVideo] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -199,14 +207,48 @@ export default function App() {
     }
   };
 
-  const handleDownload = () => {
-    if (generatedImage) {
-      trackEvent(ANALYTICS_EVENTS.exportStarted);
-      const link = document.createElement("a");
-      link.href = generatedImage;
-      link.download = "long-screenshot.png";
-      link.click();
+  const handlePickNativeVideo = async (
+    source: "photos" | "files",
+    analyticsSource: VideoSelectionSource,
+  ) => {
+    setIsPickingNativeVideo(true);
+    try {
+      const file = await pickNativeVideo(source);
+      if (file) {
+        handleVideoSelect(file, analyticsSource);
+      }
+    } catch (error) {
+      if (!isLikelyUserCancellation(error)) {
+        console.error("Failed to import video natively:", error);
+        alert(t("upload.native.failed"));
+      }
+    } finally {
+      setIsPickingNativeVideo(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!generatedImage) {
+      return;
+    }
+
+    trackEvent(ANALYTICS_EVENTS.exportStarted);
+
+    try {
+      if (canUseNativePhotoSave()) {
+        await saveImageToPhotos(generatedImage, "long-screenshot.png");
+        alert(t("preview.save.success"));
+      } else {
+        const link = document.createElement("a");
+        link.href = generatedImage;
+        link.download = "long-screenshot.png";
+        link.click();
+      }
+
       trackEvent(ANALYTICS_EVENTS.exportCompleted);
+    } catch (error) {
+      console.error("Failed to export image:", error);
+      alert(t("preview.save.failed"));
     }
   };
 
@@ -328,6 +370,14 @@ export default function App() {
             onVideoSelect={handleVideoSelect}
             onStartProcessing={handleStartProcessing}
             isOpenCVReady={isOpenCVReady}
+            supportsNativeImport={canUseNativeVideoImport()}
+            isPickingNativeVideo={isPickingNativeVideo}
+            onPickFromPhotos={() =>
+              handlePickNativeVideo("photos", "native_photos")
+            }
+            onPickFromFiles={() =>
+              handlePickNativeVideo("files", "native_files")
+            }
           />
         )}
 
@@ -340,6 +390,7 @@ export default function App() {
             imageUrl={generatedImage}
             onDownload={handleDownload}
             onReset={handleReset}
+            isNativeSave={canUseNativePhotoSave()}
           />
         )}
       </div>

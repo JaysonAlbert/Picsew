@@ -1,6 +1,6 @@
 import type { VideoSelectionSource } from "../lib/analytics-events";
 import { useRef, useState } from "react";
-import { Upload, Video, X, Play } from "lucide-react";
+import { Upload, Video, X, Play, Images, FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -11,6 +11,10 @@ interface VideoUploadProps {
   onVideoSelect: (file: File | null, source?: VideoSelectionSource) => void;
   onStartProcessing: () => void;
   isOpenCVReady: boolean;
+  supportsNativeImport?: boolean;
+  isPickingNativeVideo?: boolean;
+  onPickFromPhotos?: () => Promise<void>;
+  onPickFromFiles?: () => Promise<void>;
 }
 
 export function VideoUpload({
@@ -19,6 +23,10 @@ export function VideoUpload({
   onVideoSelect,
   onStartProcessing,
   isOpenCVReady,
+  supportsNativeImport = false,
+  isPickingNativeVideo = false,
+  onPickFromPhotos,
+  onPickFromFiles,
 }: VideoUploadProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -64,22 +72,51 @@ export function VideoUpload({
         <h2 className="mb-4">{t("upload.title")}</h2>
 
         {!selectedVideo ? (
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
-              isDragging
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50"
-            }`}
-          >
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Upload className="w-8 h-8 text-blue-600" />
+          <div className="space-y-3">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
+                isDragging
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-300 hover:border-blue-400 hover:bg-blue-50/50"
+              }`}
+            >
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Upload className="w-8 h-8 text-blue-600" />
+              </div>
+              <p className="text-gray-600 mb-2">{t("upload.dragDrop")}</p>
+              <p className="text-xs text-gray-400">
+                {t("upload.supportFormat")}
+              </p>
             </div>
-            <p className="text-gray-600 mb-2">{t("upload.dragDrop")}</p>
-            <p className="text-xs text-gray-400">{t("upload.supportFormat")}</p>
+
+            {supportsNativeImport && (
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12"
+                  disabled={isPickingNativeVideo}
+                  onClick={() => void onPickFromPhotos?.()}
+                >
+                  <Images className="w-4 h-4 mr-2" />
+                  {t("upload.native.fromPhotos")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12"
+                  disabled={isPickingNativeVideo}
+                  onClick={() => void onPickFromFiles?.()}
+                >
+                  <FolderOpen className="w-4 h-4 mr-2" />
+                  {t("upload.native.fromFiles")}
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
