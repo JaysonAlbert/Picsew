@@ -58,6 +58,14 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Treat Picsew as one product with two surfaces: Web and iOS.
 - Shared product decisions should consider the full upload -> processing -> preview journey, not just one screen in isolation.
 - When changing shared mobile UI structure, review all three primary screens for consistency before handoff.
+- The web surface remains online in maintenance mode, while the long-term product investment shifts to the native iOS app.
+
+## Repository Structure Rule
+
+- The current root-based web app remains the live implementation until a documented migration phase intentionally moves it.
+- New native iOS product work should target `apps/ios-native/`.
+- Treat `apps/web/`, `apps/ios-native/`, `reference/`, `fixtures/`, and `infra/` as the target-state structure even while the root layout is transitional.
+- Do not perform large directory moves that affect build or deploy paths without a dedicated migration document and validation plan.
 
 ## iOS Project Rules
 
@@ -65,6 +73,14 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Build output, generated artifacts, and machine-local state should stay ignored.
 - Do not remove the iOS project from version control just because Capacitor generated the initial shell.
 - When changing iOS project configuration or native code, run a simulator build validation before handoff.
+- Treat the root `ios/` directory as transitional during the native migration until `apps/ios-native/` becomes the active app path.
+
+## Algorithm Parity Rule
+
+- During the native iOS migration, preserve the logical behavior of the current TypeScript algorithm unless a separate approved design explicitly changes it.
+- Use the reference implementation under `src/lib/` as the migration baseline until it is formally relocated into `reference/web-algorithm/`.
+- Before accepting a native algorithm rewrite, add or update parity fixtures that cover the relevant pipeline stage.
+- Keep performance optimizations and algorithm behavior changes as separate deliveries whenever possible.
 
 ## Local Config And Secrets
 

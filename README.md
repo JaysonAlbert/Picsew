@@ -1,17 +1,23 @@
 # Picsew - Automatic Scrolling Screenshot Stitcher
 
-This project is a **TypeScript web application** that automatically analyzes a screen recording of a scrolling window and stitches the content together to create a single, long screenshot. It leverages browser-side computation using OpenCV.js.
+Picsew is currently a **web application with an in-progress migration to a fully native iOS app**. The public website remains online and deployable from this repository root, while the repository is being reshaped to support a long-term native iOS product.
 
 It produces one main output:
+
 - The final, stitched long screenshot, displayed directly in the browser.
 
 **WebSite**: [picsew.ibotcloud.top](https://picsew.ibotcloud.top/)
+
+## Product Surfaces
+
+- **Web**: The current production website, still built and deployed from the repository root.
+- **iOS (target state)**: A future fully native app that will live under `apps/ios-native/`.
 
 ## Tech Stack
 
 The user interface is built with modern web technologies:
 
-- **Framework**: [React](https://react.dev/) and [Next.js](https://nextjs.org/)
+- **Framework**: [React](https://react.dev/) and [Vite](https://vite.dev/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **UI Components**: [Shadcn/ui](https://ui.shadcn.com/)
@@ -34,15 +40,15 @@ The first step is to accurately identify the vertical zone of the screen that is
 To avoid processing every single frame, a few keyframes are intelligently selected from the video. This process uses a vertically "inset" version of the scrolling window to avoid issues with "sticky" headers or footers that might be part of the scrolling content.
 
 1.  **Accumulated Scroll:** The algorithm starts with the first frame as the first keyframe. It then processes the subsequent frames, calculating the incremental scroll distance between each one using template matching within the inset scrolling window.
-2.  **50% Threshold:** When the *accumulated* scroll distance since the last keyframe exceeds 50% of the inset window's height, the current frame is selected as a new "candidate" keyframe.
+2.  **50% Threshold:** When the _accumulated_ scroll distance since the last keyframe exceeds 50% of the inset window's height, the current frame is selected as a new "candidate" keyframe.
 3.  **Add Last Frame:** This process continues until the end of the video. To ensure the entire scroll is captured, the very last frame of the video is always added to the list of candidates.
 
 ### 3. Interruption Filtering
 
 Candidate keyframes are then filtered to remove any that contain interruptions (like notifications or pop-ups) outside the main scrolling content.
 
-1.  **Exterior Change Detection:** For each candidate keyframe, the algorithm checks for any significant visual changes in the area *outside* the scrolling zone by comparing it to the previous keyframe.
-2.  **Masking:** The "outside" area is defined as everything above and below the *initial* (pre-inset) full-width scrolling zone. This ensures that motion at the edges of the scrolling content does not cause a keyframe to be incorrectly discarded.
+1.  **Exterior Change Detection:** For each candidate keyframe, the algorithm checks for any significant visual changes in the area _outside_ the scrolling zone by comparing it to the previous keyframe.
+2.  **Masking:** The "outside" area is defined as everything above and below the _initial_ (pre-inset) full-width scrolling zone. This ensures that motion at the edges of the scrolling content does not cause a keyframe to be incorrectly discarded.
 3.  **Lenient Thresholding:** To avoid false positives from minor visual noise, a keyframe is only discarded if more than 1% of the pixels in the exterior area have changed.
 
 This results in a final, small list of clean keyframes that are ready for stitching.
@@ -56,6 +62,22 @@ The final step is to stitch the clean keyframes together into a single, seamless
 3.  **Canvas Assembly:** A new, blank canvas is created. The header is pasted at the top. The scrolling content from the first keyframe is pasted below it. Then, for each subsequent keyframe, the new, non-overlapping portion of the scrolling content is shifted horizontally to correct for any wobble and then appended to the canvas. Finally, the footer is pasted at the very bottom.
 
 This process results in a single, perfectly aligned long screenshot.
+
+## Repository Migration
+
+The repository is in a staged migration toward this structure:
+
+```text
+apps/
+  web/
+  ios-native/
+reference/
+  web-algorithm/
+fixtures/
+infra/
+```
+
+In phase 1, the live web app still remains at the repository root so the current deploy workflow stays stable. See `/Volumes/data/Projects/Picsew/docs/architecture/native-ios-migration-phase-1.md` for the migration plan.
 
 ## How to Run the TypeScript Web Application
 
