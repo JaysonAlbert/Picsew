@@ -114,6 +114,54 @@ func sampleVideoKeyframeSelection() async throws {
     #expect(selection.candidateIndices == selection.candidateIndices.sorted())
 }
 
+@Test("keyframe filter removes synthetic candidates with large outside changes")
+func syntheticKeyframeFiltering() throws {
+    let filter = PicsewKeyframeFilter()
+    let width = 8
+    let height = 8
+    let outsideMask = makeOutsideMask(width: width, height: height, insideRows: 2...5)
+
+    let frames = [
+        makeBinaryFrame(width: width, height: height, insideRows: 2...5, outsideRows: []),
+        makeBinaryFrame(width: width, height: height, insideRows: 2...5, outsideRows: []),
+        makeBinaryFrame(width: width, height: height, insideRows: 2...5, outsideRows: [0, 1, 6, 7]),
+    ]
+
+    let filtered = try filter.filter(
+        candidateIndices: [0, 1, 2],
+        frames: frames,
+        outsideMask: outsideMask
+    )
+
+    #expect(filtered.cleanIndices == [0, 1])
+}
+
+@Test("keyframe filter returns a stable clean subset for the sample video")
+func sampleVideoKeyframeFiltering() async throws {
+    let analyzer = PicsewMediaAnalyzer()
+    let detector = PicsewScrollingWindowDetector()
+    let selector = PicsewKeyframeSelector()
+    let filter = PicsewKeyframeFilter()
+    let url = try sampleVideoURL()
+
+    let batch = try await analyzer.extractLowResolutionGrayFrames(from: url)
+    let detection = try detector.detect(in: batch)
+    let selection = try selector.selectCandidates(
+        in: batch,
+        refinedWindow: detection.refinedWindow
+    )
+    let filtered = try filter.filter(
+        candidateIndices: selection.candidateIndices,
+        in: batch,
+        outsideMask: detection.outsideMask
+    )
+
+    #expect(filtered.cleanIndices.first == selection.candidateIndices.first)
+    #expect(Set(filtered.cleanIndices).isSubset(of: Set(selection.candidateIndices)))
+    #expect(filtered.cleanIndices == filtered.cleanIndices.sorted())
+    #expect(!filtered.cleanIndices.isEmpty)
+}
+
 private func makeSyntheticFrame(
     width: Int,
     height: Int,
@@ -159,6 +207,51 @@ private func makeGradientFrame(
         height: height,
         pixels: Data(pixels)
     )
+}
+
+private func makeBinaryFrame(
+    width: Int,
+    height: Int,
+    insideRows: ClosedRange<Int>,
+    outsideRows: [Int]
+) -> PicsewLowResolutionGrayFrame {
+    var pixels = Array(repeating: UInt8(0), count: width * height)
+
+    for row in insideRows {
+        for column in 0..<width {
+            pixels[row * width + column] = 100
+        }
+    }
+
+    for row in outsideRows {
+        for column in 0..<width {
+            pixels[row * width + column] = 255
+        }
+    }
+
+    return PicsewLowResolutionGrayFrame(
+        index: outsideRows.count,
+        timestampSeconds: Double(outsideRows.count),
+        width: width,
+        height: height,
+        pixels: Data(pixels)
+    )
+}
+
+private func makeOutsideMask(
+    width: Int,
+    height: Int,
+    insideRows: ClosedRange<Int>
+) -> PicsewOutsideMask {
+    var pixels = Array(repeating: UInt8(255), count: width * height)
+
+    for row in insideRows {
+        for column in 0..<width {
+            pixels[row * width + column] = 0
+        }
+    }
+
+    return PicsewOutsideMask(width: width, height: height, pixels: Data(pixels))
 }
 
 private func sampleVideoURL(filePath: String = #filePath) throws -> URL {
