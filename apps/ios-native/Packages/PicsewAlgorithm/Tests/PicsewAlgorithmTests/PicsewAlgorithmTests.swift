@@ -68,6 +68,52 @@ func sampleVideoScrollingWindowDetection() async throws {
     )
 }
 
+@Test("keyframe selector finds the expected synthetic candidate boundaries")
+func syntheticKeyframeSelection() throws {
+    let selector = PicsewKeyframeSelector()
+    let width = 16
+    let height = 20
+    let refinedWindow = PicsewRect(x: 0, y: 0, width: 16, height: 20)
+
+    let frames = [
+        makeGradientFrame(width: width, height: height, shift: 0),
+        makeGradientFrame(width: width, height: height, shift: 4),
+        makeGradientFrame(width: width, height: height, shift: 8),
+        makeGradientFrame(width: width, height: height, shift: 12),
+        makeGradientFrame(width: width, height: height, shift: 16),
+        makeGradientFrame(width: width, height: height, shift: 20),
+    ]
+
+    let selection = try selector.selectCandidates(
+        frames: frames,
+        fullResolutionWidth: width,
+        fullResolutionHeight: height,
+        refinedWindow: refinedWindow
+    )
+
+    #expect(selection.candidateIndices == [0, 2, 4, 5])
+}
+
+@Test("keyframe selector produces stable ordered candidates for the sample video")
+func sampleVideoKeyframeSelection() async throws {
+    let analyzer = PicsewMediaAnalyzer()
+    let detector = PicsewScrollingWindowDetector()
+    let selector = PicsewKeyframeSelector()
+    let url = try sampleVideoURL()
+
+    let batch = try await analyzer.extractLowResolutionGrayFrames(from: url)
+    let detection = try detector.detect(in: batch)
+    let selection = try selector.selectCandidates(
+        in: batch,
+        refinedWindow: detection.refinedWindow
+    )
+
+    #expect(selection.candidateIndices.first == 0)
+    #expect(selection.candidateIndices.last == batch.frames.count - 1)
+    #expect(selection.candidateIndices.count >= 2)
+    #expect(selection.candidateIndices == selection.candidateIndices.sorted())
+}
+
 private func makeSyntheticFrame(
     width: Int,
     height: Int,
@@ -84,6 +130,31 @@ private func makeSyntheticFrame(
     return PicsewLowResolutionGrayFrame(
         index: 0,
         timestampSeconds: 0,
+        width: width,
+        height: height,
+        pixels: Data(pixels)
+    )
+}
+
+private func makeGradientFrame(
+    width: Int,
+    height: Int,
+    shift: Int
+) -> PicsewLowResolutionGrayFrame {
+    var pixels = Array(repeating: UInt8(0), count: width * height)
+
+    for row in 0..<height {
+        let sourceRow = row + shift
+        let baseValue = UInt8((sourceRow * 7) % 251)
+        for column in 0..<width {
+            let columnValue = UInt8((column * 11) % 37)
+            pixels[row * width + column] = UInt8((Int(baseValue) + Int(columnValue)) % 255)
+        }
+    }
+
+    return PicsewLowResolutionGrayFrame(
+        index: shift,
+        timestampSeconds: Double(shift),
         width: width,
         height: height,
         pixels: Data(pixels)

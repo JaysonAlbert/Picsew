@@ -90,6 +90,31 @@ public struct PicsewScrollingWindowDetection: Sendable, Equatable {
     }
 }
 
+public struct PicsewKeyframeSelection: Sendable, Equatable {
+    public let candidateIndices: [Int]
+
+    public init(candidateIndices: [Int]) {
+        self.candidateIndices = candidateIndices
+    }
+}
+
+public enum PicsewKeyframeSelectionError: Error, LocalizedError {
+    case noFrames
+    case invalidRefinedWindow
+    case mismatchedFrameDimensions
+
+    public var errorDescription: String? {
+        switch self {
+        case .noFrames:
+            return "No low-resolution frames were provided for keyframe selection."
+        case .invalidRefinedWindow:
+            return "The refined window is outside the low-resolution frame bounds."
+        case .mismatchedFrameDimensions:
+            return "Low-resolution frame dimensions do not match."
+        }
+    }
+}
+
 public enum PicsewScrollingWindowError: Error, LocalizedError {
     case noFrames
     case mismatchedFrameDimensions
@@ -297,5 +322,212 @@ public struct PicsewScrollingWindowDetector: Sendable {
         }
 
         return bestRect
+    }
+}
+
+public struct PicsewKeyframeSelector: Sendable {
+    public let matchThreshold: Double
+
+    public init(matchThreshold: Double = 0.7) {
+        self.matchThreshold = matchThreshold
+    }
+
+    public func selectCandidates(
+        in batch: PicsewLowResolutionFrameBatch,
+        refinedWindow: PicsewRect
+    ) throws -> PicsewKeyframeSelection {
+        try selectCandidates(
+            frames: batch.frames,
+            fullResolutionWidth: batch.metadata.width,
+            fullResolutionHeight: batch.metadata.height,
+            refinedWindow: refinedWindow
+        )
+    }
+
+    public func selectCandidates(
+        frames: [PicsewLowResolutionGrayFrame],
+        fullResolutionWidth: Int,
+        fullResolutionHeight: Int,
+        refinedWindow: PicsewRect
+    ) throws -> PicsewKeyframeSelection {
+        guard let firstFrame = frames.first else {
+            throw PicsewKeyframeSelectionError.noFrames
+        }
+
+        let lowResWidth = firstFrame.width
+        let lowResHeight = firstFrame.height
+        guard frames.allSatisfy({ $0.width == lowResWidth && $0.height == lowResHeight }) else {
+            throw PicsewKeyframeSelectionError.mismatchedFrameDimensions
+        }
+
+        let scaleX = Double(lowResWidth) / Double(fullResolutionWidth)
+        let scaleY = Double(lowResHeight) / Double(fullResolutionHeight)
+        let x = Int((Double(refinedWindow.x) * scaleX).rounded())
+        let y = Int((Double(refinedWindow.y) * scaleY).rounded())
+        let width = max(1, Int((Double(refinedWindow.width) * scaleX).rounded()))
+        let height = max(1, Int((Double(refinedWindow.height) * scaleY).rounded()))
+
+        guard x >= 0, y >= 0, x + width <= lowResWidth, y + height <= lowResHeight else {
+            throw PicsewKeyframeSelectionError.invalidRefinedWindow
+        }
+
+        var candidateIndices = [0]
+        var lastKeyframeIndex = 0
+
+        while lastKeyframeIndex < frames.count - 1 {
+            var accumulatedOffset = 0
+            var lastFrameInChunk = frames[lastKeyframeIndex]
+            var foundNextKeyframe = false
+
+            for index in (lastKeyframeIndex + 1)..<frames.count {
+                let currentFrame = frames[index]
+                let templateHeight = max(1, height / 4)
+                let templateYStart = y + (height / 2) - (templateHeight / 2)
+
+                let template = extractRegion(
+                    from: lastFrameInChunk,
+                    x: x,
+                    y: templateYStart,
+                    width: width,
+                    height: templateHeight
+                )
+                let content = extractRegion(
+                    from: currentFrame,
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: height
+                )
+
+                if let match = bestTemplateMatch(
+                    template: template,
+                    templateWidth: width,
+                    templateHeight: templateHeight,
+                    searchRegion: content,
+                    searchWidth: width,
+                    searchHeight: height
+                ), match.score > matchThreshold {
+                    let offsetSinceLastFrame = (templateYStart - y) - match.y
+                    if offsetSinceLastFrame > 0 {
+                        accumulatedOffset += offsetSinceLastFrame
+                    }
+                }
+
+                lastFrameInChunk = currentFrame
+
+                if Double(accumulatedOffset) > Double(height) * 0.5 {
+                    candidateIndices.append(index)
+                    lastKeyframeIndex = index
+                    foundNextKeyframe = true
+                    break
+                }
+            }
+
+            if !foundNextKeyframe {
+                break
+            }
+        }
+
+        if lastKeyframeIndex != frames.count - 1 {
+            candidateIndices.append(frames.count - 1)
+        }
+
+        return PicsewKeyframeSelection(candidateIndices: candidateIndices)
+    }
+
+    private func extractRegion(
+        from frame: PicsewLowResolutionGrayFrame,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int
+    ) -> [UInt8] {
+        let pixels = [UInt8](frame.pixels)
+        var region = Array<UInt8>()
+        region.reserveCapacity(width * height)
+
+        for row in y..<(y + height) {
+            let rowStart = row * frame.width
+            region.append(contentsOf: pixels[(rowStart + x)..<(rowStart + x + width)])
+        }
+
+        return region
+    }
+
+    private func bestTemplateMatch(
+        template: [UInt8],
+        templateWidth: Int,
+        templateHeight: Int,
+        searchRegion: [UInt8],
+        searchWidth: Int,
+        searchHeight: Int
+    ) -> (score: Double, y: Int)? {
+        guard searchWidth == templateWidth, searchHeight >= templateHeight else {
+            return nil
+        }
+
+        let templateMean = mean(of: template)
+        let templateVariance = variance(of: template, mean: templateMean)
+        guard templateVariance > 0 else {
+            return nil
+        }
+
+        let maxY = searchHeight - templateHeight
+        var bestScore = -Double.infinity
+        var bestY = 0
+
+        for offsetY in 0...maxY {
+            var window = Array<UInt8>()
+            window.reserveCapacity(template.count)
+
+            for row in 0..<templateHeight {
+                let sourceStart = (offsetY + row) * searchWidth
+                window.append(contentsOf: searchRegion[sourceStart..<(sourceStart + searchWidth)])
+            }
+
+            let windowMean = mean(of: window)
+            let windowVariance = variance(of: window, mean: windowMean)
+            guard windowVariance > 0 else {
+                continue
+            }
+
+            var numerator = 0.0
+            for index in 0..<template.count {
+                numerator += (Double(template[index]) - templateMean) * (Double(window[index]) - windowMean)
+            }
+
+            let denominator = sqrt(templateVariance * windowVariance)
+            guard denominator > 0 else {
+                continue
+            }
+
+            let score = numerator / denominator
+            if score > bestScore {
+                bestScore = score
+                bestY = offsetY
+            }
+        }
+
+        guard bestScore.isFinite else {
+            return nil
+        }
+
+        return (bestScore, bestY)
+    }
+
+    private func mean(of values: [UInt8]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let sum = values.reduce(0.0) { partialResult, value in
+            partialResult + Double(value)
+        }
+        return sum / Double(values.count)
+    }
+
+    private func variance(of values: [UInt8], mean: Double) -> Double {
+        guard !values.isEmpty else { return 0 }
+        return values.reduce(0.0) { partialResult, value in
+            let centered = Double(value) - mean
+            return partialResult + centered * centered
+        }
     }
 }
