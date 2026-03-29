@@ -73,6 +73,13 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Every ignored local config should have a committed example template when practical.
 - If Xcode writes local signing metadata back into `project.pbxproj`, move it into local config or revert it before merge.
 
+## Release And App Identity Rules
+
+- Keep iOS app display name, bundle identifier, marketing version, and build number in committed shared `xcconfig`, not as ad hoc Xcode-only edits.
+- Keep local signing overrides separate from shared release metadata.
+- When preparing an iOS release, update the committed release metadata intentionally and review it as part of the PR diff.
+- Follow `docs/ios-release-checklist.md` for iOS release prep and validation.
+
 ## UI Design Rules
 
 - Prefer one main stage card and one primary action area per screen.
