@@ -12,15 +12,24 @@ public struct PicsewRootView: View {
         @Bindable var bindableModel = model
 
         NavigationStack {
-            currentRouteView
-                .navigationTitle(model.composition.appName)
-                .toolbar {
-                    toolbarContent
-                }
+            PicsewAppShell(
+                appName: model.composition.appName,
+                route: model.route,
+                action: shellAction
+            ) {
+                currentRouteView
+            }
         }
+#if os(iOS)
+        .toolbar(.hidden, for: .navigationBar)
+        .fullScreenCover(isPresented: $bindableModel.showsOnboarding) {
+            OnboardingFeatureView(model: model)
+        }
+#else
         .sheet(isPresented: $bindableModel.showsOnboarding) {
             OnboardingFeatureView(model: model)
         }
+#endif
     }
 
     @ViewBuilder
@@ -37,29 +46,20 @@ public struct PicsewRootView: View {
         }
     }
 
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-#if os(iOS)
-        ToolbarItem(placement: .topBarTrailing) {
-            toolbarButton
-        }
-#else
-        ToolbarItem(placement: .primaryAction) {
-            toolbarButton
-        }
-#endif
-    }
-
-    private var toolbarButton: some View {
-        Group {
-            if model.route != .feedback {
-                Button("Feedback") {
-                    model.showFeedback()
-                }
-            } else {
-                Button("Back") {
-                    model.returnToUpload()
-                }
+    private var shellAction: PicsewShellAction {
+        if model.route == .feedback {
+            PicsewShellAction(
+                systemImage: "chevron.left",
+                accessibilityLabel: "Back"
+            ) {
+                model.returnToUpload()
+            }
+        } else {
+            PicsewShellAction(
+                systemImage: "bubble.left.and.text.bubble.right",
+                accessibilityLabel: "Feedback"
+            ) {
+                model.showFeedback()
             }
         }
     }
