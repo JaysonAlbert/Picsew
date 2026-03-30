@@ -1,17 +1,21 @@
 import Foundation
 
-struct AppComposition {
-    let appName: String
-    let featureOrder: [String]
+public struct AppComposition: Sendable, Equatable {
+    public let appName: String
+    public let featureOrder: [AppRoute]
 
-    static let bootstrap = AppComposition(
+    public init(appName: String, featureOrder: [AppRoute]) {
+        self.appName = appName
+        self.featureOrder = featureOrder
+    }
+
+    public static let bootstrap = AppComposition(
         appName: "Picsew",
         featureOrder: [
-            "Onboarding",
-            "Upload",
-            "Processing",
-            "Preview",
-            "Feedback",
+            .upload,
+            .processing,
+            .preview,
+            .feedback,
         ]
     )
 }

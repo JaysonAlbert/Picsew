@@ -1,7 +1,6 @@
 import Foundation
 
-enum AppRoute: String, CaseIterable {
-    case onboarding
+public enum AppRoute: String, CaseIterable, Sendable {
     case upload
     case processing
     case preview
