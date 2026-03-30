@@ -18,6 +18,7 @@ let package = Package(
         .package(path: "../Packages/PicsewAppCore"),
         .package(path: "../Packages/PicsewAlgorithm"),
         .package(path: "../Packages/PicsewMedia"),
+        .package(path: "../Packages/PicsewDesignSystem"),
     ],
     targets: [
         .target(
@@ -26,6 +27,7 @@ let package = Package(
                 .product(name: "PicsewAppCore", package: "PicsewAppCore"),
                 .product(name: "PicsewAlgorithm", package: "PicsewAlgorithm"),
                 .product(name: "PicsewMedia", package: "PicsewMedia"),
+                .product(name: "PicsewDesignSystem", package: "PicsewDesignSystem"),
             ],
             path: ".",
             exclude: [

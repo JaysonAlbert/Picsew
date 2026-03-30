@@ -1,3 +1,4 @@
+import PicsewDesignSystem
 import SwiftUI
 
 public struct PicsewShellAction {
@@ -35,32 +36,31 @@ public struct PicsewAppShell<Content: View>: View {
             let presentation = route.presentation
 
             ZStack {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.95, green: 0.97, blue: 1.0),
-                        Color.white,
-                        Color(red: 0.97, green: 0.98, blue: 1.0),
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                PicsewAtmosphericBackground()
 
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 22) {
                     topBar
 
                     if presentation.showsJourneyDots {
-                        PicsewJourneyDots(activeStepIndex: presentation.activeStepIndex ?? 0)
+                        HStack(spacing: 12) {
+                            PicsewJourneyDots(activeStepIndex: presentation.activeStepIndex ?? 0)
+                            Spacer(minLength: 12)
+                            if let activeStepIndex = presentation.activeStepIndex {
+                                Text("Step \(activeStepIndex + 1) of 3")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(PicsewPalette.mutedInk)
+                            }
+                        }
                     }
 
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Text(presentation.title)
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.primary)
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(PicsewPalette.ink)
 
                         Text(presentation.subtitle)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(PicsewPalette.mutedInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
@@ -77,44 +77,46 @@ public struct PicsewAppShell<Content: View>: View {
     }
 
     private var topBar: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 10) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.35, green: 0.58, blue: 1.0),
-                                    Color(red: 0.56, green: 0.35, blue: 0.98),
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                    Image(systemName: "rectangle.on.rectangle")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                .frame(width: 34, height: 34)
+        HStack(spacing: 14) {
+            HStack(spacing: 12) {
+                PicsewHeroGlyph(systemImage: "rectangle.on.rectangle.angled", size: 42)
 
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(appName)
                         .font(.headline.weight(.semibold))
-                    Text("Native")
+                        .foregroundStyle(PicsewPalette.ink)
+                    Text("Native stitch utility")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(PicsewPalette.mutedInk)
                 }
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(Color.white.opacity(0.56))
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(Color.white.opacity(0.78), lineWidth: 1)
+            )
 
             Spacer(minLength: 12)
 
             Button(action: action.action) {
                 Image(systemName: action.systemImage)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.primary)
-                    .frame(width: 38, height: 38)
-                    .background(.ultraThinMaterial, in: Circle())
-                    .overlay(Circle().stroke(.white.opacity(0.6), lineWidth: 1))
+                    .foregroundStyle(PicsewPalette.ink)
+                    .frame(width: 42, height: 42)
+                    .background(
+                        Circle()
+                            .fill(Color.white.opacity(0.72))
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.86), lineWidth: 1)
+                    )
+                    .shadow(color: PicsewPalette.shadow.opacity(0.10), radius: 14, y: 8)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(action.accessibilityLabel)
@@ -133,21 +135,100 @@ public struct PicsewJourneyDots: View {
     public var body: some View {
         HStack(spacing: 8) {
             ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .fill(index == activeStepIndex ? Color.accentColor : Color.primary.opacity(0.14))
-                    .frame(width: index == activeStepIndex ? 9 : 7, height: index == activeStepIndex ? 9 : 7)
-                    .animation(.easeInOut(duration: 0.2), value: activeStepIndex)
+                Capsule(style: .continuous)
+                    .fill(index == activeStepIndex ? AnyShapeStyle(PicsewGradients.brand) : AnyShapeStyle(Color.white.opacity(0.55)))
+                    .frame(width: index == activeStepIndex ? 24 : 8, height: 8)
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(Color.white.opacity(index == activeStepIndex ? 0.18 : 0.72), lineWidth: 1)
+                    )
+                    .animation(.spring(response: 0.28, dampingFraction: 0.8), value: activeStepIndex)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule(style: .continuous))
-        .overlay(Capsule(style: .continuous).stroke(.white.opacity(0.7), lineWidth: 1))
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.white.opacity(0.55))
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .stroke(Color.white.opacity(0.78), lineWidth: 1)
+        )
         .accessibilityIdentifier("shell.journeyDots")
     }
 }
 
 public struct PicsewStageCard<Content: View>: View {
+    private let style: PicsewSurfaceStyle
+    private let alignment: HorizontalAlignment
+    private let spacing: CGFloat
+    private let content: Content
+
+    public init(
+        style: PicsewSurfaceStyle = .primaryStage,
+        alignment: HorizontalAlignment = .leading,
+        spacing: CGFloat = 18,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.style = style
+        self.alignment = alignment
+        self.spacing = spacing
+        self.content = content()
+    }
+
+    public var body: some View {
+        VStack(alignment: alignment, spacing: spacing) {
+            content
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardBackground)
+        .shadow(
+            color: PicsewPalette.shadow.opacity(style.shadowOpacity),
+            radius: CGFloat(style.shadowRadius),
+            y: CGFloat(style.shadowYOffset)
+        )
+    }
+
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: CGFloat(style.cornerRadius), style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: CGFloat(style.cornerRadius), style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(style.backgroundOpacity),
+                                PicsewPalette.accent.opacity(style.tintOpacity),
+                                PicsewPalette.accentWarm.opacity(style.tintOpacity * 0.45),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: CGFloat(style.cornerRadius), style: .continuous)
+                    .stroke(Color.white.opacity(style.borderOpacity), lineWidth: 1)
+            )
+            .overlay(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: CGFloat(style.cornerRadius), style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.32),
+                                .clear,
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .center
+                        )
+                    )
+            }
+    }
+}
+
+public struct PicsewBottomActionTray<Content: View>: View {
     private let content: Content
 
     public init(@ViewBuilder content: () -> Content) {
@@ -155,19 +236,129 @@ public struct PicsewStageCard<Content: View>: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             content
         }
-        .padding(22)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: CGFloat(PicsewSurfaceStyle.floatingTray.cornerRadius), style: .continuous)
                 .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: CGFloat(PicsewSurfaceStyle.floatingTray.cornerRadius), style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(PicsewSurfaceStyle.floatingTray.backgroundOpacity),
+                                    PicsewPalette.accent.opacity(PicsewSurfaceStyle.floatingTray.tintOpacity),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: CGFloat(PicsewSurfaceStyle.floatingTray.cornerRadius), style: .continuous)
+                        .stroke(Color.white.opacity(PicsewSurfaceStyle.floatingTray.borderOpacity), lineWidth: 1)
+                )
+        )
+        .shadow(
+            color: PicsewPalette.shadow.opacity(PicsewSurfaceStyle.floatingTray.shadowOpacity),
+            radius: CGFloat(PicsewSurfaceStyle.floatingTray.shadowRadius),
+            y: CGFloat(PicsewSurfaceStyle.floatingTray.shadowYOffset)
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
+    }
+}
+
+public struct PicsewInfoChip: View {
+    private let title: String
+    private let systemImage: String?
+    private let emphasis: Bool
+
+    public init(title: String, systemImage: String? = nil, emphasis: Bool = false) {
+        self.title = title
+        self.systemImage = systemImage
+        self.emphasis = emphasis
+    }
+
+    public var body: some View {
+        HStack(spacing: 6) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.caption2.weight(.semibold))
+            }
+            Text(title)
+                .lineLimit(1)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(emphasis ? PicsewPalette.accent : PicsewPalette.mutedInk)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(
+            Capsule(style: .continuous)
+                .fill(emphasis ? PicsewPalette.accent.opacity(0.12) : Color.white.opacity(0.72))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                .stroke(.white.opacity(0.72), lineWidth: 1)
+            Capsule(style: .continuous)
+                .stroke(emphasis ? PicsewPalette.accent.opacity(0.16) : Color.white.opacity(0.8), lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.04), radius: 18, y: 10)
+    }
+}
+
+public struct PicsewHeroGlyph: View {
+    private let systemImage: String
+    private let size: CGFloat
+
+    public init(systemImage: String, size: CGFloat = 58) {
+        self.systemImage = systemImage
+        self.size = size
+    }
+
+    public var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.32, style: .continuous)
+                .fill(PicsewGradients.brand)
+
+            Circle()
+                .fill(Color.white.opacity(0.18))
+                .frame(width: size * 0.48, height: size * 0.48)
+                .offset(x: size * 0.14, y: -size * 0.14)
+
+            Image(systemName: systemImage)
+                .font(.system(size: size * 0.34, weight: .bold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: size, height: size)
+        .shadow(color: PicsewPalette.accent.opacity(0.18), radius: 16, y: 10)
+    }
+}
+
+private struct PicsewAtmosphericBackground: View {
+    var body: some View {
+        ZStack {
+            PicsewGradients.shellBackground
+                .ignoresSafeArea()
+
+            Circle()
+                .fill(PicsewPalette.accent.opacity(0.18))
+                .frame(width: 320, height: 320)
+                .blur(radius: 40)
+                .offset(x: -110, y: -260)
+
+            Circle()
+                .fill(PicsewPalette.accentSecondary.opacity(0.12))
+                .frame(width: 260, height: 260)
+                .blur(radius: 46)
+                .offset(x: 160, y: -180)
+
+            Circle()
+                .fill(PicsewPalette.accentWarm.opacity(0.10))
+                .frame(width: 220, height: 220)
+                .blur(radius: 44)
+                .offset(x: 120, y: 260)
+        }
+        .allowsHitTesting(false)
     }
 }
