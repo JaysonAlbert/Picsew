@@ -10,25 +10,47 @@ public struct ProcessingFeatureView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
 
-            ProgressView(value: progressValue)
-                .progressViewStyle(.linear)
-                .frame(maxWidth: 260)
+            PicsewStageCard {
+                VStack(alignment: .center, spacing: 20) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.accentColor.opacity(0.12))
+                            .frame(width: 88, height: 88)
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 30, weight: .semibold))
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    .frame(maxWidth: .infinity)
 
-            Text(progressTitle)
-                .font(.title2.weight(.semibold))
+                    VStack(spacing: 8) {
+                        Text(progressTitle)
+                            .font(.title3.weight(.semibold))
+                            .multilineTextAlignment(.center)
 
-            Text(progressSubtitle)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 320)
+                        Text(progressSubtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
 
-            Spacer()
+                    ProgressView(value: progressValue)
+                        .progressViewStyle(.linear)
+                        .tint(Color.accentColor)
+
+                    Text("Everything runs locally on your device.")
+                        .font(.footnote)
+                        .foregroundStyle(.tertiary)
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            Spacer(minLength: 0)
         }
-        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var progressValue: Double {
@@ -43,7 +65,7 @@ public struct ProcessingFeatureView: View {
 
     private var progressSubtitle: String {
         guard let progress = model.progress else {
-            return "The native app is warming up the processing pipeline."
+            return "The native pipeline is warming up."
         }
         return "Step \(progress.completedStages) of \(progress.totalStages)"
     }

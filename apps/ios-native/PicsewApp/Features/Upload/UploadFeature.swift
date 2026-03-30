@@ -20,74 +20,72 @@ public struct UploadFeatureView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Select a screen recording")
-                .font(.largeTitle.weight(.bold))
+        VStack(alignment: .leading, spacing: 18) {
+            PicsewStageCard {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.accentColor.opacity(0.14))
+                            Image(systemName: model.selectedVideoURL == nil ? "video.badge.plus" : "checkmark.circle.fill")
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundStyle(model.selectedVideoURL == nil ? Color.accentColor : .green)
+                        }
+                        .frame(width: 56, height: 56)
 
-            Text("Import a local recording from Files or Photos, then run the native stitching pipeline.")
-                .font(.body)
-                .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(model.selectedVideoURL == nil ? "Import your screen recording" : "Video selected")
+                                .font(.title3.weight(.semibold))
+                            Text(model.selectedVideoURL?.lastPathComponent ?? "Choose one recording and Picsew will stitch it locally.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
 
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Selected Video")
-                    .font(.headline)
-                Text(model.selectedVideoURL?.lastPathComponent ?? "No video selected yet")
-                    .font(.subheadline)
-                    .foregroundStyle(model.selectedVideoURL == nil ? .secondary : .primary)
+                    HStack(spacing: 12) {
+                        Button {
+                            showsFileImporter = true
+                        } label: {
+                            SourceButtonLabel(title: "Files", systemImage: "folder")
+                        }
+                        .buttonStyle(.plain)
+
+#if os(iOS)
+                        PhotosPicker(selection: $photosPickerItem, matching: .videos) {
+                            SourceButtonLabel(title: "Photos", systemImage: "photo.on.rectangle")
+                        }
+                        .buttonStyle(.plain)
+#endif
+                    }
+                }
             }
-            .padding()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+            if model.selectedVideoURL != nil {
+                PicsewStageCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Ready to process")
+                            .font(.headline)
+                        Text("The native pipeline will detect scrolling content, select clean keyframes, and build one long screenshot on-device.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
 
             if let errorMessage = model.errorMessage {
                 Text(errorMessage)
                     .font(.footnote)
                     .foregroundStyle(.red)
+                    .padding(.horizontal, 4)
             }
 
-            HStack(spacing: 12) {
-                Button {
-                    showsFileImporter = true
-                } label: {
-                    Label("Files", systemImage: "folder")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-
-#if os(iOS)
-                PhotosPicker(selection: $photosPickerItem, matching: .videos) {
-                    Label("Photos", systemImage: "photo.on.rectangle")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
-#endif
-            }
-
-            Button {
-                Task {
-                    await model.startProcessing()
-                }
-            } label: {
-                Label("Start Processing", systemImage: "sparkles.rectangle.stack")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(!model.canStartProcessing)
-
-            if model.selectedVideoURL != nil {
-                Button("Clear Selection") {
-                    model.clearSelection()
-                }
-                .buttonStyle(.bordered)
-            }
-
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .safeAreaInset(edge: .bottom) {
+            uploadBottomBar
+        }
         .fileImporter(
             isPresented: $showsFileImporter,
             allowedContentTypes: [.movie, .mpeg4Movie, .quickTimeMovie],
@@ -116,6 +114,58 @@ public struct UploadFeatureView: View {
             }
         }
 #endif
+    }
+
+    private var uploadBottomBar: some View {
+        VStack(spacing: 10) {
+            Button {
+                Task {
+                    await model.startProcessing()
+                }
+            } label: {
+                Label("Start Processing", systemImage: "sparkles.rectangle.stack")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(!model.canStartProcessing)
+
+            if model.selectedVideoURL != nil {
+                Button("Choose Another Video") {
+                    model.clearSelection()
+                }
+                .buttonStyle(.plain)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
+        .padding(.bottom, 10)
+        .background(.ultraThinMaterial)
+    }
+
+}
+
+private struct SourceButtonLabel: View {
+    let title: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+            Text(title)
+                .fontWeight(.semibold)
+        }
+        .font(.subheadline)
+        .foregroundStyle(Color.primary)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(Color.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.7), lineWidth: 1)
+        )
     }
 }
 

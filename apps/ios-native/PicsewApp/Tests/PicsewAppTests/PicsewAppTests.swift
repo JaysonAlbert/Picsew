@@ -6,6 +6,22 @@ import PicsewAlgorithm
 import PicsewAppCore
 import PicsewMedia
 
+@Test("route presentation keeps the expected titles and active step mapping")
+func routePresentationKeepsExpectedMetadata() {
+    #expect(AppRoute.upload.presentation.title == "Select a screen recording")
+    #expect(AppRoute.upload.presentation.activeStepIndex == 0)
+
+    #expect(AppRoute.processing.presentation.title == "Building your long screenshot")
+    #expect(AppRoute.processing.presentation.activeStepIndex == 1)
+
+    #expect(AppRoute.preview.presentation.title == "Long screenshot ready")
+    #expect(AppRoute.preview.presentation.activeStepIndex == 2)
+
+    #expect(AppRoute.feedback.presentation.title == "Feedback")
+    #expect(AppRoute.feedback.presentation.activeStepIndex == nil)
+    #expect(AppRoute.feedback.presentation.showsJourneyDots == false)
+}
+
 @Test("shell model transitions from upload to preview on pipeline success")
 @MainActor
 func shellTransitionsToPreviewOnSuccess() async throws {

@@ -9,29 +9,71 @@ public struct OnboardingFeatureView: View {
     }
 
     public var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("Welcome to Picsew")
-                    .font(.largeTitle.weight(.bold))
+        GeometryReader { geometry in
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.92, green: 0.96, blue: 1.0),
+                        Color.white,
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 16) {
-                    onboardingStep(number: "1", title: "Select a screen recording")
-                    onboardingStep(number: "2", title: "Run the native stitching pipeline")
-                    onboardingStep(number: "3", title: "Preview the generated long screenshot")
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.35, green: 0.58, blue: 1.0),
+                                            Color(red: 0.56, green: 0.35, blue: 0.98),
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            Image(systemName: "rectangle.on.rectangle")
+                                .font(.system(size: 28, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                        .frame(width: 72, height: 72)
+
+                        Text("Welcome to Picsew")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+
+                        Text("One simple flow: import a screen recording, let the native pipeline stitch it, then save or share the finished long screenshot.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    PicsewStageCard {
+                        VStack(alignment: .leading, spacing: 18) {
+                            onboardingStep(number: "1", title: "Select a screen recording")
+                            onboardingStep(number: "2", title: "Generate the stitched image locally")
+                            onboardingStep(number: "3", title: "Save it to Photos or share it")
+                        }
+                    }
+
+                    Spacer()
+
+                    Button("Continue") {
+                        model.dismissOnboarding()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
                 }
-
-                Spacer()
-
-                Button("Continue") {
-                    model.dismissOnboarding()
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 24)
+                .padding(.top, geometry.safeAreaInsets.top + 24)
+                .padding(.bottom, max(20, geometry.safeAreaInsets.bottom + 8))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
-            .padding(24)
         }
-        .presentationDetents([.medium])
+        .interactiveDismissDisabled()
     }
 
     private func onboardingStep(number: String, title: String) -> some View {

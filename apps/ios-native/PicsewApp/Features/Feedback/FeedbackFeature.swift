@@ -9,22 +9,22 @@ public struct FeedbackFeatureView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Feedback")
-                .font(.largeTitle.weight(.bold))
+        VStack(alignment: .leading, spacing: 18) {
+            PicsewStageCard {
+                VStack(alignment: .leading, spacing: 14) {
+                    Label("Native feedback page is next", systemImage: "bubble.left.and.text.bubble.right.fill")
+                        .font(.headline)
+                        .foregroundStyle(Color.accentColor)
 
-            Text("This route is ready for the future native feedback form. For now it keeps the app shell flow complete.")
-                .font(.body)
-                .foregroundStyle(.secondary)
-
-            Button("Back to Upload") {
-                model.returnToUpload()
+                    Text("The menu entry is now in the right place for the native app shell. The next product pass can plug the full feedback form into this route without reshaping the app chrome again.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
