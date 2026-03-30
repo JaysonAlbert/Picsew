@@ -14,18 +14,25 @@ public final class PicsewAppShellModel {
     public var progressHistory: [PicsewAppPipelineStage]
     public var result: PicsewAppPipelineResult?
     public var errorMessage: String?
+    public var exportMessage: String?
+    public var shareURL: URL?
     public var isRunning: Bool
+    public var isPreparingShare: Bool
+    public var isSavingResult: Bool
 
     private let pipeline: any PicsewAppPipelineRunning
+    private let systemClient: PicsewSystemClient
 
     public init(
         composition: AppComposition = .bootstrap,
         pipeline: any PicsewAppPipelineRunning = PicsewNativeAppPipeline(),
+        systemClient: PicsewSystemClient = .unavailable,
         route: AppRoute = .upload,
         showsOnboarding: Bool = true
     ) {
         self.composition = composition
         self.pipeline = pipeline
+        self.systemClient = systemClient
         self.route = route
         self.showsOnboarding = showsOnboarding
         self.selectedVideoURL = nil
@@ -33,7 +40,11 @@ public final class PicsewAppShellModel {
         self.progressHistory = []
         self.result = nil
         self.errorMessage = nil
+        self.exportMessage = nil
+        self.shareURL = nil
         self.isRunning = false
+        self.isPreparingShare = false
+        self.isSavingResult = false
     }
 
     public var canStartProcessing: Bool {
@@ -47,6 +58,8 @@ public final class PicsewAppShellModel {
     public func selectVideo(url: URL) {
         selectedVideoURL = url
         errorMessage = nil
+        exportMessage = nil
+        shareURL = nil
         result = nil
         route = .upload
     }
@@ -57,8 +70,21 @@ public final class PicsewAppShellModel {
         progressHistory = []
         result = nil
         errorMessage = nil
+        exportMessage = nil
+        shareURL = nil
         isRunning = false
+        isPreparingShare = false
+        isSavingResult = false
         route = .upload
+    }
+
+    public func importPickedVideo(from sourceURL: URL) async {
+        do {
+            let importedURL = try await systemClient.importVideoFile(sourceURL)
+            selectVideo(url: importedURL)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     public func showFeedback() {
@@ -78,6 +104,8 @@ public final class PicsewAppShellModel {
         route = .processing
         isRunning = true
         errorMessage = nil
+        exportMessage = nil
+        shareURL = nil
         result = nil
         progress = nil
         progressHistory = []
@@ -101,6 +129,37 @@ public final class PicsewAppShellModel {
         }
 
         isRunning = false
+    }
+
+    public func prepareShareIfNeeded() async {
+        guard !isPreparingShare, shareURL == nil, let stitchedImage = result?.stitchedImage else {
+            return
+        }
+
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+
+        do {
+            shareURL = try await systemClient.prepareShareFile(stitchedImage)
+        } catch {
+            exportMessage = error.localizedDescription
+        }
+    }
+
+    public func saveResultToPhotos() async {
+        guard !isSavingResult, let stitchedImage = result?.stitchedImage else {
+            return
+        }
+
+        isSavingResult = true
+        defer { isSavingResult = false }
+
+        do {
+            try await systemClient.saveStitchedImageToPhotos(stitchedImage)
+            exportMessage = "Saved to Photos."
+        } catch {
+            exportMessage = error.localizedDescription
+        }
     }
 }
 

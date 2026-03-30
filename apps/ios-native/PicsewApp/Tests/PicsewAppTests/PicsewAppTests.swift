@@ -57,6 +57,67 @@ func stitchedImagePreviewAdapterBuildsCGImage() {
     #expect(cgImage?.height == 2)
 }
 
+@Test("imported file selection updates the active video through the system client")
+@MainActor
+func importedFileSelectionUpdatesActiveVideo() async throws {
+    let importedURL = URL(fileURLWithPath: "/tmp/imported-demo.mov")
+    let model = PicsewAppShellModel(
+        systemClient: MockSystemClient(importedVideoURL: importedURL).makeClient()
+    )
+
+    await model.importPickedVideo(from: URL(fileURLWithPath: "/tmp/source.mov"))
+
+    #expect(model.selectedVideoURL == importedURL)
+    #expect(model.errorMessage == nil)
+    #expect(model.canStartProcessing)
+}
+
+@Test("share preparation stores a share URL for the current stitched result")
+@MainActor
+func sharePreparationStoresShareURL() async throws {
+    let expectedURL = URL(fileURLWithPath: "/tmp/picsew-share.png")
+    let systemClient = MockSystemClient(shareURL: expectedURL)
+    let model = PicsewAppShellModel(systemClient: systemClient.makeClient())
+    model.result = MockFixtures.makeResult()
+
+    await model.prepareShareIfNeeded()
+
+    #expect(model.shareURL == expectedURL)
+    #expect(model.exportMessage == nil)
+}
+
+@Test("save delegates to the system client and reports success")
+@MainActor
+func saveDelegatesToSystemClient() async throws {
+    let tracker = SaveTracker()
+    let model = PicsewAppShellModel(
+        systemClient: MockSystemClient(saveTracker: tracker).makeClient()
+    )
+    model.result = MockFixtures.makeResult()
+
+    await model.saveResultToPhotos()
+
+    #expect(await tracker.savedValue())
+    #expect(model.exportMessage == "Saved to Photos.")
+}
+
+@Test("import errors surface on the shell model")
+@MainActor
+func importErrorsSurfaceOnShellModel() async throws {
+    let model = PicsewAppShellModel(
+        systemClient: MockSystemClient(importError: NSError(
+            domain: "PicsewAppTests",
+            code: 99,
+            userInfo: [NSLocalizedDescriptionKey: "Mock import failure."]
+        )).makeClient()
+    )
+
+    await model.importPickedVideo(from: URL(fileURLWithPath: "/tmp/source.mov"))
+
+    #expect(model.selectedVideoURL == nil)
+    #expect(model.errorMessage == "Mock import failure.")
+}
+
 private struct MockSuccessPipeline: PicsewAppPipelineRunning {
     func run(
         videoURL: URL,
@@ -73,10 +134,25 @@ private struct MockSuccessPipeline: PicsewAppPipelineRunning {
             await Task.yield()
         }
 
-        return makeResult()
+        return MockFixtures.makeResult()
     }
+}
 
-    private func makeResult() -> PicsewAppPipelineResult {
+private struct MockFailurePipeline: PicsewAppPipelineRunning {
+    func run(
+        videoURL: URL,
+        onProgress: (@Sendable (PicsewAppPipelineProgress) -> Void)?
+    ) async throws -> PicsewAppPipelineResult {
+        throw NSError(
+            domain: "PicsewAppTests",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: "Mock pipeline failure."]
+        )
+    }
+}
+
+private enum MockFixtures {
+    static func makeResult() -> PicsewAppPipelineResult {
         PicsewAppPipelineResult(
             metadata: PicsewVideoMetadata(
                 width: 100,
@@ -116,15 +192,46 @@ private struct MockSuccessPipeline: PicsewAppPipelineRunning {
     }
 }
 
-private struct MockFailurePipeline: PicsewAppPipelineRunning {
-    func run(
-        videoURL: URL,
-        onProgress: (@Sendable (PicsewAppPipelineProgress) -> Void)?
-    ) async throws -> PicsewAppPipelineResult {
-        throw NSError(
-            domain: "PicsewAppTests",
-            code: 1,
-            userInfo: [NSLocalizedDescriptionKey: "Mock pipeline failure."]
+private struct MockSystemClient {
+    var importedVideoURL: URL = URL(fileURLWithPath: "/tmp/mock-import.mov")
+    var importError: Error?
+    var shareURL: URL = URL(fileURLWithPath: "/tmp/mock-share.png")
+    var shareError: Error?
+    var saveTracker: SaveTracker?
+    var saveError: Error?
+
+    func makeClient() -> PicsewSystemClient {
+        PicsewSystemClient(
+            importVideoFile: { _ in
+                if let importError {
+                    throw importError
+                }
+                return importedVideoURL
+            },
+            saveStitchedImageToPhotos: { _ in
+                if let saveError {
+                    throw saveError
+                }
+                await saveTracker?.markSaved()
+            },
+            prepareShareFile: { _ in
+                if let shareError {
+                    throw shareError
+                }
+                return shareURL
+            }
         )
+    }
+}
+
+actor SaveTracker {
+    private(set) var didSave = false
+
+    func markSaved() {
+        didSave = true
+    }
+
+    func savedValue() -> Bool {
+        didSave
     }
 }
