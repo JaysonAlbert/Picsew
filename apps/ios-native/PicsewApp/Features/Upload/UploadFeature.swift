@@ -1,4 +1,5 @@
 import Observation
+import PicsewDesignSystem
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -22,24 +23,41 @@ public struct UploadFeatureView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             PicsewStageCard {
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack(spacing: 14) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.accentColor.opacity(0.14))
-                            Image(systemName: model.selectedVideoURL == nil ? "video.badge.plus" : "checkmark.circle.fill")
-                                .font(.system(size: 24, weight: .semibold))
-                                .foregroundStyle(model.selectedVideoURL == nil ? Color.accentColor : .green)
-                        }
-                        .frame(width: 56, height: 56)
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack(alignment: .top, spacing: 16) {
+                        PicsewHeroGlyph(
+                            systemImage: model.selectedVideoURL == nil ? "video.badge.plus" : "checkmark.circle.fill",
+                            size: 64
+                        )
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(model.selectedVideoURL == nil ? "Import your screen recording" : "Video selected")
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(model.selectedVideoURL == nil ? "Import your screen recording" : "Ready to stitch")
                                 .font(.title3.weight(.semibold))
-                            Text(model.selectedVideoURL?.lastPathComponent ?? "Choose one recording and Picsew will stitch it locally.")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
+                                .foregroundStyle(PicsewPalette.ink)
+
+                            Text(
+                                model.selectedVideoURL?.lastPathComponent
+                                ?? "Choose one scrolling screen recording. Picsew keeps the full pipeline on-device and turns it into one long screenshot."
+                            )
+                            .font(.subheadline)
+                            .foregroundStyle(PicsewPalette.mutedInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    ViewThatFits {
+                        HStack(spacing: 8) {
+                            PicsewInfoChip(title: "Private by default", systemImage: "lock.fill", emphasis: true)
+                            PicsewInfoChip(title: "No upload", systemImage: "icloud.slash")
+                            PicsewInfoChip(title: "PNG result", systemImage: "photo")
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            PicsewInfoChip(title: "Private by default", systemImage: "lock.fill", emphasis: true)
+                            HStack(spacing: 8) {
+                                PicsewInfoChip(title: "No upload", systemImage: "icloud.slash")
+                                PicsewInfoChip(title: "PNG result", systemImage: "photo")
+                            }
                         }
                     }
 
@@ -47,39 +65,38 @@ public struct UploadFeatureView: View {
                         Button {
                             showsFileImporter = true
                         } label: {
-                            SourceButtonLabel(title: "Files", systemImage: "folder")
+                            SourceButtonLabel(
+                                title: "Files",
+                                subtitle: "Browse local clips",
+                                systemImage: "folder.fill"
+                            )
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("upload.source.files")
 
 #if os(iOS)
                         PhotosPicker(selection: $photosPickerItem, matching: .videos) {
-                            SourceButtonLabel(title: "Photos", systemImage: "photo.on.rectangle")
+                            SourceButtonLabel(
+                                title: "Photos",
+                                subtitle: "Pick from library",
+                                systemImage: "photo.on.rectangle.angled"
+                            )
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("upload.source.photos")
 #endif
                     }
+
+                    if let selectedVideoURL = model.selectedVideoURL {
+                        selectedVideoPanel(for: selectedVideoURL)
+                    }
                 }
             }
             .accessibilityIdentifier("upload.stage.import")
 
-            if model.selectedVideoURL != nil {
-                PicsewStageCard {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Ready to process")
-                            .font(.headline)
-                        Text("The native pipeline will detect scrolling content, select clean keyframes, and build one long screenshot on-device.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .accessibilityIdentifier("upload.stage.ready")
-            }
-
             if let errorMessage = model.errorMessage {
                 Text(errorMessage)
-                    .font(.footnote)
+                    .font(.footnote.weight(.medium))
                     .foregroundStyle(.red)
                     .padding(.horizontal, 4)
                     .accessibilityIdentifier("upload.errorMessage")
@@ -121,8 +138,42 @@ public struct UploadFeatureView: View {
 #endif
     }
 
+    private func selectedVideoPanel(for selectedVideoURL: URL) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(PicsewPalette.success)
+                Text("Selected clip")
+                    .font(.headline)
+                    .foregroundStyle(PicsewPalette.ink)
+                Spacer()
+                PicsewInfoChip(title: "Ready", systemImage: "sparkles", emphasis: true)
+            }
+
+            Text(selectedVideoURL.lastPathComponent)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(PicsewPalette.ink)
+                .lineLimit(2)
+
+            Text("Next step: start processing to detect the scrolling window, filter keyframes, and stitch the final image locally.")
+                .font(.footnote)
+                .foregroundStyle(PicsewPalette.mutedInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: CGFloat(PicsewCornerRadius.card.rawValue), style: .continuous)
+                .fill(Color.white.opacity(0.64))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CGFloat(PicsewCornerRadius.card.rawValue), style: .continuous)
+                .stroke(Color.white.opacity(0.86), lineWidth: 1)
+        )
+    }
+
     private var uploadBottomBar: some View {
-        VStack(spacing: 10) {
+        PicsewBottomActionTray {
             Button {
                 Task {
                     await model.startProcessing()
@@ -133,6 +184,7 @@ public struct UploadFeatureView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            .tint(PicsewPalette.accent)
             .disabled(!model.canStartProcessing)
             .accessibilityIdentifier("upload.startProcessing")
 
@@ -142,37 +194,57 @@ public struct UploadFeatureView: View {
                 }
                 .buttonStyle(.plain)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(PicsewPalette.mutedInk)
+                .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("upload.clearSelection")
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
-        .background(.ultraThinMaterial)
         .accessibilityIdentifier("upload.bottomBar")
     }
-
 }
 
 private struct SourceButtonLabel: View {
     let title: String
+    let subtitle: String
     let systemImage: String
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: systemImage)
-            Text(title)
-                .fontWeight(.semibold)
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(PicsewGradients.brand)
+
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 42, height: 42)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PicsewPalette.ink)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(PicsewPalette.mutedInk)
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "arrow.up.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(PicsewPalette.mutedInk)
         }
-        .font(.subheadline)
-        .foregroundStyle(Color.primary)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 14)
         .padding(.vertical, 14)
-        .background(Color.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(0.72))
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.white.opacity(0.7), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.white.opacity(0.84), lineWidth: 1)
         )
     }
 }
