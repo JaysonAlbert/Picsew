@@ -7,6 +7,7 @@ This directory is the target home for the fully native Picsew iOS product.
 - Native iOS development now starts here in staged phases.
 - The existing root-level `ios/` directory is still the current Capacitor-based shell and should be treated as transitional reference infrastructure during migration.
 - Phase 2 adds compileable Swift packages for algorithm, media, and design system boundaries.
+- Phase 4 adds `PicsewAppCore`, the app-facing orchestration package for the full native processing pipeline.
 
 ## Planned layout
 
@@ -39,4 +40,5 @@ You can validate the starter native modules with:
 cd apps/ios-native/Packages/PicsewAlgorithm && swift test
 cd apps/ios-native/Packages/PicsewMedia && swift test
 cd apps/ios-native/Packages/PicsewDesignSystem && swift test
+cd apps/ios-native/Packages/PicsewAppCore && swift test
 ```
