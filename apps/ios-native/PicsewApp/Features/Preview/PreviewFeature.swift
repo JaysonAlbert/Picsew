@@ -1,4 +1,6 @@
 import Observation
+import PicsewAppCore
+import PicsewDesignSystem
 import SwiftUI
 
 public struct PreviewFeatureView: View {
@@ -10,62 +12,59 @@ public struct PreviewFeatureView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 18) {
                 if let result = model.result {
                     PicsewStageCard {
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 18) {
                             HStack(spacing: 10) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                                Text("Capture complete")
-                                    .font(.headline.weight(.semibold))
+                                PicsewInfoChip(title: "Capture complete", systemImage: "checkmark.circle.fill", emphasis: true)
                                 Spacer()
+                                PicsewInfoChip(title: "Ready to export", systemImage: "square.and.arrow.up")
                             }
 
-                            if let image = result.stitchedImage.makeCGImage() {
-                                Image(decorative: image, scale: 1)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                            .stroke(.quaternary, lineWidth: 1)
-                                    )
-                                    .accessibilityElement()
-                                    .accessibilityLabel("Stitched preview")
-                                    .accessibilityAddTraits(.isImage)
-                                    .accessibilityIdentifier("preview.stitchedImage")
+                            previewSurface(for: result)
+
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Result summary")
+                                    .font(.headline)
+                                    .foregroundStyle(PicsewPalette.ink)
+
+                                LazyVGrid(
+                                    columns: [
+                                        GridItem(.flexible(), spacing: 10),
+                                        GridItem(.flexible(), spacing: 10),
+                                    ],
+                                    spacing: 10
+                                ) {
+                                    summaryTile(title: "Image size", value: "\(result.stitchedImage.width) × \(result.stitchedImage.height)")
+                                    summaryTile(title: "Clean keyframes", value: "\(result.filtered.cleanIndices.count)")
+                                    summaryTile(title: "Detected region", value: "\(result.detection.refinedWindow.width) × \(result.detection.refinedWindow.height)")
+                                    summaryTile(title: "Pipeline", value: "Local native export")
+                                }
                             }
                         }
                     }
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("preview.stage.result")
-
-                    PicsewStageCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Summary")
-                                .font(.headline)
-
-                            summaryRow(title: "Image size", value: "\(result.stitchedImage.width) × \(result.stitchedImage.height)")
-                            summaryRow(title: "Clean keyframes", value: "\(result.filtered.cleanIndices.count)")
-                            summaryRow(title: "Detected region", value: "\(result.detection.refinedWindow.width) × \(result.detection.refinedWindow.height)")
-                        }
-                    }
-                    .accessibilityElement(children: .contain)
-                    .accessibilityIdentifier("preview.stage.summary")
                 } else {
-                    Text("No stitched result is available yet.")
-                        .foregroundStyle(.secondary)
-                        .accessibilityIdentifier("preview.emptyState")
+                    PicsewStageCard(style: .secondaryStage) {
+                        Text("No stitched result is available yet.")
+                            .foregroundStyle(PicsewPalette.mutedInk)
+                            .accessibilityIdentifier("preview.emptyState")
+                    }
                 }
 
                 if let exportMessage = model.exportMessage {
                     Text(exportMessage)
                         .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(PicsewPalette.mutedInk)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(.thinMaterial, in: Capsule(style: .continuous))
+                        .background(Color.white.opacity(0.74), in: Capsule(style: .continuous))
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(Color.white.opacity(0.84), lineWidth: 1)
+                        )
                         .accessibilityIdentifier("preview.exportMessage")
                 }
             }
@@ -81,8 +80,52 @@ public struct PreviewFeatureView: View {
         }
     }
 
+    private func previewSurface(for result: PicsewAppPipelineResult) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(PicsewGradients.previewStage)
+
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.10),
+                            .clear,
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            if let image = result.stitchedImage.makeCGImage() {
+                ScrollView([.vertical, .horizontal], showsIndicators: false) {
+                    Image(decorative: image, scale: 1)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                .stroke(Color.white.opacity(0.68), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.22), radius: 18, y: 10)
+                        .padding(18)
+                        .accessibilityElement()
+                        .accessibilityLabel("Stitched preview")
+                        .accessibilityAddTraits(.isImage)
+                }
+                .frame(minHeight: 300, idealHeight: 420, maxHeight: 460)
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            PicsewInfoChip(title: "Long screenshot", systemImage: "rectangle.portrait.on.rectangle.portrait")
+                .padding(16)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("preview.stitchedImage")
+    }
+
     private var previewBottomBar: some View {
-        VStack(spacing: 10) {
+        PicsewBottomActionTray {
             HStack(spacing: 12) {
                 Button {
                     Task {
@@ -97,6 +140,7 @@ public struct PreviewFeatureView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .tint(PicsewPalette.accent)
                 .disabled(model.result == nil || model.isSavingResult)
                 .accessibilityIdentifier("preview.saveToPhotos")
 
@@ -107,16 +151,21 @@ public struct PreviewFeatureView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.large)
+                    .tint(PicsewPalette.accent)
                     .accessibilityIdentifier("preview.share")
                 } else {
                     Label(
                         model.isPreparingShare ? "Preparing..." : "Share",
                         systemImage: "square.and.arrow.up"
                     )
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(PicsewPalette.mutedInk)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(Color.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(Color.white.opacity(0.84), lineWidth: 1)
+                    )
                     .accessibilityIdentifier("preview.sharePlaceholder")
                 }
             }
@@ -126,25 +175,34 @@ public struct PreviewFeatureView: View {
             }
             .buttonStyle(.plain)
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(PicsewPalette.mutedInk)
+            .frame(maxWidth: .infinity)
             .accessibilityIdentifier("preview.newCapture")
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
-        .background(.ultraThinMaterial)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("preview.bottomBar")
     }
 
-    private func summaryRow(title: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+    private func summaryTile(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 12)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(PicsewPalette.mutedInk)
+
             Text(value)
-                .multilineTextAlignment(.trailing)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PicsewPalette.ink)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .font(.subheadline)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: CGFloat(PicsewCornerRadius.card.rawValue), style: .continuous)
+                .fill(Color.white.opacity(0.64))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: CGFloat(PicsewCornerRadius.card.rawValue), style: .continuous)
+                .stroke(Color.white.opacity(0.84), lineWidth: 1)
+        )
     }
 }
