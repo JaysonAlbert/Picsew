@@ -14,13 +14,29 @@ public struct OnboardingFeatureView: View {
             ZStack {
                 OnboardingBackground()
 
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        PicsewHeroGlyph(systemImage: "rectangle.on.rectangle.angled", size: 76)
+                VStack(alignment: .leading, spacing: 22) {
+                    ViewThatFits {
+                        HStack(spacing: 8) {
+                            PicsewInfoChip(title: "Private workflow", systemImage: "lock.fill", emphasis: true)
+                            PicsewInfoChip(title: "3 quick steps", systemImage: "sparkles")
+                            PicsewInfoChip(title: "Native export", systemImage: "iphone")
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            PicsewInfoChip(title: "Private workflow", systemImage: "lock.fill", emphasis: true)
+                            HStack(spacing: 8) {
+                                PicsewInfoChip(title: "3 quick steps", systemImage: "sparkles")
+                                PicsewInfoChip(title: "Native export", systemImage: "iphone")
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 18) {
+                        PicsewHeroGlyph(systemImage: "rectangle.on.rectangle.angled", size: 82)
 
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Welcome to Picsew")
-                                .font(.system(size: 36, weight: .bold, design: .rounded))
+                                .font(.system(size: 34, weight: .bold, design: .rounded))
                                 .foregroundStyle(PicsewPalette.ink)
 
                             Text("Import one scrolling screen recording, let the native pipeline stitch it privately on-device, then save or share the finished long screenshot.")
@@ -29,15 +45,18 @@ public struct OnboardingFeatureView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
-                        HStack(spacing: 8) {
-                            PicsewInfoChip(title: "Private", systemImage: "lock.fill", emphasis: true)
-                            PicsewInfoChip(title: "Fast setup", systemImage: "sparkles")
-                            PicsewInfoChip(title: "Native flow", systemImage: "iphone")
-                        }
+                        Text("One recording in. One long screenshot out.")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(PicsewPalette.accent)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .picsewInsetPanel(style: .emphasized)
                     }
 
-                    PicsewStageCard {
+                    PicsewStageCard(spacing: 18) {
                         VStack(alignment: .leading, spacing: 14) {
+                            PicsewInfoChip(title: "How it works", systemImage: "rectangle.3.group.fill", emphasis: true)
+
                             onboardingStep(
                                 number: "1",
                                 title: "Select a screen recording",
@@ -56,10 +75,15 @@ public struct OnboardingFeatureView: View {
                         }
                     }
 
+                    Text("You can always revisit feedback later once you finish your first export.")
+                        .font(.footnote)
+                        .foregroundStyle(PicsewPalette.mutedInk)
+                        .fixedSize(horizontal: false, vertical: true)
+
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, geometry.safeAreaInsets.top + 24)
+                .padding(.top, geometry.safeAreaInsets.top + 20)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .accessibilityIdentifier("onboarding.screen")
             }
@@ -69,9 +93,7 @@ public struct OnboardingFeatureView: View {
                 Button("Continue") {
                     model.dismissOnboarding()
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(PicsewPalette.accent)
+                .buttonStyle(PicsewProminentButtonStyle())
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("onboarding.continue")
             }
@@ -100,14 +122,7 @@ public struct OnboardingFeatureView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: CGFloat(PicsewCornerRadius.card.rawValue), style: .continuous)
-                .fill(Color.white.opacity(0.62))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CGFloat(PicsewCornerRadius.card.rawValue), style: .continuous)
-                .stroke(Color.white.opacity(0.84), lineWidth: 1)
-        )
+        .picsewInsetPanel()
     }
 }
 

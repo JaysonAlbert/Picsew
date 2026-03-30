@@ -38,24 +38,32 @@ public struct PicsewAppShell<Content: View>: View {
             ZStack {
                 PicsewAtmosphericBackground()
 
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 16) {
                     topBar
 
                     if presentation.showsJourneyDots {
-                        HStack(spacing: 12) {
+                        HStack(alignment: .center, spacing: 12) {
                             PicsewJourneyDots(activeStepIndex: presentation.activeStepIndex ?? 0)
                             Spacer(minLength: 12)
-                            if let activeStepIndex = presentation.activeStepIndex {
-                                Text("Step \(activeStepIndex + 1) of 3")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(PicsewPalette.mutedInk)
+                            VStack(alignment: .trailing, spacing: 3) {
+                                if let journeyLabel = presentation.journeyLabel {
+                                    Text(journeyLabel.uppercased())
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(PicsewPalette.accent)
+                                }
+
+                                if let activeStepIndex = presentation.activeStepIndex {
+                                    Text("Step \(activeStepIndex + 1) of 3")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(PicsewPalette.mutedInk)
+                                }
                             }
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(presentation.title)
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(size: 29, weight: .bold, design: .rounded))
                             .foregroundStyle(PicsewPalette.ink)
 
                         Text(presentation.subtitle)
@@ -68,7 +76,8 @@ public struct PicsewAppShell<Content: View>: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, geometry.safeAreaInsets.top + 10)
+                .padding(.top, geometry.safeAreaInsets.top + 4)
+                .padding(.bottom, 8)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("shell.route.\(route.rawValue)")
@@ -79,22 +88,22 @@ public struct PicsewAppShell<Content: View>: View {
     private var topBar: some View {
         HStack(spacing: 14) {
             HStack(spacing: 12) {
-                PicsewHeroGlyph(systemImage: "rectangle.on.rectangle.angled", size: 42)
+                PicsewHeroGlyph(systemImage: "rectangle.on.rectangle.angled", size: 36)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(appName)
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(PicsewPalette.ink)
-                    Text("Native stitch utility")
-                        .font(.caption)
+                    Text("Private native utility")
+                        .font(.caption2)
                         .foregroundStyle(PicsewPalette.mutedInk)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 7)
             .background(
                 Capsule(style: .continuous)
-                    .fill(Color.white.opacity(0.56))
+                    .fill(Color.white.opacity(0.60))
             )
             .overlay(
                 Capsule(style: .continuous)
@@ -105,9 +114,9 @@ public struct PicsewAppShell<Content: View>: View {
 
             Button(action: action.action) {
                 Image(systemName: action.systemImage)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(PicsewPalette.ink)
-                    .frame(width: 42, height: 42)
+                    .frame(width: 38, height: 38)
                     .background(
                         Circle()
                             .fill(Color.white.opacity(0.72))
@@ -181,7 +190,7 @@ public struct PicsewStageCard<Content: View>: View {
         VStack(alignment: alignment, spacing: spacing) {
             content
         }
-        .padding(24)
+        .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(cardBackground)
         .shadow(
@@ -267,8 +276,8 @@ public struct PicsewBottomActionTray<Content: View>: View {
             y: CGFloat(PicsewSurfaceStyle.floatingTray.shadowYOffset)
         )
         .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .padding(.bottom, 8)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
     }
 }
 

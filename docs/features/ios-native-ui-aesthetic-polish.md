@@ -4,7 +4,7 @@ issue: ios-native-ui-aesthetic-polish
 author: Jayson Albert
 date: 2026-03-30
 updated: 2026-03-30
-version: 0.1.0
+version: 0.2.0
 reviewers: [Jayson Albert]
 tags: [ios, native, swiftui, ui, design]
 source_code:
@@ -27,6 +27,8 @@ status: approved
   - strengthen the shared shell background and top utility bar
   - introduce reusable native surface and action styles in the design system
   - improve the visual hierarchy of upload, processing, preview, and onboarding
+  - tighten the vertical rhythm so the main stage remains visible above floating actions on compact iPhone screens
+  - reduce generic bordered-button styling in favor of more product-specific action treatments
   - keep the current route structure, copy intent, and pipeline behavior intact
 
 ## Problem
@@ -38,6 +40,7 @@ status: approved
 3. Processing is structurally correct, but the central progress moment lacks enough visual character to feel premium.
 4. Onboarding is functionally clear, yet its hero area and step presentation are still too plain for a first-run experience.
 5. Repeated material backgrounds and generic bordered buttons make the app feel flatter than intended.
+6. On compact screens, the shell chrome plus bottom tray can crowd the main stage, especially in preview where the stitched image should remain the focal point.
 
 ### Out of scope
 
@@ -80,6 +83,8 @@ status: approved
 - one supporting metadata group when needed, never multiple equal-weight helper cards
 - one clear primary action zone anchored near the bottom safe area
 - secondary information should use softer chips, captions, or compact rows instead of full cards
+- compact shell chrome should support the screen rather than becoming a second hero
+- bottom trays should feel floating and tactile without visually blocking the primary stage
 
 ## Acceptance Criteria
 
@@ -96,6 +101,7 @@ status: approved
   - **When**: the processing route is shown
   - **Then**: the current progress state is clearer and visually stronger than the baseline implementation
 - [ ] AC-04: [P1] The design-system layer exposes reusable surface styling that is covered by automated tests or existing package validation.
+- [ ] AC-05: [P1] Compact iPhone screenshots show the main stage and bottom action zone coexisting without the shell or tray overwhelming the route.
 
 ## Planned Tests
 
@@ -103,6 +109,10 @@ status: approved
 - `swift test --package-path apps/ios-native/PicsewApp`
 - `xcodebuild -project apps/ios-native/HostApp/PicsewNativeApp.xcodeproj -scheme PicsewNativeApp -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build`
 - `npm run ios:harness:smoke`
+- `maestro test apps/ios-native/maestro/flows/capture-upload.yaml`
+- `maestro test apps/ios-native/maestro/flows/capture-processing.yaml`
+- `maestro test apps/ios-native/maestro/flows/capture-preview.yaml`
+- `maestro test apps/ios-native/maestro/flows/capture-onboarding.yaml`
 
 ## Risks
 

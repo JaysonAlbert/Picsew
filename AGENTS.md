@@ -59,6 +59,7 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Shared product decisions should consider the full upload -> processing -> preview journey, not just one screen in isolation.
 - When changing shared mobile UI structure, review all three primary screens for consistency before handoff.
 - The web surface remains online in maintenance mode, while the long-term product investment shifts to the native iOS app.
+- New evaluator and automation investment should target the native iOS app unless a task explicitly touches the maintenance web surface.
 
 ## Repository Structure Rule
 
@@ -81,7 +82,11 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Native iOS work should start by running `npm run ios:harness:init` from the repository root.
 - Native iOS work should use `agent/ios-feature-ledger.json` as the default machine-readable work index unless a newer approved replacement is documented.
 - Before handoff, native iOS work should run `npm run ios:harness:smoke`.
+- For native iOS UI or UX changes, `npm run ios:harness:smoke` is necessary but not sufficient. Run the relevant repository-owned Maestro screenshot flows for the affected routes and capture fresh artifacts from the current change.
+- Native iOS UI validation should include a dedicated evaluator pass after automation finishes. Prefer a dedicated evaluator prompt or sub-agent when available; otherwise perform an explicit self-review step that inspects the fresh screenshot artifacts.
+- If the evaluator finds a mismatch with the documented UI structure, copy hierarchy, spacing, or action layout, continue the implement -> validate -> review loop instead of handing off immediately.
 - If `npm run ios:harness:smoke` cannot complete because a required local tool is unavailable, call out the exact skipped step and blocker in the final handoff.
+- If a native iOS UI change cannot run its required Maestro screenshot validation, stop before delivery unless the user explicitly accepts the skipped evaluator loop.
 
 ## Algorithm Parity Rule
 
@@ -121,10 +126,12 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Remove redundant helper cards before adding new ones.
 - Keep copy concise and let hierarchy do the work.
 - UI redesign work should document the intended shell, stage, and action structure before implementation.
+- Native iOS UI acceptance is artifact-based. Do not mark UI work as done based only on code inspection when fresh simulator screenshots are required.
 
 ## Validation Additions
 
 - Shared UI changes should include the smallest useful regression test for the affected screen structure.
 - iOS project or signing changes should include an `xcodebuild` simulator verification when feasible.
 - Native iOS pull requests should keep the repository-owned iOS harness workflow green.
+- Native iOS UI changes should report the exact Maestro flows that ran, whether screenshots were captured from the current change, and whether the evaluator pass concluded the UI matched the design intent.
 - If validation is skipped because a tool is unavailable, call that out explicitly in the handoff.

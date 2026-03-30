@@ -10,4 +10,6 @@ func spacingAndSurfaceTokens() {
     #expect(PicsewSurfaceStyle.primaryStage.cornerRadius == PicsewCornerRadius.stage.rawValue)
     #expect(PicsewSurfaceStyle.floatingTray.cornerRadius == PicsewCornerRadius.tray.rawValue)
     #expect(PicsewSurfaceStyle.floatingTray.borderOpacity > PicsewSurfaceStyle.primaryStage.borderOpacity)
+    #expect(PicsewInsetPanelStyle.soft.cornerRadius == PicsewCornerRadius.card.rawValue)
+    #expect(PicsewInsetPanelStyle.emphasized.tintOpacity > PicsewInsetPanelStyle.soft.tintOpacity)
 }

@@ -10,16 +10,20 @@ import PicsewMedia
 func routePresentationKeepsExpectedMetadata() {
     #expect(AppRoute.upload.presentation.title == "Select a screen recording")
     #expect(AppRoute.upload.presentation.activeStepIndex == 0)
+    #expect(AppRoute.upload.presentation.journeyLabel == "Import")
 
     #expect(AppRoute.processing.presentation.title == "Building your long screenshot")
     #expect(AppRoute.processing.presentation.activeStepIndex == 1)
+    #expect(AppRoute.processing.presentation.journeyLabel == "Stitch")
 
     #expect(AppRoute.preview.presentation.title == "Long screenshot ready")
     #expect(AppRoute.preview.presentation.activeStepIndex == 2)
+    #expect(AppRoute.preview.presentation.journeyLabel == "Export")
 
     #expect(AppRoute.feedback.presentation.title == "Feedback")
     #expect(AppRoute.feedback.presentation.activeStepIndex == nil)
     #expect(AppRoute.feedback.presentation.showsJourneyDots == false)
+    #expect(AppRoute.feedback.presentation.journeyLabel == nil)
 }
 
 @Test("automation configuration reads the preview scenario")

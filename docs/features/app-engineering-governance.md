@@ -3,7 +3,7 @@ title: App Engineering Governance
 issue: app-engineering-governance
 author: Jayson Albert
 date: 2026-03-29
-updated: 2026-03-29
+updated: 2026-03-30
 version: 0.1.0
 reviewers: [Jayson Albert]
 tags: [governance, process, ios, web, engineering]
@@ -23,6 +23,7 @@ status: approved
   - define how local-only config should be handled
   - define branch and PR scope rules
   - define extra validation rules for native and shared UI changes
+  - require an artifact-backed evaluator loop for native iOS UI work
 
 ## Design Choice
 
@@ -76,7 +77,21 @@ status: approved
   - preview
 - If a change affects shared flows, update or add the smallest regression test that proves the new structure.
 
-### 5. UI Consistency Rules
+### 5. Native iOS Evaluator Loop
+
+- Treat `xcodebuild` and Swift tests as necessary but not sufficient for native iOS UI work.
+- If a native iOS change affects screen structure, layout, styling, copy hierarchy, or primary actions, run repository-owned Maestro flows for the affected routes and capture fresh screenshot artifacts from the current change.
+- Review those fresh artifacts in a dedicated evaluator pass that is separate from implementation.
+- Prefer a dedicated evaluator prompt or sub-agent when available; otherwise perform an explicit self-review pass after automation finishes.
+- If the evaluator finds a design or UX mismatch, continue the implement -> validate -> review loop until the evaluator passes or a concrete blocker is reported.
+
+### 6. UI Acceptance Rules
+
+- Do not claim a native iOS UI change is complete based only on code inspection.
+- The actual simulator output must match the intended shell, stage, and action hierarchy described in docs.
+- Final handoff for native iOS UI work should name the automation flows that ran, whether screenshots were captured, and whether the evaluator passed.
+
+### 7. UI Consistency Rules
 
 - Treat upload, processing, and preview as one continuous product journey.
 - Avoid adding one-off decorative cards or helper panels to only one screen.
@@ -88,3 +103,4 @@ status: approved
 - [ ] AC-01: `AGENTS.md` documents the repository-level governance rules for app work.
 - [ ] AC-02: The new rules cover iOS project handling, local config handling, validation, and PR scope.
 - [ ] AC-03: Future contributors can follow the rules without relying on thread history.
+- [ ] AC-04: Native iOS UI work requires artifact-backed evaluator review, not just code-level validation.

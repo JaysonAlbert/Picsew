@@ -21,74 +21,44 @@ public struct UploadFeatureView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            PicsewStageCard {
-                VStack(alignment: .leading, spacing: 20) {
-                    HStack(alignment: .top, spacing: 16) {
-                        PicsewHeroGlyph(
-                            systemImage: model.selectedVideoURL == nil ? "video.badge.plus" : "checkmark.circle.fill",
-                            size: 64
-                        )
+        VStack(alignment: .leading, spacing: 16) {
+            PicsewStageCard(spacing: 22) {
+                stageHeader
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(model.selectedVideoURL == nil ? "Import your screen recording" : "Ready to stitch")
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(PicsewPalette.ink)
+                if let selectedVideoURL = model.selectedVideoURL {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Ready to stitch")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(PicsewPalette.ink)
 
-                            Text(
-                                model.selectedVideoURL?.lastPathComponent
-                                ?? "Choose one scrolling screen recording. Picsew keeps the full pipeline on-device and turns it into one long screenshot."
-                            )
+                        Text("Your recording is attached. Start processing when you are ready and Picsew will build the long screenshot locally.")
                             .font(.subheadline)
                             .foregroundStyle(PicsewPalette.mutedInk)
                             .fixedSize(horizontal: false, vertical: true)
-                        }
+
+                        selectedVideoPanel(for: selectedVideoURL)
                     }
+                } else {
+                    VStack(alignment: .leading, spacing: 18) {
+                        HStack(alignment: .top, spacing: 16) {
+                            PicsewHeroGlyph(
+                                systemImage: "video.badge.plus",
+                                size: 68
+                            )
 
-                    ViewThatFits {
-                        HStack(spacing: 8) {
-                            PicsewInfoChip(title: "Private by default", systemImage: "lock.fill", emphasis: true)
-                            PicsewInfoChip(title: "No upload", systemImage: "icloud.slash")
-                            PicsewInfoChip(title: "PNG result", systemImage: "photo")
-                        }
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Bring in one clean screen recording")
+                                    .font(.title3.weight(.semibold))
+                                    .foregroundStyle(PicsewPalette.ink)
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            PicsewInfoChip(title: "Private by default", systemImage: "lock.fill", emphasis: true)
-                            HStack(spacing: 8) {
-                                PicsewInfoChip(title: "No upload", systemImage: "icloud.slash")
-                                PicsewInfoChip(title: "PNG result", systemImage: "photo")
+                                Text("Choose a scrolling capture from Files or Photos. Picsew keeps the whole stitching pipeline private and on-device.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(PicsewPalette.mutedInk)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                         }
-                    }
 
-                    HStack(spacing: 12) {
-                        Button {
-                            showsFileImporter = true
-                        } label: {
-                            SourceButtonLabel(
-                                title: "Files",
-                                subtitle: "Browse local clips",
-                                systemImage: "folder.fill"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("upload.source.files")
-
-#if os(iOS)
-                        PhotosPicker(selection: $photosPickerItem, matching: .videos) {
-                            SourceButtonLabel(
-                                title: "Photos",
-                                subtitle: "Pick from library",
-                                systemImage: "photo.on.rectangle.angled"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("upload.source.photos")
-#endif
-                    }
-
-                    if let selectedVideoURL = model.selectedVideoURL {
-                        selectedVideoPanel(for: selectedVideoURL)
+                        sourcePickerStack
                     }
                 }
             }
@@ -138,6 +108,60 @@ public struct UploadFeatureView: View {
 #endif
     }
 
+    private var stageHeader: some View {
+        ViewThatFits {
+            HStack(spacing: 8) {
+                PicsewInfoChip(
+                    title: model.selectedVideoURL == nil ? "One clip in" : "Clip selected",
+                    systemImage: model.selectedVideoURL == nil ? "video" : "checkmark.circle.fill",
+                    emphasis: true
+                )
+                PicsewInfoChip(title: "No upload", systemImage: "icloud.slash")
+                PicsewInfoChip(title: "PNG result", systemImage: "photo")
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                PicsewInfoChip(
+                    title: model.selectedVideoURL == nil ? "One clip in" : "Clip selected",
+                    systemImage: model.selectedVideoURL == nil ? "video" : "checkmark.circle.fill",
+                    emphasis: true
+                )
+                HStack(spacing: 8) {
+                    PicsewInfoChip(title: "No upload", systemImage: "icloud.slash")
+                    PicsewInfoChip(title: "PNG result", systemImage: "photo")
+                }
+            }
+        }
+    }
+
+    private var sourcePickerStack: some View {
+        VStack(spacing: 12) {
+            Button {
+                showsFileImporter = true
+            } label: {
+                SourceButtonLabel(
+                    title: "Browse Files",
+                    subtitle: "Choose a local movie clip",
+                    systemImage: "folder.fill"
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("upload.source.files")
+
+#if os(iOS)
+            PhotosPicker(selection: $photosPickerItem, matching: .videos) {
+                SourceButtonLabel(
+                    title: "Open Photos",
+                    subtitle: "Pick from the photo library",
+                    systemImage: "photo.on.rectangle.angled"
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("upload.source.photos")
+#endif
+        }
+    }
+
     private func selectedVideoPanel(for selectedVideoURL: URL) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
@@ -151,29 +175,29 @@ public struct UploadFeatureView: View {
             }
 
             Text(selectedVideoURL.lastPathComponent)
-                .font(.subheadline.weight(.medium))
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(PicsewPalette.ink)
                 .lineLimit(2)
 
-            Text("Next step: start processing to detect the scrolling window, filter keyframes, and stitch the final image locally.")
+            Text("Start processing to detect the scrolling window and build the final long screenshot locally.")
                 .font(.footnote)
                 .foregroundStyle(PicsewPalette.mutedInk)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: CGFloat(PicsewCornerRadius.card.rawValue), style: .continuous)
-                .fill(Color.white.opacity(0.64))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: CGFloat(PicsewCornerRadius.card.rawValue), style: .continuous)
-                .stroke(Color.white.opacity(0.86), lineWidth: 1)
-        )
+        .picsewInsetPanel(style: .emphasized)
     }
 
     private var uploadBottomBar: some View {
         PicsewBottomActionTray {
+            if model.selectedVideoURL == nil {
+                Text("Pick one recording to unlock the native stitching pipeline.")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(PicsewPalette.mutedInk)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             Button {
                 Task {
                     await model.startProcessing()
@@ -182,9 +206,7 @@ public struct UploadFeatureView: View {
                 Label("Start Processing", systemImage: "sparkles.rectangle.stack")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(PicsewPalette.accent)
+            .buttonStyle(PicsewProminentButtonStyle())
             .disabled(!model.canStartProcessing)
             .accessibilityIdentifier("upload.startProcessing")
 
@@ -193,7 +215,7 @@ public struct UploadFeatureView: View {
                     model.clearSelection()
                 }
                 .buttonStyle(.plain)
-                .font(.subheadline.weight(.medium))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(PicsewPalette.mutedInk)
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("upload.clearSelection")
@@ -211,16 +233,16 @@ private struct SourceButtonLabel: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(PicsewGradients.brand)
 
                 Image(systemName: systemImage)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.white)
             }
-            .frame(width: 42, height: 42)
+            .frame(width: 46, height: 46)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(PicsewPalette.ink)
@@ -232,20 +254,19 @@ private struct SourceButtonLabel: View {
             Spacer(minLength: 8)
 
             Image(systemName: "arrow.up.right")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(PicsewPalette.mutedInk)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(PicsewPalette.accent)
+                .frame(width: 34, height: 34)
+                .background(Color.white.opacity(0.74), in: Circle())
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.84), lineWidth: 1)
+                )
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color.white.opacity(0.72))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.84), lineWidth: 1)
-        )
+        .picsewInsetPanel()
     }
 }
 
