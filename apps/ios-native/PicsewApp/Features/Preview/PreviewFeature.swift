@@ -31,10 +31,14 @@ public struct PreviewFeatureView: View {
                                         RoundedRectangle(cornerRadius: 22, style: .continuous)
                                             .stroke(.quaternary, lineWidth: 1)
                                     )
+                                    .accessibilityElement()
+                                    .accessibilityLabel("Stitched preview")
+                                    .accessibilityAddTraits(.isImage)
                                     .accessibilityIdentifier("preview.stitchedImage")
                             }
                         }
                     }
+                    .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("preview.stage.result")
 
                     PicsewStageCard {
@@ -47,6 +51,7 @@ public struct PreviewFeatureView: View {
                             summaryRow(title: "Detected region", value: "\(result.detection.refinedWindow.width) × \(result.detection.refinedWindow.height)")
                         }
                     }
+                    .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("preview.stage.summary")
                 } else {
                     Text("No stitched result is available yet.")
@@ -128,6 +133,7 @@ public struct PreviewFeatureView: View {
         .padding(.top, 14)
         .padding(.bottom, 10)
         .background(.ultraThinMaterial)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("preview.bottomBar")
     }
 

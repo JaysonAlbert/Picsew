@@ -70,6 +70,7 @@ public struct PicsewAppShell<Content: View>: View {
                 .padding(.horizontal, 20)
                 .padding(.top, geometry.safeAreaInsets.top + 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("shell.route.\(route.rawValue)")
             }
         }
