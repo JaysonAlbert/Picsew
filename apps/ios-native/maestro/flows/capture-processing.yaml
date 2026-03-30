@@ -1,0 +1,17 @@
+appId: top.ibotcloud.picsew.native
+name: Capture processing shell
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: processing
+- waitForAnimationToEnd
+- assertVisible:
+    id: "shell.route.processing"
+- assertVisible:
+    id: "processing.stage.card"
+- takeScreenshot:
+    path: capture-processing
+    label: Capture the processing screen

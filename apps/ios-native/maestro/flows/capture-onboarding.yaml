@@ -1,0 +1,17 @@
+appId: top.ibotcloud.picsew.native
+name: Capture onboarding shell
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: onboarding
+- waitForAnimationToEnd
+- assertVisible:
+    id: "onboarding.screen"
+- assertVisible:
+    id: "onboarding.continue"
+- takeScreenshot:
+    path: capture-onboarding
+    label: Capture the onboarding screen

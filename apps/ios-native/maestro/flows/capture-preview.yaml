@@ -1,0 +1,17 @@
+appId: top.ibotcloud.picsew.native
+name: Capture preview shell
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: preview
+- waitForAnimationToEnd
+- assertVisible:
+    id: "shell.route.preview"
+- assertVisible:
+    id: "preview.stitchedImage"
+- takeScreenshot:
+    path: capture-preview
+    label: Capture the preview screen

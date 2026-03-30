@@ -22,6 +22,37 @@ func routePresentationKeepsExpectedMetadata() {
     #expect(AppRoute.feedback.presentation.showsJourneyDots == false)
 }
 
+@Test("automation configuration reads the preview scenario")
+func automationConfigurationReadsPreviewScenario() {
+    let configuration = PicsewAutomationConfiguration(arguments: [
+        PicsewAutomationConfiguration.scenarioKey: "preview",
+    ])
+
+    #expect(configuration?.scenario == .preview)
+}
+
+@Test("automation model bootstraps preview state with fixture data")
+@MainActor
+func automationModelBootstrapsPreviewState() async throws {
+    let model = PicsewAppShellModel.automationModel(for: .preview)
+
+    #expect(model.route == .preview)
+    #expect(model.showsOnboarding == false)
+    #expect(model.selectedVideoURL?.lastPathComponent == "picsew-automation-input.mov")
+    #expect(model.result != nil)
+    #expect(model.shareURL?.lastPathComponent == "picsew-automation-share.png")
+}
+
+@Test("automation onboarding scenario keeps the onboarding cover visible")
+@MainActor
+func automationOnboardingScenarioKeepsOnboardingVisible() async throws {
+    let model = PicsewAppShellModel.automationModel(for: .onboarding)
+
+    #expect(model.route == .upload)
+    #expect(model.showsOnboarding == true)
+    #expect(model.selectedVideoURL == nil)
+}
+
 @Test("shell model transitions from upload to preview on pipeline success")
 @MainActor
 func shellTransitionsToPreviewOnSuccess() async throws {

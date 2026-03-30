@@ -22,6 +22,7 @@ public struct FeedbackFeatureView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .accessibilityIdentifier("feedback.placeholder")
 
             Spacer(minLength: 0)
         }
