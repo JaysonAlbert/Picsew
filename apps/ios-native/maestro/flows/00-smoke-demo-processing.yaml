@@ -1,0 +1,31 @@
+appId: top.ibotcloud.picsew.native
+name: Native iOS seeded demo processing smoke
+tags:
+  - smoke
+  - demo
+---
+- launchApp:
+    clearState: false
+    arguments:
+      picsewAutomationScenario: liveDemoUpload
+      picsewAutomationSeededVideoFilename: test-video.mp4
+- waitForAnimationToEnd
+- assertVisible:
+    id: "shell.route.upload"
+- assertVisible: "Choose Another Video"
+- tapOn: "Start Processing"
+- extendedWaitUntil:
+    visible:
+      id: "preview.stitchedImage"
+    timeout: 180000
+- assertVisible:
+    id: "preview.saveToPhotos"
+- assertVisible:
+    id: "preview.share"
+- tapOn:
+    id: "preview.saveToPhotos"
+- assertVisible:
+    id: "preview.exportMessage"
+- takeScreenshot:
+    path: smoke-demo-processing
+    label: Capture the preview route after processing a seeded demo clip

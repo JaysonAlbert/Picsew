@@ -35,6 +35,19 @@ func automationConfigurationReadsPreviewScenario() {
     #expect(configuration?.scenario == .preview)
 }
 
+@Test("automation configuration reads seeded demo and export behavior")
+func automationConfigurationReadsSeededDemoMetadata() {
+    let configuration = PicsewAutomationConfiguration(arguments: [
+        PicsewAutomationConfiguration.scenarioKey: "liveDemoUpload",
+        PicsewAutomationConfiguration.seededVideoFilenameKey: "demo.mp4",
+        PicsewAutomationConfiguration.exportBehaviorKey: "failure",
+    ])
+
+    #expect(configuration?.scenario == .liveDemoUpload)
+    #expect(configuration?.seededVideoFilename == "demo.mp4")
+    #expect(configuration?.exportBehavior == .failure)
+}
+
 @Test("automation model bootstraps preview state with fixture data")
 @MainActor
 func automationModelBootstrapsPreviewState() async throws {
@@ -54,6 +67,26 @@ func automationOnboardingScenarioKeepsOnboardingVisible() async throws {
 
     #expect(model.route == .upload)
     #expect(model.showsOnboarding == true)
+    #expect(model.selectedVideoURL == nil)
+}
+
+@Test("automation upload error scenario exposes an import failure message")
+@MainActor
+func automationUploadErrorScenarioExposesErrorMessage() async throws {
+    let model = PicsewAppShellModel.automationModel(for: .uploadError)
+
+    #expect(model.route == .upload)
+    #expect(model.selectedVideoURL == nil)
+    #expect(model.errorMessage == "Demo video import failed. Choose another recording.")
+}
+
+@Test("automation preview empty scenario keeps the preview route without a result")
+@MainActor
+func automationPreviewEmptyScenarioKeepsEmptyState() async throws {
+    let model = PicsewAppShellModel.automationModel(for: .previewEmpty)
+
+    #expect(model.route == .preview)
+    #expect(model.result == nil)
     #expect(model.selectedVideoURL == nil)
 }
 

@@ -1,12 +1,12 @@
 appId: top.ibotcloud.picsew.native
-name: Capture upload shell
+name: Capture upload empty shell
 tags:
   - screenshots
 ---
 - launchApp:
     clearState: true
     arguments:
-      picsewAutomationScenario: upload
+      picsewAutomationScenario: uploadEmpty
 - waitForAnimationToEnd
 - assertVisible:
     id: "shell.route.upload"
@@ -14,5 +14,5 @@ tags:
     id: "upload.stage.import"
 - assertVisible: "Start Processing"
 - takeScreenshot:
-    path: capture-upload
-    label: Capture the upload screen
+    path: capture-upload-empty
+    label: Capture the upload empty state

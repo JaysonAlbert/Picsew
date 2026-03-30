@@ -1,0 +1,17 @@
+appId: top.ibotcloud.picsew.native
+name: Capture preview empty shell
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: previewEmpty
+- waitForAnimationToEnd
+- assertVisible:
+    id: "shell.route.preview"
+- assertVisible:
+    id: "preview.emptyState"
+- takeScreenshot:
+    path: capture-preview-empty
+    label: Capture the preview empty state

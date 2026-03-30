@@ -1,18 +1,17 @@
 appId: top.ibotcloud.picsew.native
-name: Capture upload shell
+name: Capture upload error state
 tags:
   - screenshots
 ---
 - launchApp:
     clearState: true
     arguments:
-      picsewAutomationScenario: upload
+      picsewAutomationScenario: uploadError
 - waitForAnimationToEnd
 - assertVisible:
     id: "shell.route.upload"
 - assertVisible:
-    id: "upload.stage.import"
-- assertVisible: "Start Processing"
+    id: "upload.errorMessage"
 - takeScreenshot:
-    path: capture-upload
-    label: Capture the upload screen
+    path: capture-upload-error
+    label: Capture the upload error state

@@ -1,3 +1,3 @@
 flows:
-  - "flows/**/*.yaml"
+  - "flows/*.yaml"
 testOutputDir: artifacts

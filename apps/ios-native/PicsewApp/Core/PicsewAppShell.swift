@@ -38,7 +38,7 @@ public struct PicsewAppShell<Content: View>: View {
             ZStack {
                 PicsewAtmosphericBackground()
 
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     topBar
 
                     if presentation.showsJourneyDots {
@@ -63,11 +63,11 @@ public struct PicsewAppShell<Content: View>: View {
 
                     VStack(alignment: .leading, spacing: 6) {
                         Text(presentation.title)
-                            .font(.system(size: 29, weight: .bold, design: .rounded))
+                            .font(.system(size: 27, weight: .bold, design: .rounded))
                             .foregroundStyle(PicsewPalette.ink)
 
                         Text(presentation.subtitle)
-                            .font(.subheadline)
+                            .font(.footnote)
                             .foregroundStyle(PicsewPalette.mutedInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -76,7 +76,7 @@ public struct PicsewAppShell<Content: View>: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, geometry.safeAreaInsets.top + 4)
+                .padding(.top, geometry.safeAreaInsets.top + 2)
                 .padding(.bottom, 8)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .accessibilityElement(children: .contain)
@@ -92,7 +92,7 @@ public struct PicsewAppShell<Content: View>: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(appName)
-                        .font(.headline.weight(.semibold))
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(PicsewPalette.ink)
                     Text("Private native utility")
                         .font(.caption2)
@@ -100,7 +100,7 @@ public struct PicsewAppShell<Content: View>: View {
                 }
             }
             .padding(.horizontal, 11)
-            .padding(.vertical, 7)
+            .padding(.vertical, 6)
             .background(
                 Capsule(style: .continuous)
                     .fill(Color.white.opacity(0.60))
@@ -116,7 +116,7 @@ public struct PicsewAppShell<Content: View>: View {
                 Image(systemName: action.systemImage)
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(PicsewPalette.ink)
-                    .frame(width: 38, height: 38)
+                    .frame(width: 36, height: 36)
                     .background(
                         Circle()
                             .fill(Color.white.opacity(0.72))
@@ -155,7 +155,7 @@ public struct PicsewJourneyDots: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.vertical, 7)
         .background(
             Capsule(style: .continuous)
                 .fill(Color.white.opacity(0.55))

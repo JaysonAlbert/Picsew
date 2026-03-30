@@ -21,63 +21,35 @@ public struct UploadFeatureView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            PicsewStageCard(spacing: 22) {
-                stageHeader
+        VStack(alignment: .leading, spacing: 12) {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 14) {
+                    PicsewStageCard(spacing: model.selectedVideoURL == nil ? 20 : 18) {
+                        stageHeader
 
-                if let selectedVideoURL = model.selectedVideoURL {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Ready to stitch")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(PicsewPalette.ink)
-
-                        Text("Your recording is attached. Start processing when you are ready and Picsew will build the long screenshot locally.")
-                            .font(.subheadline)
-                            .foregroundStyle(PicsewPalette.mutedInk)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        selectedVideoPanel(for: selectedVideoURL)
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: 18) {
-                        HStack(alignment: .top, spacing: 16) {
-                            PicsewHeroGlyph(
-                                systemImage: "video.badge.plus",
-                                size: 68
-                            )
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Bring in one clean screen recording")
-                                    .font(.title3.weight(.semibold))
-                                    .foregroundStyle(PicsewPalette.ink)
-
-                                Text("Choose a scrolling capture from Files or Photos. Picsew keeps the whole stitching pipeline private and on-device.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(PicsewPalette.mutedInk)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
+                        if let selectedVideoURL = model.selectedVideoURL {
+                            selectedState(for: selectedVideoURL)
+                        } else {
+                            emptyState
                         }
+                    }
+                    .accessibilityIdentifier("upload.stage.import")
 
-                        sourcePickerStack
+                    if let errorMessage = model.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.red)
+                            .padding(.horizontal, 4)
+                            .accessibilityIdentifier("upload.errorMessage")
                     }
                 }
-            }
-            .accessibilityIdentifier("upload.stage.import")
-
-            if let errorMessage = model.errorMessage {
-                Text(errorMessage)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.red)
-                    .padding(.horizontal, 4)
-                    .accessibilityIdentifier("upload.errorMessage")
+                .padding(.bottom, 8)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
 
-            Spacer(minLength: 0)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .safeAreaInset(edge: .bottom) {
             uploadBottomBar
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .fileImporter(
             isPresented: $showsFileImporter,
             allowedContentTypes: [.movie, .mpeg4Movie, .quickTimeMovie],
@@ -106,6 +78,54 @@ public struct UploadFeatureView: View {
             }
         }
 #endif
+    }
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 16) {
+                PicsewHeroGlyph(
+                    systemImage: "video.badge.plus",
+                    size: 64
+                )
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Bring in one clean screen recording")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(PicsewPalette.ink)
+
+                    Text("Choose a scrolling capture from Files or Photos. Picsew keeps the stitching pipeline private and on-device.")
+                        .font(.subheadline)
+                        .foregroundStyle(PicsewPalette.mutedInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            sourcePickerStack
+        }
+    }
+
+    private func selectedState(for selectedVideoURL: URL) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                PicsewHeroGlyph(
+                    systemImage: "checkmark.circle.fill",
+                    size: 56
+                )
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Ready to stitch")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(PicsewPalette.ink)
+
+                    Text("Your recording is attached and ready for the native pipeline.")
+                        .font(.subheadline)
+                        .foregroundStyle(PicsewPalette.mutedInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            selectedVideoPanel(for: selectedVideoURL)
+        }
     }
 
     private var stageHeader: some View {
@@ -164,13 +184,20 @@ public struct UploadFeatureView: View {
 
     private func selectedVideoPanel(for selectedVideoURL: URL) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(PicsewPalette.success)
-                Text("Selected clip")
-                    .font(.headline)
-                    .foregroundStyle(PicsewPalette.ink)
-                Spacer()
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Selected clip")
+                        .font(.headline)
+                        .foregroundStyle(PicsewPalette.ink)
+
+                    Text("Start processing to detect the scrolling window and build the final long screenshot locally.")
+                        .font(.footnote)
+                        .foregroundStyle(PicsewPalette.mutedInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+
                 PicsewInfoChip(title: "Ready", systemImage: "sparkles", emphasis: true)
             }
 
@@ -178,11 +205,6 @@ public struct UploadFeatureView: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(PicsewPalette.ink)
                 .lineLimit(2)
-
-            Text("Start processing to detect the scrolling window and build the final long screenshot locally.")
-                .font(.footnote)
-                .foregroundStyle(PicsewPalette.mutedInk)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
