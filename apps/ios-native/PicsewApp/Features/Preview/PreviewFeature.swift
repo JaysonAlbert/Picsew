@@ -40,6 +40,47 @@ public struct PreviewFeatureView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if let exportMessage = model.exportMessage {
+                    Text(exportMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 12) {
+                    Button {
+                        Task {
+                            await model.saveResultToPhotos()
+                        }
+                    } label: {
+                        Label(
+                            model.isSavingResult ? "Saving..." : "Save to Photos",
+                            systemImage: "square.and.arrow.down"
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(model.result == nil || model.isSavingResult)
+
+                    if let shareURL = model.shareURL {
+                        ShareLink(item: shareURL) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                    } else {
+                        Label(
+                            model.isPreparingShare ? "Preparing..." : "Share",
+                            systemImage: "square.and.arrow.up"
+                        )
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                }
+
                 Button("Process Another Video") {
                     model.clearSelection()
                 }
@@ -47,6 +88,11 @@ public struct PreviewFeatureView: View {
                 .controlSize(.large)
             }
             .padding(24)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .task(id: model.result?.stitchedImage.pixels.count) {
+            await model.prepareShareIfNeeded()
         }
     }
 }

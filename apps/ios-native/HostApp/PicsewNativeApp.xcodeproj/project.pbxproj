@@ -11,6 +11,7 @@
 		A10000000000000000000002 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* Assets.xcassets */; };
 		A10000000000000000000003 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* LaunchScreen.storyboard */; };
 		A10000000000000000000004 /* PicsewApp in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000024 /* PicsewApp */; };
+		A10000000000000000000005 /* PicsewAlgorithm in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000026 /* PicsewAlgorithm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000004 /* PicsewApp in Frameworks */,
+				A10000000000000000000005 /* PicsewAlgorithm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -86,6 +88,7 @@
 			name = PicsewNativeApp;
 			packageProductDependencies = (
 				A10000000000000000000024 /* PicsewApp */,
+				A10000000000000000000026 /* PicsewAlgorithm */,
 			);
 			productName = PicsewNativeApp;
 			productReference = A10000000000000000000010 /* PicsewNativeApp.app */;
@@ -117,6 +120,7 @@
 			mainGroup = A10000000000000000000030;
 			packageReferences = (
 				A10000000000000000000023 /* XCLocalSwiftPackageReference "PicsewApp" */,
+				A10000000000000000000025 /* XCLocalSwiftPackageReference "PicsewAlgorithm" */,
 			);
 			productRefGroup = A10000000000000000000032 /* Products */;
 			projectDirPath = "";
@@ -290,6 +294,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../PicsewApp;
 		};
+		A10000000000000000000025 /* XCLocalSwiftPackageReference "PicsewAlgorithm" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../Packages/PicsewAlgorithm;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -297,6 +305,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A10000000000000000000023 /* XCLocalSwiftPackageReference "PicsewApp" */;
 			productName = PicsewApp;
+		};
+		A10000000000000000000026 /* PicsewAlgorithm */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10000000000000000000025 /* XCLocalSwiftPackageReference "PicsewAlgorithm" */;
+			productName = PicsewAlgorithm;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
