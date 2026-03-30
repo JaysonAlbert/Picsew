@@ -1,0 +1,5 @@
+// Shared committed app identity for the native iOS host target.
+PICSEW_APP_DISPLAY_NAME = Picsew
+PICSEW_BUNDLE_IDENTIFIER = top.ibotcloud.picsew.native
+PICSEW_MARKETING_VERSION = 1.0
+PICSEW_BUILD_NUMBER = 1

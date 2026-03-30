@@ -1,0 +1,2 @@
+#include "app-config.xcconfig"
+#include? "local-signing.xcconfig"
