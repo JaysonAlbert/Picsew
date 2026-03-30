@@ -89,7 +89,9 @@ All feature work, bug fixes, and meaningful product changes in this repository s
   - `PicsewAlgorithm`
   - `PicsewMedia`
   - `PicsewDesignSystem`
+  - `PicsewAppCore`
 - Keep app-only composition, routing, and feature wiring under `apps/ios-native/PicsewApp/`.
+- Keep app-facing native processing orchestration in `PicsewAppCore` instead of rebuilding pipeline order inside SwiftUI features.
 - Do not collapse algorithm, media, and design system concerns into one package just for convenience.
 
 ## Local Config And Secrets
