@@ -1,0 +1,19 @@
+appId: top.ibotcloud.picsew.native
+name: Capture upload shell
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: upload
+- waitForAnimationToEnd
+- assertVisible:
+    id: "shell.route.upload"
+- assertVisible:
+    id: "upload.stage.import"
+- assertVisible:
+    id: "upload.startProcessing"
+- takeScreenshot:
+    path: capture-upload
+    label: Capture the upload screen

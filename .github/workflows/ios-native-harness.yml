@@ -1,0 +1,58 @@
+name: Native iOS Harness
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "agent/**"
+      - "apps/ios-native/**"
+      - "docs/features/native-ios-agent-harness-foundation.md"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/agent/**"
+      - ".github/workflows/ios-native-harness.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "AGENTS.md"
+      - "agent/**"
+      - "apps/ios-native/**"
+      - "docs/features/native-ios-agent-harness-foundation.md"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/agent/**"
+      - ".github/workflows/ios-native-harness.yml"
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+  ios-native-harness:
+    name: iOS Harness Gate
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Select latest stable Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Initialize native iOS harness
+        run: npm run ios:harness:init
+
+      - name: Run native iOS harness smoke
+        run: npm run ios:harness:smoke

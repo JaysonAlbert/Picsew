@@ -70,6 +70,8 @@ public struct PicsewAppShell<Content: View>: View {
                 .padding(.horizontal, 20)
                 .padding(.top, geometry.safeAreaInsets.top + 10)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("shell.route.\(route.rawValue)")
             }
         }
     }
@@ -116,6 +118,7 @@ public struct PicsewAppShell<Content: View>: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(action.accessibilityLabel)
+            .accessibilityIdentifier("shell.utilityAction")
         }
     }
 }
@@ -140,6 +143,7 @@ public struct PicsewJourneyDots: View {
         .padding(.vertical, 8)
         .background(.ultraThinMaterial, in: Capsule(style: .continuous))
         .overlay(Capsule(style: .continuous).stroke(.white.opacity(0.7), lineWidth: 1))
+        .accessibilityIdentifier("shell.journeyDots")
     }
 }
 

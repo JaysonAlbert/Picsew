@@ -66,11 +66,13 @@ public struct OnboardingFeatureView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("onboarding.continue")
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, geometry.safeAreaInsets.top + 24)
                 .padding(.bottom, max(20, geometry.safeAreaInsets.bottom + 8))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .accessibilityIdentifier("onboarding.screen")
             }
         }
         .interactiveDismissDisabled()

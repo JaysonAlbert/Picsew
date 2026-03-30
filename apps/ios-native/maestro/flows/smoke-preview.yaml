@@ -1,0 +1,21 @@
+appId: top.ibotcloud.picsew.native
+name: Native iOS preview smoke
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: preview
+- waitForAnimationToEnd
+- assertVisible:
+    id: "shell.route.preview"
+- assertVisible:
+    id: "preview.stitchedImage"
+- assertVisible:
+    id: "preview.saveToPhotos"
+- assertVisible:
+    id: "preview.share"
+- takeScreenshot:
+    path: smoke-preview
+    label: Capture the preview route after the smoke assertions

@@ -240,6 +240,8 @@ __marimo__/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+/.derived-data/
+/apps/ios-native/maestro/artifacts/
 
 # database
 /prisma/db.sqlite

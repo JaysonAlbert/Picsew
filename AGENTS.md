@@ -76,6 +76,13 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Treat the root `ios/` directory as transitional during the native migration until `apps/ios-native/` becomes the active app path.
 - New native foundation code should land in `apps/ios-native/Packages/` or `apps/ios-native/PicsewApp/`, not inside the transitional Capacitor shell unless the task is explicitly maintaining that shell.
 
+## Native iOS Agent Harness Rule
+
+- Native iOS work should start by running `npm run ios:harness:init` from the repository root.
+- Native iOS work should use `agent/ios-feature-ledger.json` as the default machine-readable work index unless a newer approved replacement is documented.
+- Before handoff, native iOS work should run `npm run ios:harness:smoke`.
+- If `npm run ios:harness:smoke` cannot complete because a required local tool is unavailable, call out the exact skipped step and blocker in the final handoff.
+
 ## Algorithm Parity Rule
 
 - During the native iOS migration, preserve the logical behavior of the current TypeScript algorithm unless a separate approved design explicitly changes it.
@@ -119,4 +126,5 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 
 - Shared UI changes should include the smallest useful regression test for the affected screen structure.
 - iOS project or signing changes should include an `xcodebuild` simulator verification when feasible.
+- Native iOS pull requests should keep the repository-owned iOS harness workflow green.
 - If validation is skipped because a tool is unavailable, call that out explicitly in the handoff.

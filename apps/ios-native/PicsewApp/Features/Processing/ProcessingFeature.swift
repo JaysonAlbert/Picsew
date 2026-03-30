@@ -47,6 +47,7 @@ public struct ProcessingFeatureView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+            .accessibilityIdentifier("processing.stage.card")
 
             Spacer(minLength: 0)
         }

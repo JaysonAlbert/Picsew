@@ -50,16 +50,19 @@ public struct UploadFeatureView: View {
                             SourceButtonLabel(title: "Files", systemImage: "folder")
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("upload.source.files")
 
 #if os(iOS)
                         PhotosPicker(selection: $photosPickerItem, matching: .videos) {
                             SourceButtonLabel(title: "Photos", systemImage: "photo.on.rectangle")
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("upload.source.photos")
 #endif
                     }
                 }
             }
+            .accessibilityIdentifier("upload.stage.import")
 
             if model.selectedVideoURL != nil {
                 PicsewStageCard {
@@ -71,6 +74,7 @@ public struct UploadFeatureView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .accessibilityIdentifier("upload.stage.ready")
             }
 
             if let errorMessage = model.errorMessage {
@@ -78,6 +82,7 @@ public struct UploadFeatureView: View {
                     .font(.footnote)
                     .foregroundStyle(.red)
                     .padding(.horizontal, 4)
+                    .accessibilityIdentifier("upload.errorMessage")
             }
 
             Spacer(minLength: 0)
@@ -129,6 +134,7 @@ public struct UploadFeatureView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .disabled(!model.canStartProcessing)
+            .accessibilityIdentifier("upload.startProcessing")
 
             if model.selectedVideoURL != nil {
                 Button("Choose Another Video") {
@@ -137,12 +143,14 @@ public struct UploadFeatureView: View {
                 .buttonStyle(.plain)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.secondary)
+                .accessibilityIdentifier("upload.clearSelection")
             }
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
         .padding(.bottom, 10)
         .background(.ultraThinMaterial)
+        .accessibilityIdentifier("upload.bottomBar")
     }
 
 }

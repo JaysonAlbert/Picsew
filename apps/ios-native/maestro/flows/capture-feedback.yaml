@@ -1,0 +1,17 @@
+appId: top.ibotcloud.picsew.native
+name: Capture feedback shell
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: feedback
+- waitForAnimationToEnd
+- assertVisible:
+    id: "shell.route.feedback"
+- assertVisible:
+    id: "feedback.placeholder"
+- takeScreenshot:
+    path: capture-feedback
+    label: Capture the feedback screen

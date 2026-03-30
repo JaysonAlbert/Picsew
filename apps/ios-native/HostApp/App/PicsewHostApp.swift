@@ -16,7 +16,11 @@ struct PicsewHostApp: App {
 private enum PicsewHostEnvironment {
     @MainActor
     static func makeModel() -> PicsewAppShellModel {
-        PicsewAppShellModel(systemClient: makeSystemClient())
+        if let automation = PicsewAutomationConfiguration.current() {
+            return PicsewAppShellModel.automationModel(for: automation.scenario)
+        }
+
+        return PicsewAppShellModel(systemClient: makeSystemClient())
     }
 
     static func makeSystemClient() -> PicsewSystemClient {

@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "surface": "ios-native",
+  "updatedAt": "2026-03-30",
+  "summary": "Machine-readable native iOS work ledger for agent and developer sessions.",
+  "defaultSmokeCommands": [
+    "npm run ios:harness:check",
+    "npm run ios:harness:test",
+    "swift test --package-path apps/ios-native/PicsewApp",
+    "xcodebuild -project apps/ios-native/HostApp/PicsewNativeApp.xcodeproj -scheme PicsewNativeApp -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build"
+  ],
+  "features": [
+    {
+      "id": "ios.shell.onboarding",
+      "title": "Onboarding cover and first-run dismissal",
+      "area": "shell",
+      "priority": "P0",
+      "status": "baseline",
+      "automationScenario": "onboarding",
+      "docs": [
+        "docs/features/native-ios-agent-harness-foundation.md",
+        "docs/architecture/native-ios-automation-validation-phase-9.md"
+      ],
+      "validators": [
+        "swift test --package-path apps/ios-native/PicsewApp",
+        "npm run ios:test:maestro:workspace"
+      ]
+    },
+    {
+      "id": "ios.upload.import",
+      "title": "Upload route and imported video selection",
+      "area": "upload",
+      "priority": "P0",
+      "status": "baseline",
+      "automationScenario": "upload",
+      "docs": [
+        "docs/features/native-ios-agent-harness-foundation.md",
+        "docs/architecture/native-ios-automation-validation-phase-9.md"
+      ],
+      "validators": [
+        "swift test --package-path apps/ios-native/PicsewApp",
+        "npm run ios:test:maestro:workspace"
+      ]
+    },
+    {
+      "id": "ios.processing.pipeline",
+      "title": "Processing route progress and pipeline transition",
+      "area": "processing",
+      "priority": "P0",
+      "status": "baseline",
+      "automationScenario": "processing",
+      "docs": [
+        "docs/features/native-ios-agent-harness-foundation.md",
+        "docs/architecture/native-ios-app-pipeline-phase-4.md",
+        "docs/architecture/native-ios-automation-validation-phase-9.md"
+      ],
+      "validators": [
+        "swift test --package-path apps/ios-native/PicsewApp",
+        "xcodebuild -project apps/ios-native/HostApp/PicsewNativeApp.xcodeproj -scheme PicsewNativeApp -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build"
+      ]
+    },
+    {
+      "id": "ios.preview.export",
+      "title": "Preview route, save, share, and restart actions",
+      "area": "preview",
+      "priority": "P0",
+      "status": "baseline",
+      "automationScenario": "preview",
+      "docs": [
+        "docs/features/native-ios-agent-harness-foundation.md",
+        "docs/features/ios-preview-ui-refresh.md",
+        "docs/architecture/native-ios-automation-validation-phase-9.md"
+      ],
+      "validators": [
+        "swift test --package-path apps/ios-native/PicsewApp",
+        "npm run ios:test:maestro:preview"
+      ]
+    },
+    {
+      "id": "ios.feedback.route",
+      "title": "Feedback route shell and navigation path",
+      "area": "feedback",
+      "priority": "P1",
+      "status": "baseline",
+      "automationScenario": "feedback",
+      "docs": [
+        "docs/features/native-ios-agent-harness-foundation.md",
+        "docs/features/ios-feedback-page.md",
+        "docs/architecture/native-ios-automation-validation-phase-9.md"
+      ],
+      "validators": [
+        "swift test --package-path apps/ios-native/PicsewApp",
+        "npm run ios:test:maestro:workspace"
+      ]
+    },
+    {
+      "id": "ios.harness.xcuitest-track",
+      "title": "Native Apple-owned evaluator lane for future XCUITest coverage",
+      "area": "automation",
+      "priority": "P2",
+      "status": "planned",
+      "docs": [
+        "docs/features/native-ios-agent-harness-foundation.md",
+        "docs/architecture/native-ios-automation-validation-phase-9.md"
+      ],
+      "validators": ["npm run ios:harness:smoke"]
+    }
+  ]
+}
