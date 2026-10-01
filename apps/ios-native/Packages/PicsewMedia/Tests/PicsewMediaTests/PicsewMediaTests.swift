@@ -98,6 +98,62 @@ func fullResolutionColorKeyframeExtractionPreservesRGBA() async throws {
     #expect(batch.frames.allSatisfy { $0.pixels.count == 756 * 1022 * 4 })
 }
 
+@Test("decoded color rows keep the video's red top and blue bottom")
+func decodedColorKeepsVisualTopRow() async throws {
+    let batch = try await PicsewMediaAnalyzer().extractFullResolutionColorKeyframes(
+        from: orientationVideoURL(), keyframeIndices: [0]
+    )
+    let frame = try #require(batch.frames.first)
+    let pixels = [UInt8](frame.pixels)
+    let bottom = (frame.height - 1) * frame.bytesPerRow
+
+    #expect(pixels[0] > 200)
+    #expect(pixels[2] < 30)
+    #expect(pixels[bottom] < 30)
+    #expect(pixels[bottom + 2] > 200)
+}
+
+@Test("full and half-scale grayscale rows preserve top-to-bottom luminance")
+func decodedGrayKeepsVisualTopRow() async throws {
+    let analyzer = PicsewMediaAnalyzer()
+    let url = try orientationVideoURL()
+    let full = try await analyzer.extractFullResolutionGrayKeyframes(
+        from: url, keyframeIndices: [0]
+    )
+    let half = try await analyzer.extractLowResolutionGrayFrames(
+        from: url,
+        request: PicsewFrameExtractionRequest(
+            frameRate: 6, maxExtractFrames: 480, resizeScale: 0.5, frameLimit: 1
+        )
+    )
+
+    let fullFrame = try #require(full.frames.first)
+    let halfFrame = try #require(half.frames.first)
+    for (data, width, height) in [
+        (fullFrame.pixels, fullFrame.width, fullFrame.height),
+        (halfFrame.pixels, halfFrame.width, halfFrame.height),
+    ] {
+        let pixels = [UInt8](data)
+        #expect(Int(pixels[0]) > Int(pixels[(height - 1) * width]) + 20)
+    }
+}
+
+private func orientationVideoURL(filePath: String = #filePath) throws -> URL {
+    var candidate = URL(fileURLWithPath: filePath)
+    for _ in 0..<10 {
+        let videoURL = candidate.appendingPathComponent(
+            "fixtures/media-orientation/red-top-blue-bottom.mp4"
+        )
+        if FileManager.default.fileExists(atPath: videoURL.path) {
+            return videoURL
+        }
+        candidate.deleteLastPathComponent()
+    }
+    throw NSError(domain: "PicsewMediaTests", code: 2, userInfo: [
+        NSLocalizedDescriptionKey: "Could not locate public orientation fixture."
+    ])
+}
+
 private func sampleVideoURL(filePath: String = #filePath) throws -> URL {
     var candidate = URL(fileURLWithPath: filePath)
 

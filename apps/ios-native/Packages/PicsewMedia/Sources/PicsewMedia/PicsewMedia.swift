@@ -419,10 +419,8 @@ public struct PicsewMediaAnalyzer: Sendable {
         }
 
         context.interpolationQuality = .medium
-        // Match image-space orientation so downstream analysis lines up with
-        // the browser pipeline instead of a vertically flipped buffer.
-        context.translateBy(x: 0, y: CGFloat(height))
-        context.scaleBy(x: 1, y: -1)
+        // Bitmap memory already stores CGImage rows from the visual top.
+        // Reflecting this context would invert the raster consumed by stitching.
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         guard let rawData = context.data else {
@@ -456,8 +454,6 @@ public struct PicsewMediaAnalyzer: Sendable {
         }
 
         context.interpolationQuality = .medium
-        context.translateBy(x: 0, y: CGFloat(height))
-        context.scaleBy(x: 1, y: -1)
         context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
 
         guard let rawData = context.data else {
