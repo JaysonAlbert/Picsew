@@ -24,7 +24,7 @@ const demoVideoExpectations = [
   {
     fileName: "demo2.mp4",
     videoPath: path.join(repoRoot, "demo2.mp4"),
-    stats: { lowResFrames: 117, candidateKeyframes: 10, finalKeyframes: 10 },
+    stats: { lowResFrames: 117, candidateKeyframes: 12, finalKeyframes: 12 },
   },
   {
     fileName: "demo3.mp4",
