@@ -54,18 +54,71 @@ test.describe("existing real recording outputs [video]", () => {
         name: "Generated long screenshot",
       });
       await expect(result).toBeVisible();
-      const output = await result.evaluate((image) => {
+      const output = await result.evaluate(async (image, fileName) => {
         const canvas = document.createElement("canvas");
         canvas.width = canvas.height = 1;
         const context = canvas.getContext("2d")!;
         context.drawImage(image as HTMLImageElement, 0, 0, 1, 1);
+        let arrowRows: number[] = [];
+        if (fileName.endsWith("floating-arrow-2026-10-01.mp4")) {
+          // The original button's fixed position is measured in the input clip.
+          // Match its upper glyph too: a cropped duplicate is still a defect.
+          const source = document.createElement("video");
+          source.muted = true;
+          source.src = `/${fileName}`;
+          await new Promise<void>((resolve, reject) => {
+            source.onloadeddata = () => resolve();
+            source.onerror = () =>
+              reject(new Error("Cannot decode arrow oracle"));
+            source.load();
+          });
+          await new Promise<void>((resolve) => {
+            source.onseeked = () => resolve();
+            source.currentTime = 0.5;
+          });
+          const glyph = document.createElement("canvas");
+          glyph.width = 50;
+          glyph.height = 34;
+          const glyphContext = glyph.getContext("2d")!;
+          glyphContext.drawImage(source, 578, 2100, 50, 34, 0, 0, 50, 34);
+          const template = glyphContext.getImageData(0, 0, 50, 34).data;
+          const dark: number[] = [],
+            light: number[] = [];
+          for (let i = 0; i < 50 * 34; i++)
+            (template[i * 4]! < 60 ? dark : light).push(i);
+          if (dark.length < 200 || dark.length > 600)
+            throw new Error("Original arrow oracle is missing");
+          canvas.width = (image as HTMLImageElement).naturalWidth;
+          canvas.height = (image as HTMLImageElement).naturalHeight;
+          context.drawImage(image as HTMLImageElement, 0, 0);
+          const strip = context.getImageData(578, 0, 50, canvas.height).data;
+          const hits: number[] = [];
+          for (let y = 0; y <= canvas.height - 34; y++) {
+            const start = y * 50;
+            const blackMatches = dark.filter(
+              (i) => strip[(start + i) * 4]! < 60,
+            ).length;
+            const whiteErrors = light.filter(
+              (i) => strip[(start + i) * 4]! < 60,
+            ).length;
+            if (
+              blackMatches / dark.length > 0.92 &&
+              whiteErrors / light.length < 0.055
+            )
+              hits.push(y);
+          }
+          arrowRows = hits.filter((y, i) => i === 0 || y > hits[i - 1]! + 2);
+          source.removeAttribute("src");
+          source.load();
+        }
         return {
+          arrowRows,
           width: (image as HTMLImageElement).naturalWidth,
           height: (image as HTMLImageElement).naturalHeight,
           src: (image as HTMLImageElement).src,
           hasPixels: context.getImageData(0, 0, 1, 1).data[3]! > 0,
         };
-      });
+      }, fileName);
       expect(output.hasPixels).toBe(true);
       expect(output.width).toBeGreaterThan(100);
       expect(output.height).toBeGreaterThan(100);
@@ -81,11 +134,23 @@ test.describe("existing real recording outputs [video]", () => {
       writeFileSync(
         testInfo.outputPath("diagnostics.json"),
         JSON.stringify(
-          { fileName, width: output.width, height: output.height, logs },
+          {
+            fileName,
+            width: output.width,
+            height: output.height,
+            arrowRows: output.arrowRows,
+            logs,
+          },
           null,
           2,
         ),
       );
+      // Only this source has a measured fixed-arrow oracle. Its final footer
+      // control lacks a clean source; repeated body controls must be absent.
+      expect(output.arrowRows).toHaveLength(
+        fileName.endsWith("floating-arrow-2026-10-01.mp4") ? 1 : 0,
+      );
+      expect(output.arrowRows.every((y) => y > output.height - 600)).toBe(true);
     });
   }
 });

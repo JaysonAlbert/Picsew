@@ -34,7 +34,7 @@ document.save(OUTPUT / "document.png")
 
 with tempfile.TemporaryDirectory() as temporary:
     frames = pathlib.Path(temporary)
-    for kind in ("fixed", "clean", "white", "dark"):
+    for kind in ("fixed", "clean", "white", "dark", "glass"):
         for index in range(36):
             frame = Image.new("RGB", (480, 720), (235, 235, 235))
             position = min(index, 34) * 20  # Hold the last position across the codec boundary.
@@ -42,12 +42,25 @@ with tempfile.TemporaryDirectory() as temporary:
             draw = ImageDraw.Draw(frame)
             draw.text((20, 25), "SCROLLING DOCUMENT", fill=(40, 40, 40))
             draw.text((20, 670), "FIXED FOOTER", fill=(40, 40, 40))
+            if kind == "glass":
+                # Viewport-fixed glass shading changes brightness, not document
+                # coordinates. Recovering tiny rectangles leaves visible seams.
+                shade = Image.new("RGBA", frame.size, (0, 0, 0, 0))
+                shade_draw = ImageDraw.Draw(shade)
+                for row in range(530, 640):
+                    shade_draw.line((0, row, 479, row), fill=(0, 0, 0, round((row - 530) / 110 * 70)))
+                frame = Image.alpha_composite(frame.convert("RGBA"), shade).convert("RGB")
+                draw = ImageDraw.Draw(frame)
+                # A separate changing footer patch models content visible through
+                # glass UI; early candidates fail the outside-motion filter.
+                draw.rectangle((15, 650, 135, 690), fill=(min(index, 24) * 10,) * 3)
             if kind != "clean":
-                colour = {"fixed": (255, 0, 180), "white": (245, 245, 245), "dark": (35, 35, 35)}[kind]
-                draw.ellipse((214, 484, 266, 536), fill=colour, outline=(100, 100, 100), width=1)
+                colour = {"fixed": (255, 0, 180), "white": (245, 245, 245), "dark": (35, 35, 35), "glass": (245, 245, 245)}[kind]
+                shift = 65 if kind == "glass" else 0
+                draw.ellipse((214, 484 + shift, 266, 536 + shift), fill=colour, outline=(100, 100, 100), width=1)
                 arrow = (230, 230, 230) if kind == "dark" else (25, 25, 25)
-                draw.line((240, 496, 240, 524), fill=arrow, width=5)
-                draw.line((229, 513, 240, 524, 251, 513), fill=arrow, width=5)
+                draw.line((240, 496 + shift, 240, 524 + shift), fill=arrow, width=5)
+                draw.line((229, 513 + shift, 240, 524 + shift, 251, 513 + shift), fill=arrow, width=5)
             frame.save(frames / f"{index:03}.png")
         codecs = {
             "mp4": ["-c:v", "libx264", "-crf", "10", "-g", "1", "-bf", "0", "-pix_fmt", "yuv420p"],
