@@ -144,3 +144,17 @@ pixel row starts ten pixels later than macOS, while image dimensions were correc
 Before changing processing or loosening assertions, retain synthetic PNG and
 JSON artifacts on CI failure and inspect actual decoded pixels. These artifacts
 contain synthetic inputs only; original local recordings are never uploaded.
+
+Remote artifact inspection confirmed colour conversion, not content displacement:
+the expected green stem at row 232 remains at row 232, with decoded RGB values
+near (0, 140, 47) instead of the original (0, 170, 50). The absolute green >145
+marker detector skipped the stem and split its V-shaped head. All patch and whole
+document luminance comparisons already passed (mean error below 3.8).
+
+Identify the synthetic green marker by its channel contrast (green-red >100 and
+green-blue >65, red <25), retaining exact four-marker counts, position tolerance
+±2, and the existing pixel-error limits. The source document's other glyphs use
+red >=30. This predicate correctly classifies all downloaded Linux outputs and
+current macOS outputs, and still rejects the original result missing the covered
+document arrow (three markers). No production algorithm change is required for
+this test-oracle correction.

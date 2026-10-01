@@ -85,10 +85,12 @@ for (const kind of ["fixed", "white", "dark", "clean"]) {
                 pixels[at + 2]! > 140
               )
                 pink++;
+              // Decoders vary in absolute green brightness; the fixture's other
+              // glyphs have red >=30. Preserve chroma contrast and strict positions.
               if (
-                pixels[at]! < 35 &&
-                pixels[at + 1]! > 145 &&
-                pixels[at + 2]! < 85
+                pixels[at]! < 25 &&
+                pixels[at + 1]! - pixels[at]! > 100 &&
+                pixels[at + 1]! - pixels[at + 2]! > 65
               )
                 green++;
             }
