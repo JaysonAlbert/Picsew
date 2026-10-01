@@ -16,6 +16,7 @@ cd "$ROOT_DIR"
 
 run_step node scripts/agent/check-ios-ledger.mjs
 run_step node --test scripts/agent/check-ios-ledger.test.mjs
+run_step npm run ios:release:test
 run_step swift test --package-path apps/ios-native/Packages/PicsewMedia
 run_step swift test --package-path apps/ios-native/Packages/PicsewAlgorithm
 run_step swift test --package-path apps/ios-native/PicsewApp
