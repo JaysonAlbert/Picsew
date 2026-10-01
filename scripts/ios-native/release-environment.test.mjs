@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -15,6 +16,79 @@ import process from "node:process";
 import { fileURLToPath, URL } from "node:url";
 
 import { runWithSystemPath } from "./release-environment.mjs";
+
+test("API-key authentication accepts a complete private local configuration without exposing values", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "picsew-api-auth-"));
+  try {
+    const keyPath = path.join(root, "AuthKey_TESTKEY123.p8");
+    const configPath = path.join(root, "app-store-connect.json");
+    const { privateKey } = generateKeyPairSync("ec", {
+      namedCurve: "prime256v1",
+    });
+    writeFileSync(
+      keyPath,
+      privateKey.export({ type: "pkcs8", format: "pem" }),
+      { mode: 0o600 },
+    );
+    writeFileSync(
+      configPath,
+      JSON.stringify({
+        keyPath,
+        keyID: "TESTKEY123",
+        issuerID: "11111111-2222-3333-4444-555555555555",
+      }),
+      { mode: 0o600 },
+    );
+    const result = spawnSync(
+      process.execPath,
+      [
+        fileURLToPath(new URL("./release-environment.mjs", import.meta.url)),
+        "auth",
+      ],
+      {
+        env: { ...process.env, PICSEW_ASC_CONFIG: configPath },
+        encoding: "utf8",
+      },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /API-key configuration ready/);
+    assert.doesNotMatch(
+      result.stdout + result.stderr,
+      /TESTKEY123|11111111|PRIVATE KEY/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("API-key authentication rejects malformed or incomplete configuration without exposing supplied values", () => {
+  const root = mkdtempSync(path.join(tmpdir(), "picsew-api-auth-invalid-"));
+  try {
+    const configPath = path.join(root, "app-store-connect.json");
+    for (const content of [
+      "PRIVATE_SENTINEL invalid JSON",
+      JSON.stringify({ keyID: "PRIVATE_SENTINEL" }),
+    ]) {
+      writeFileSync(configPath, content, { mode: 0o600 });
+      const result = spawnSync(
+        process.execPath,
+        [
+          fileURLToPath(new URL("./release-environment.mjs", import.meta.url)),
+          "auth",
+        ],
+        {
+          env: { ...process.env, PICSEW_ASC_CONFIG: configPath },
+          encoding: "utf8",
+        },
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /Invalid App Store Connect configuration/);
+      assert.doesNotMatch(result.stdout + result.stderr, /PRIVATE_SENTINEL/);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test(
   "native Xcode-style copying succeeds despite an incompatible rsync on caller PATH",
