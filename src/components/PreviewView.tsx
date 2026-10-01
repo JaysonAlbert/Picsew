@@ -1,4 +1,5 @@
-import { Download, RotateCcw, Share2, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { Download, Share2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -20,6 +21,11 @@ export function PreviewView({
 }: PreviewViewProps) {
   const { t } = useTranslation();
   const canShare = supportsImageSharing();
+  const [dimensions, setDimensions] = useState<{
+    url: string;
+    width: number;
+    height: number;
+  } | null>(null);
 
   const handleShare = async () => {
     if (!canShare) {
@@ -39,76 +45,62 @@ export function PreviewView({
   };
 
   return (
-    <div className="mx-auto max-w-md space-y-4">
+    <div className="product-route">
       <Card
         data-testid="preview-stage-card"
-        className="app-stage-card overflow-hidden"
-      >
-        <div className="app-stage-header">
-          <p className="app-stage-kicker">{t("app.flow.step3")}</p>
-          <div className="preview-success-row">
-            <div className="preview-status-orb bg-emerald-100 text-emerald-700">
-              <CheckCircle2 className="h-4.5 w-4.5" />
-            </div>
-            <div>
-              <h2 className="preview-success-title">
-                {t("preview.complete.title")}
-              </h2>
-              <p className="preview-success-description">
-                {t("preview.complete.desc")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="preview-stage-surface">
-          <div className="preview-image-shell">
-            <div className="preview-image-scroll">
-              <ImageWithFallback
-                src={imageUrl}
-                alt={t("preview.result.alt")}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <div
-        data-testid="preview-action-bar"
-        className="app-actions-tray rounded-[28px] border border-white/70 bg-white/88 p-3 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur"
+        className="app-stage-card product-preview-stage"
       >
         <div
-          className={`grid gap-3 ${canShare ? "grid-cols-2" : "grid-cols-1"}`}
+          className="product-image-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label={t("preview.result.alt")}
         >
-          <Button
-            onClick={onDownload}
-            className="h-14 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-base font-medium shadow-[0_16px_30px_-18px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600"
-          >
-            <Download className="mr-2 h-5 w-5" />
+          <ImageWithFallback
+            src={imageUrl}
+            alt={t("preview.result.alt")}
+            className="product-image"
+            onLoad={(event) => {
+              const image = event.currentTarget;
+              setDimensions({
+                url: imageUrl,
+                width: image.naturalWidth,
+                height: image.naturalHeight,
+              });
+            }}
+          />
+        </div>
+      </Card>
+      <details className="product-details">
+        <summary>{t("preview.details.title")}</summary>
+        {dimensions?.url === imageUrl && (
+          <p>{t("preview.details.imageSize", dimensions)}</p>
+        )}
+      </details>
+      <div data-testid="preview-action-bar" className="app-actions-tray">
+        <div className="product-export-actions">
+          <Button onClick={onDownload} className="app-primary-action">
+            <Download aria-hidden="true" />
             {isNativeSave
               ? t("preview.actions.save")
               : t("preview.actions.download")}
           </Button>
-
           {canShare && (
             <Button
               onClick={handleShare}
               variant="outline"
-              className="h-14 rounded-2xl border-slate-200 bg-white/90 text-base text-slate-700 shadow-sm"
+              className="app-secondary-action"
             >
-              <Share2 className="mr-2 h-5 w-5" />
+              <Share2 aria-hidden="true" />
               {t("preview.actions.share")}
             </Button>
           )}
         </div>
-
         <Button
           onClick={onReset}
           variant="ghost"
-          className="mt-2 h-11 w-full rounded-2xl text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          className="app-secondary-action product-clear"
         >
-          <RotateCcw className="mr-2 h-4.5 w-4.5" />
           {t("preview.actions.startOver")}
         </Button>
       </div>

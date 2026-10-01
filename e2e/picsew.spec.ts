@@ -158,6 +158,9 @@ async function runVideoProcessingTest(
   });
 
   await mockAnalytics(page);
+  await page.addInitScript((storageKey) => {
+    localStorage.setItem(storageKey, "1");
+  }, onboardingStorageKey);
   await page.goto("/");
 
   // Use setInputFiles for video upload
@@ -168,17 +171,17 @@ async function runVideoProcessingTest(
   await expect(page.getByText(videoName, { exact: true })).toBeVisible();
   await waitForProcessingVideoMetadata(page);
 
-  const startBtn = page.getByRole("button", { name: /Start Processing/i });
+  const startBtn = page.getByRole("button", { name: /Create screenshot/i });
   await expect(startBtn).toBeEnabled({ timeout: 180_000 });
 
   await startBtn.click();
 
   if (waitFor === "complete") {
-    await expect(page.getByText("Processing Complete")).toBeVisible({
+    await expect(page.getByText("Your screenshot")).toBeVisible({
       timeout: 900_000,
     });
     await expect(
-      page.getByRole("button", { name: /Download Image/i }),
+      page.getByRole("button", { name: /Save image/i }),
     ).toBeVisible();
   } else {
     await expect
@@ -224,16 +227,20 @@ async function runVideoProcessingTest(
 }
 
 test.describe("Picsew", () => {
-  test("onboarding appears once and can be dismissed", async ({ page }) => {
+  test("onboarding appears once and can be dismissed", async ({
+    page,
+  }, testInfo) => {
     await page.goto("/");
     await expect(page.getByTestId("app-onboarding")).toBeVisible();
     await expect(
       page.getByRole("heading", {
-        name: "Turn a screen recording into one long screenshot",
+        name: "A little recording. One long screenshot.",
       }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Start" }).click();
+    await page.screenshot({ path: testInfo.outputPath("onboarding.png") });
+
+    await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByTestId("app-onboarding")).toHaveCount(0);
 
     await page.reload();
@@ -246,9 +253,11 @@ test.describe("Picsew", () => {
     }, onboardingStorageKey);
 
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Picsew" })).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Select a screen recording" }),
+      page.getByRole("heading", { name: "Create a screenshot" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Choose a recording" }),
     ).toBeVisible();
     await expect(
       page.getByText("Everything is processed on your device."),

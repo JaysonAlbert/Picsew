@@ -1,6 +1,6 @@
 import type { VideoSelectionSource } from "../lib/analytics-events";
 import { useRef, useState } from "react";
-import { Upload, Video, X, Play, Images, FolderOpen } from "lucide-react";
+import { Film, Check, Images, FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -67,103 +67,81 @@ export function VideoUpload({
   };
 
   return (
-    <div className="mx-auto max-w-md space-y-4">
+    <div className="product-route">
       <Card
         data-testid="upload-stage-card"
-        className="app-stage-card overflow-hidden"
+        className="app-stage-card product-upload-stage"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
-        <div className="app-stage-header">
-          <p className="app-stage-kicker">{t("app.flow.step1")}</p>
-          <h2 className="app-stage-title">{t("upload.heroTitle")}</h2>
-          <p className="app-stage-description">{t("upload.heroDescription")}</p>
+        <div
+          className={`product-source ${isDragging ? "product-source-active" : ""}`}
+          data-testid="upload-dropzone"
+        >
+          <div className="product-source-icon" aria-hidden="true">
+            {selectedVideo ? <Check /> : <Film />}
+          </div>
+          <h2>{t(selectedVideo ? "upload.readyTitle" : "upload.heroTitle")}</h2>
+          {selectedVideo ? (
+            <>
+              <p className="product-file-name">{selectedVideo.name}</p>
+              <p className="product-caption">
+                {(selectedVideo.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            </>
+          ) : (
+            <p className="product-caption">
+              {t(isDragging ? "upload.dragDropActive" : "upload.supportFormat")}
+            </p>
+          )}
         </div>
-
-        {!selectedVideo ? (
-          <div className="space-y-4">
-            <div
-              data-testid="upload-dropzone"
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={`app-upload-dropzone ${
-                isDragging
-                  ? "app-upload-dropzone-active"
-                  : "app-upload-dropzone-idle"
-              }`}
-            >
-              <div className="app-upload-orb">
-                <Upload className="h-7 w-7 text-blue-600" />
-              </div>
-              <p className="text-sm font-medium text-slate-700">
-                {t("upload.dragDrop")}
-              </p>
-              <p className="mt-2 text-xs text-slate-400">
-                {t("upload.supportFormat")}
-              </p>
-            </div>
-
-            {supportsNativeImport && (
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 rounded-2xl border-slate-200 bg-white/85"
-                  disabled={isPickingNativeVideo}
-                  onClick={() => void onPickFromPhotos?.()}
-                >
-                  <Images className="w-4 h-4 mr-2" />
-                  {t("upload.native.fromPhotos")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-12 rounded-2xl border-slate-200 bg-white/85"
-                  disabled={isPickingNativeVideo}
-                  onClick={() => void onPickFromFiles?.()}
-                >
-                  <FolderOpen className="w-4 h-4 mr-2" />
-                  {t("upload.native.fromFiles")}
-                </Button>
-              </div>
-            )}
-            <div className="app-inline-note">
-              <Video className="h-4.5 w-4.5 flex-shrink-0 text-blue-600" />
-              <span>{t("upload.localProcessingHint")}</span>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="app-media-frame relative">
-              {videoPreviewUrl && (
-                <video
-                  src={videoPreviewUrl}
-                  controls
-                  className="w-full max-h-80 rounded-[1.4rem] object-contain"
-                />
-              )}
-              <button
-                onClick={handleClearVideo}
-                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-black/80"
+        <div className="product-source-actions">
+          {supportsNativeImport ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="app-secondary-action"
+                disabled={isPickingNativeVideo}
+                onClick={() => void onPickFromPhotos?.()}
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="app-inline-note items-start">
-              <Video className="mt-0.5 h-4.5 w-4.5 flex-shrink-0 text-blue-600" />
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-medium text-slate-700">
-                  {selectedVideo.name}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {(selectedVideo.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-            </div>
-          </div>
+                <Images aria-hidden="true" />
+                {t("upload.native.fromPhotos")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="app-secondary-action"
+                disabled={isPickingNativeVideo}
+                onClick={() => void onPickFromFiles?.()}
+              >
+                <FolderOpen aria-hidden="true" />
+                {t("upload.native.fromFiles")}
+              </Button>
+            </>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="app-secondary-action"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t("upload.chooseVideo")}
+            </Button>
+          )}
+        </div>
+        {selectedVideo && videoPreviewUrl && (
+          <details className="product-details product-video-details">
+            <summary>{t("upload.previewVideo")}</summary>
+            <video
+              src={videoPreviewUrl}
+              controls
+              playsInline
+              className="product-video"
+            />
+          </details>
         )}
-
         <input
           ref={fileInputRef}
           type="file"
@@ -172,28 +150,29 @@ export function VideoUpload({
           className="hidden"
         />
       </Card>
-
-      {selectedVideo && (
-        <div
-          data-testid="upload-action-tray"
-          className="app-actions-tray rounded-[28px] border border-white/70 bg-white/88 p-3 shadow-[0_18px_50px_-32px_rgba(15,23,42,0.35)] backdrop-blur"
+      <p className="product-caption product-privacy">
+        {t("upload.localProcessingHint")}
+      </p>
+      <div data-testid="upload-action-tray" className="app-actions-tray">
+        <Button
+          onClick={onStartProcessing}
+          disabled={!selectedVideo || !isOpenCVReady}
+          className="app-primary-action"
         >
+          {selectedVideo && !isOpenCVReady
+            ? t("upload.loadingResources")
+            : t("upload.startProcessing")}
+        </Button>
+        {selectedVideo && (
           <Button
-            onClick={onStartProcessing}
-            disabled={!isOpenCVReady}
-            className="h-14 w-full rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-base font-medium shadow-[0_16px_30px_-18px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600 disabled:cursor-not-allowed disabled:opacity-50"
+            variant="ghost"
+            onClick={handleClearVideo}
+            className="app-secondary-action product-clear"
           >
-            {isOpenCVReady ? (
-              <>
-                <Play className="mr-2 h-5 w-5" />
-                {t("upload.startProcessing")}
-              </>
-            ) : (
-              t("upload.loadingResources")
-            )}
+            {t("upload.clearSelection")}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

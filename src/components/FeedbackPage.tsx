@@ -45,8 +45,8 @@ export function FeedbackPage({
           lastProcessingError={lastProcessingError}
           processingLogs={processingLogs}
           onCancel={onBack}
-          submitClassName="h-12 rounded-2xl bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 text-base font-medium shadow-[0_16px_30px_-18px_rgba(37,99,235,0.8)] hover:from-blue-700 hover:via-blue-600 hover:to-cyan-600"
-          cancelClassName="h-12 rounded-2xl"
+          submitClassName="app-primary-action"
+          cancelClassName="app-secondary-action"
         />
       </Card>
     </div>

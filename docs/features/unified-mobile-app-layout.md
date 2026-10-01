@@ -73,3 +73,9 @@ status: approved
 - `npm run build`
 - `npm run lint`
 - `npm run test:e2e:smoke -- --grep "home page shows upload flow|feedback dialog opens from header trigger|feedback dialog stays inside the viewport on mobile"`
+
+## Updated visual direction (2026-10-01)
+
+The [product UI guidelines](../product-ui-guidelines.md) supersede this document’s
+original decorative styling. The [Web alignment](web-ui-alignment.md) adopts the
+latest native direction while preserving the Web journey and platform adapters.

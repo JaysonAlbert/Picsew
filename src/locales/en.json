@@ -15,23 +15,23 @@
     },
     "onboarding": {
       "kicker": "How it works",
-      "title": "Turn a screen recording into one long screenshot",
-      "subtitle": "Picsew is a quick one-task tool. Learn it once, then just import, wait, and save.",
+      "title": "A little recording. One long screenshot.",
+      "subtitle": "Record, create, keep. All on your device.",
       "stepLabel": "Step {{step}} of {{total}}",
       "skip": "Skip",
-      "start": "Start",
+      "start": "Continue",
       "steps": {
         "import": {
-          "title": "Choose a scrolling recording",
-          "description": "Import a screen recording from Photos or Files."
+          "title": "Record",
+          "description": "Choose a recording of scrolling content."
         },
         "stitch": {
-          "title": "We stitch it locally",
-          "description": "Picsew analyzes the scrolling area and generates one long image on your device."
+          "title": "Create",
+          "description": "We stitch the image on your device."
         },
         "save": {
-          "title": "Save or share the result",
-          "description": "Preview the finished screenshot, then save it to Photos or share it anywhere."
+          "title": "Keep",
+          "description": "Review your screenshot, then save or share."
         }
       }
     },
@@ -40,6 +40,20 @@
       "processing": "Processing",
       "preview": "Preview",
       "previewDownload": "Preview & Download"
+    },
+    "routes": {
+      "upload": {
+        "title": "Create a screenshot",
+        "subtitle": "Turn a scrolling recording into one long image."
+      },
+      "processing": {
+        "title": "Creating screenshot",
+        "subtitle": "Your recording is being stitched on this device."
+      },
+      "preview": {
+        "title": "Your screenshot",
+        "subtitle": "Scroll to review, then save or share."
+      }
     }
   },
   "feedback": {
@@ -110,37 +124,41 @@
   },
   "upload": {
     "title": "Upload Screen Recording",
-    "heroTitle": "Select a screen recording",
+    "heroTitle": "Choose a recording",
     "heroDescription": "Import a scrolling screen recording to generate one long image.",
     "dragDrop": "Click to upload video",
     "dragDropActive": "Drop video here",
-    "supportFormat": "Supports MP4, MOV, AVI, etc.",
+    "supportFormat": "Choose an MP4 or MOV your browser can play.",
     "localProcessingHint": "Everything is processed on your device.",
     "native": {
       "fromPhotos": "Photos",
       "fromFiles": "Files",
       "failed": "We couldn't import that video. Please try again."
     },
-    "startProcessing": "Start Processing",
-    "loadingResources": "Loading Resources...",
+    "startProcessing": "Create screenshot",
+    "loadingResources": "Preparing…",
     "instructions": {
       "title": "Instructions",
       "step1": "Upload a screen recording with scrolling",
       "step2": "System automatically identifies scrolling content",
       "step3": "Generates a complete long screenshot",
       "step4": "Support preview and download"
-    }
+    },
+    "readyTitle": "Ready to create",
+    "chooseVideo": "Choose video",
+    "clearSelection": "Clear selection",
+    "previewVideo": "Preview recording"
   },
   "processing": {
     "title": "Creating your long screenshot",
     "stages": {
-      "preparing": "Preparing...",
-      "extracting": "Extracting frames...",
-      "finding": "Finding scrolling window...",
-      "selecting": "Selecting keyframes...",
-      "filtering": "Filtering keyframes...",
-      "stitching": "Stitching screenshot...",
-      "generating": "Generating final image..."
+      "preparing": "Preparing your recording",
+      "extracting": "Reading your recording",
+      "finding": "Finding the scrolling content",
+      "selecting": "Choosing clear frames",
+      "filtering": "Removing repeated content",
+      "stitching": "Stitching the screenshot",
+      "generating": "Finishing your image"
     },
     "steps": {
       "analysis": "Frame Analysis",
@@ -164,10 +182,10 @@
       "hint": "Long screenshot generated, swipe up to view full content"
     },
     "actions": {
-      "download": "Download Image",
+      "download": "Save image",
       "save": "Save to Photos",
       "share": "Share",
-      "startOver": "Start Over"
+      "startOver": "New capture"
     },
     "share": {
       "unsupported": "Your browser does not support sharing.",
@@ -178,6 +196,10 @@
     "save": {
       "success": "Saved to Photos.",
       "failed": "Saving to Photos failed."
+    },
+    "details": {
+      "title": "Result details",
+      "imageSize": "{{width}} × {{height}} px"
     }
   }
 }

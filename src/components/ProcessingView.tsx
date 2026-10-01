@@ -1,7 +1,5 @@
-import { Loader2, Film, Scan, Layers, Blend, Scissors } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card } from "./ui/card";
-import { Progress } from "./ui/progress";
 
 interface ProcessingViewProps {
   progress: number;
@@ -9,59 +7,55 @@ interface ProcessingViewProps {
 
 export function ProcessingView({ progress }: ProcessingViewProps) {
   const { t } = useTranslation();
-
-  const getProcessingStage = () => {
-    if (progress < 10)
-      return { icon: Film, text: t("processing.stages.preparing") };
-    if (progress < 30)
-      return { icon: Film, text: t("processing.stages.extracting") };
-    if (progress < 50)
-      return { icon: Scan, text: t("processing.stages.finding") };
-    if (progress < 70)
-      return { icon: Scissors, text: t("processing.stages.selecting") };
-    if (progress < 85)
-      return { icon: Blend, text: t("processing.stages.filtering") };
-    if (progress < 95)
-      return { icon: Layers, text: t("processing.stages.stitching") };
-    return { icon: Layers, text: t("processing.stages.generating") };
-  };
-
-  const stage = getProcessingStage();
-  const StageIcon = stage.icon;
-
+  const value = Number.isFinite(progress)
+    ? Math.min(100, Math.max(0, Math.round(progress)))
+    : 0;
+  const stage =
+    value < 10
+      ? "preparing"
+      : value < 30
+        ? "extracting"
+        : value < 50
+          ? "finding"
+          : value < 70
+            ? "selecting"
+            : value < 85
+              ? "filtering"
+              : value < 95
+                ? "stitching"
+                : "generating";
   return (
-    <div className="mx-auto max-w-md">
+    <div className="product-route">
       <Card
         data-testid="processing-stage-card"
-        className="app-stage-card overflow-hidden p-6"
+        className="app-stage-card product-processing-stage"
       >
-        <div className="text-center">
-          <div className="app-stage-header items-center text-center">
-            <p className="app-stage-kicker">{t("app.flow.step2")}</p>
-            <h2 className="app-stage-title">{t("processing.title")}</h2>
-            <p className="app-stage-description">
-              {t("processing.waitMessage")}
-            </p>
-          </div>
-
-          <div className="processing-hero-orb">
-            <div className="processing-hero-orb-core">
-              <StageIcon className="h-10 w-10 text-blue-600" />
-            </div>
-            <Loader2 className="processing-hero-spinner h-24 w-24 text-blue-600" />
-          </div>
-
-          <div className="processing-progress-panel">
-            <div className="mb-3 flex items-center justify-between text-sm">
-              <span className="font-medium text-slate-700">{stage.text}</span>
-              <span className="text-slate-400">{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2.5" />
-            <p className="mt-3 text-sm text-slate-500">
-              {t("processing.keepOpen")}
-            </p>
-          </div>
+        <div
+          className="product-progress"
+          role="progressbar"
+          aria-label={t("processing.title")}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={value}
+        >
+          <svg viewBox="0 0 160 160" aria-hidden="true">
+            <circle className="product-progress-track" cx="80" cy="80" r="70" />
+            <circle
+              className="product-progress-value"
+              cx="80"
+              cy="80"
+              r="70"
+              pathLength="100"
+              strokeDasharray="100"
+              strokeDashoffset={100 - value}
+            />
+          </svg>
+          <span aria-hidden="true">{value}%</span>
         </div>
+        <p className="product-progress-stage" aria-live="polite">
+          {t(`processing.stages.${stage}`)}
+        </p>
+        <p className="product-caption">{t("processing.keepOpen")}</p>
       </Card>
     </div>
   );

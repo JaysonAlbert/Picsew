@@ -22,6 +22,9 @@ export default defineConfig({
         ? { ...devices["Desktop Chrome"], channel: "chrome" }
         : { ...devices["Desktop Chrome"] },
     },
+    ...(!enableVideoE2E
+      ? [{ name: "mobile-webkit", use: { ...devices["iPhone 13"] } }]
+      : []),
   ],
   webServer: {
     command: "npm run dev -- --port 3001 --strictPort",
