@@ -19,6 +19,7 @@ test.describe("existing real recording outputs [video]", () => {
     "demo4.mp4",
     "demo5.mp4",
     "test-video.mp4",
+    "fixtures/recordings/floating-arrow-2026-10-01.mp4",
   ]) {
     test(`${fileName} completes with a nonempty stitched image`, async ({
       page,
