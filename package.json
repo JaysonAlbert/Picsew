@@ -26,6 +26,7 @@
     "ios:harness:test": "node --test scripts/agent/check-ios-ledger.test.mjs",
     "ios:harness:smoke": "./scripts/agent/smoke-ios.sh",
     "ios:test:maestro:preview": "npm run ios:maestro:install && cd apps/ios-native/maestro && maestro test flows/smoke-preview.yaml",
+    "ios:test:maestro:photos": "bash scripts/ios-native/test-photos-import.sh",
     "ios:test:maestro:workspace": "npm run ios:maestro:install && cd apps/ios-native/maestro && maestro test .",
     "cap:sync": "npm run build && npx cap sync",
     "cap:sync:ios": "npm run build && npx cap sync ios",

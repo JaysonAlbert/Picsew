@@ -1,0 +1,52 @@
+appId: top.ibotcloud.picsew.native
+name: Real Photos video selection enables processing
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    when:
+      visible:
+        id: "onboarding.continue"
+    commands:
+      - tapOn:
+          id: "onboarding.continue"
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: false
+- tapOn:
+    id: "upload.source.photos"
+- waitForAnimationToEnd
+- takeScreenshot: artifacts/photos-picker-before-selection
+- tapOn:
+    point: "15%,25%"
+- waitForAnimationToEnd
+- takeScreenshot: artifacts/photos-after-selection
+- extendedWaitUntil:
+    visible:
+      id: "upload.startProcessing"
+      enabled: true
+    timeout: 20000
+- takeScreenshot: artifacts/photos-import-ready
+- tapOn:
+    id: "upload.clearSelection"
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: false
+- tapOn:
+    id: "upload.source.photos"
+- waitForAnimationToEnd
+- tapOn:
+    point: "15%,25%"
+- extendedWaitUntil:
+    visible:
+      id: "upload.startProcessing"
+      enabled: true
+    timeout: 20000
+- takeScreenshot: artifacts/photos-reselection-ready
+- tapOn:
+    id: "upload.startProcessing"
+- extendedWaitUntil:
+    visible:
+      id: "preview.stitchedImage"
+    timeout: 60000
+- takeScreenshot: artifacts/photos-real-video-preview
