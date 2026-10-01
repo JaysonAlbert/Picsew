@@ -55,7 +55,8 @@ func sampleVideoScrollingWindowDetection() async throws {
 
     #expect(detection.originalFullWidthWindow.x == 0)
     #expect(detection.originalFullWidthWindow.width == 756)
-    #expect(detection.originalFullWidthWindow.y > 600)
+    // Source frames show scrolling content reaching the visual top edge.
+    #expect(detection.originalFullWidthWindow.y == 0)
     #expect(detection.originalFullWidthWindow.y + detection.originalFullWidthWindow.height <= 1022)
 
     #expect(detection.refinedWindow.x == 0)
