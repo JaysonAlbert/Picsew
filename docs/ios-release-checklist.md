@@ -3,7 +3,7 @@ title: iOS Release Checklist
 author: Jayson Albert
 date: 2026-03-29
 updated: 2026-10-01
-version: 0.2.0
+version: 0.3.0
 reviewers: [Jayson Albert]
 tags: [ios, release, checklist]
 status: approved
@@ -54,7 +54,59 @@ to match the command. Use `method=app-store-connect`, `signingStyle=automatic`,
 `manageAppVersionAndBuildNumber=false` and, for internal betas,
 `testFlightInternalTestingOnly=true`. Keep `teamID` and account-specific settings
 in ignored local files. API keys, if separately configured for automation, stay
-outside source and command output. The wrapper uses Xcode's existing authentication.
+outside source and command output. Without local API-key configuration, the
+wrapper uses Xcode's existing authentication.
+
+## App Store Connect API-key authentication
+
+Problem: the logged-in Xcode GUI may coexist with CLI `No Accounts` errors. Scope:
+give the existing export/upload commands explicit team-key authentication while
+retaining the system-only PATH. App code and release metadata do not change.
+
+Create a team key named `Picsew TestFlight CLI` in App Store Connect > Users and
+Access > Integrations > Team Keys. This release uses cloud-managed distribution
+signing because a local distribution private key is not installed. Use an Admin
+team key for that workflow; individual keys cannot use provisioning endpoints.
+Team keys apply to all apps on the team. Do not revoke or alter existing keys.
+
+Download the private `.p8` once and store it outside Git under
+`~/.config/picsew/` (directory mode 700, key and configuration mode 600). Copy
+`scripts/ios-native/app-store-connect.example.json` to
+`~/.config/picsew/app-store-connect.json` and replace its placeholders. An absolute
+`PICSEW_ASC_CONFIG` can select a different local configuration. The key path is
+absolute, and the key ID/issuer ID come from the Team Keys page.
+
+Export/upload reads this configuration and passes the three documented Xcode
+authentication arguments without printing key contents. Missing default config
+preserves GUI-account behavior; an explicit missing, malformed, incomplete or
+unreadable configuration fails before contacting Apple. `ios:release:auth` checks
+local completeness and key permissions without uploading; real export/upload
+still verifies Apple authentication and cloud-signing permissions.
+
+Acceptance and planned verification: public CLI checks reject invalid local
+configuration without exposing supplied values; valid local configuration is
+accepted. Keep the copy regressions green and run native smoke, type/lint/build,
+then perform a real export/upload with the downloaded key. Confirm Apple build
+processing and internal-group availability before calling the beta installable.
+
+Sources: [Apple API-key setup](https://developer.apple.com/help/app-store-connect/get-started/app-store-connect-api/),
+[key types and provisioning limits](https://developer.apple.com/documentation/appstoreconnectapi/creating-api-keys-for-app-store-connect-api),
+[Xcode cloud signing and API-key arguments](https://developer.apple.com/videos/play/wwdc2021/10204/).
+
+### API-key integration verification (2026-10-01)
+
+The new public CLI authentication tests failed before implementation and now pass.
+All seven release tests, 29 Swift tests, native simulator builds, and the Maestro
+preview flow pass locally. Type/lint checks pass with ten existing warnings and
+the web build passes. Test keys are generated locally for the regression, never
+used as real Apple credentials.
+
+The authenticated account is eligible to request API access, but the Team Keys
+page currently requires first-time access approval. Its request dialog asks the
+Account Holder to agree to internal-use terms and submit. That step is left for
+the user. No real key is downloaded/configured yet, and API-authenticated Apple
+export/upload is not verified; local configuration validation does not establish
+that Apple accepts a key or that a TestFlight build is available.
 
 For GUI distribution, launch through `ios:release:xcode`, then select the archive
 in Organizer and choose TestFlight Internal Only. `doctor` proves packaging copy

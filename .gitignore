@@ -258,6 +258,7 @@ next-env.d.ts
 
 # misc
 *.pem
+*.p8
 
 # debug
 npm-debug.log*

@@ -26,6 +26,7 @@
     "ios:harness:test": "node --test scripts/agent/check-ios-ledger.test.mjs",
     "ios:harness:smoke": "./scripts/agent/smoke-ios.sh",
     "ios:release:doctor": "node scripts/ios-native/release-environment.mjs doctor",
+    "ios:release:auth": "node scripts/ios-native/release-environment.mjs auth",
     "ios:release:xcode": "node scripts/ios-native/release-environment.mjs xcode",
     "ios:release:export": "node scripts/ios-native/release-environment.mjs export",
     "ios:release:upload": "node scripts/ios-native/release-environment.mjs upload",

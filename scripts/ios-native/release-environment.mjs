@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import console from "node:console";
+import { createPrivateKey } from "node:crypto";
 import {
   existsSync,
   mkdtempSync,
@@ -7,13 +8,59 @@ import {
   writeFileSync,
   readFileSync,
   rmSync,
+  statSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, URL } from "node:url";
 
 const systemPath = "/usr/bin:/bin:/usr/sbin:/sbin";
+
+function authenticationArgs() {
+  const explicit = process.env.PICSEW_ASC_CONFIG;
+  const configPath =
+    explicit ?? path.join(homedir(), ".config/picsew/app-store-connect.json");
+  if (!existsSync(configPath) && explicit === undefined) return [];
+  try {
+    if (!path.isAbsolute(configPath)) throw new Error();
+    const configStat = statSync(configPath);
+    if (!configStat.isFile() || (configStat.mode & 0o077) !== 0)
+      throw new Error();
+    const config = JSON.parse(readFileSync(configPath, "utf8"));
+    if (
+      typeof config.keyPath !== "string" ||
+      !path.isAbsolute(config.keyPath) ||
+      typeof config.keyID !== "string" ||
+      !/^[A-Z0-9]{10}$/.test(config.keyID) ||
+      typeof config.issuerID !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        config.issuerID,
+      )
+    )
+      throw new Error();
+    const keyStat = statSync(config.keyPath);
+    if (!keyStat.isFile() || (keyStat.mode & 0o077) !== 0) throw new Error();
+    const privateKey = createPrivateKey(readFileSync(config.keyPath));
+    if (
+      privateKey.asymmetricKeyType !== "ec" ||
+      privateKey.asymmetricKeyDetails?.namedCurve !== "prime256v1"
+    )
+      throw new Error();
+    return [
+      "-authenticationKeyPath",
+      config.keyPath,
+      "-authenticationKeyID",
+      config.keyID,
+      "-authenticationKeyIssuerID",
+      config.issuerID,
+    ];
+  } catch {
+    throw new Error(
+      "Invalid App Store Connect configuration. Check JSON fields, absolute keyPath, key ID, issuer ID, and private file permissions (600).",
+    );
+  }
+}
 
 export function runWithSystemPath(command, args, options = {}) {
   return spawnSync(command, args, {
@@ -66,6 +113,15 @@ function doctor() {
 }
 
 function main(mode, args) {
+  if (mode === "auth" && args.length === 0) {
+    const authentication = authenticationArgs();
+    if (!authentication.length)
+      throw new Error("App Store Connect API-key configuration is missing.");
+    console.log(
+      "API-key configuration ready. Apple authentication and signing are checked during export/upload.",
+    );
+    return;
+  }
   if (process.platform !== "darwin")
     throw new Error("Native release commands require macOS and Xcode.");
   if (mode === "doctor" && args.length === 0) return doctor();
@@ -108,6 +164,7 @@ function main(mode, args) {
     return;
   }
   if (["export", "upload"].includes(mode) && args.length === 3) {
+    const authentication = authenticationArgs();
     const archive = requirePath(args[0]);
     const output = path.resolve(args[1]);
     const options = requirePath(args[2]);
@@ -131,13 +188,14 @@ function main(mode, args) {
         "-exportOptionsPlist",
         options,
         "-allowProvisioningUpdates",
+        ...authentication,
       ],
       { stdio: "inherit" },
     );
     return;
   }
   throw new Error(
-    "Usage: release-environment.mjs doctor | xcode [project-or-archive] | export|upload <archive> <output-directory> <export-options-plist>",
+    "Usage: release-environment.mjs doctor | auth | xcode [project-or-archive] | export|upload <archive> <output-directory> <export-options-plist>",
   );
 }
 
