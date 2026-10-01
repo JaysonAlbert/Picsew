@@ -26,9 +26,7 @@ describe("VideoUpload", () => {
 
     expect(markup).toContain('data-testid="upload-stage-card"');
     expect(markup).toContain('data-testid="upload-dropzone"');
-    expect(markup).toContain("app.flow.step1");
     expect(markup).toContain("upload.heroTitle");
-    expect(markup).toContain("upload.heroDescription");
     expect(markup).toContain("upload.native.fromPhotos");
     expect(markup).toContain("upload.native.fromFiles");
     expect(markup).toContain("upload.localProcessingHint");

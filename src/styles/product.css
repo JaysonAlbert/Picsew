@@ -1,0 +1,468 @@
+/* Shared visual contract: docs/product-ui-guidelines.md. Loaded after the
+   transitional generated stylesheet so the live Web layout stays in place. */
+:root {
+  color-scheme: light dark;
+  --product-background: #f2f2f7;
+  --product-surface: #fff;
+  --product-ink: #202124;
+  --product-muted: #5c636b;
+  --product-line: #dedee3;
+  --product-accent: #087a70;
+  --product-tint: #e7f2f0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --product-background: #000;
+    --product-surface: #1c1c1e;
+    --product-ink: #f5f5f7;
+    --product-muted: #b8b8bf;
+    --product-line: #3a3a3e;
+    --product-tint: #183a36;
+  }
+}
+
+body {
+  background: var(--product-background);
+  color: var(--product-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.product-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--product-background);
+  color: var(--product-ink);
+}
+
+.product-header,
+.product-main {
+  width: 100%;
+  max-width: 34rem;
+  margin-inline: auto;
+  padding-inline: max(
+    20px,
+    env(safe-area-inset-left),
+    env(safe-area-inset-right)
+  );
+}
+
+.product-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-bottom: 12px;
+}
+
+.product-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.product-brand svg {
+  width: 22px;
+  height: 22px;
+  color: var(--product-accent);
+}
+
+.product-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.product-heading h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+.product-heading p,
+.product-caption {
+  color: var(--product-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.product-heading p {
+  margin-top: 8px;
+}
+
+.product-route {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.app-stage-card {
+  display: block;
+  border: 0;
+  border-radius: 20px;
+  background: var(--product-surface);
+  padding: 24px;
+  color: var(--product-ink);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.product-source {
+  text-align: center;
+  padding: 16px 0 24px;
+}
+
+.product-source-active {
+  border-radius: 12px;
+  background: var(--product-tint);
+}
+
+.product-source-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  width: 52px;
+  height: 52px;
+  color: var(--product-accent);
+  border-radius: 16px;
+  background: var(--product-tint);
+}
+
+.product-source-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.product-source h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.product-file-name {
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.product-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.product-source-actions > button {
+  flex: 1 1 120px;
+}
+
+.product-privacy {
+  text-align: center;
+  padding-inline: 8px;
+}
+
+.app-primary-action,
+.app-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  width: 100%;
+  height: auto;
+  min-height: 52px;
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 1rem;
+  line-height: 1.4;
+  font-weight: 600;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: none;
+}
+
+.app-primary-action {
+  border: 0;
+  background: var(--product-accent);
+  color: #fff;
+}
+
+.app-primary-action:hover {
+  background: #06675f;
+}
+
+.app-primary-action:disabled {
+  opacity: 1;
+  background: var(--product-line);
+  color: var(--product-muted);
+}
+
+.app-secondary-action {
+  border: 1px solid var(--product-line);
+  background: var(--product-surface);
+  color: var(--product-ink);
+}
+
+.app-secondary-action:hover {
+  background: var(--product-tint);
+  color: var(--product-ink);
+}
+
+.product-clear {
+  min-height: 44px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--product-muted);
+}
+
+.app-actions-tray {
+  /* Keep the footer in normal flow when content exceeds the viewport. A
+     sticky footer can obscure the source card/details at enlarged text sizes. */
+  position: static;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  background: var(--product-background);
+  z-index: 10;
+}
+
+.product-details {
+  color: var(--product-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.product-export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.product-export-actions > button {
+  flex: 1 1 9rem;
+}
+
+.product-details summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 4px;
+}
+
+.product-details p {
+  padding: 0 4px 12px;
+}
+
+.product-video-details {
+  margin-top: 12px;
+}
+
+.product-video {
+  width: 100%;
+  max-height: 240px;
+  border-radius: 12px;
+  background: #000;
+}
+
+.product-processing-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  min-height: 320px;
+  margin-bottom: calc(24px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+.product-progress {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+}
+
+.product-progress svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.product-progress circle {
+  fill: none;
+  stroke-width: 6;
+}
+
+.product-progress-track {
+  stroke: var(--product-line);
+}
+
+.product-progress-value {
+  stroke: var(--product-accent);
+  stroke-linecap: round;
+}
+
+.product-progress span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.product-progress-stage {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.product-preview-stage {
+  padding: 0;
+  overflow: hidden;
+}
+
+.product-image-scroll {
+  max-height: 48vh;
+  max-height: 48dvh;
+  min-height: 120px;
+  overflow-y: auto;
+  background: #fff;
+  overscroll-behavior-y: contain;
+}
+
+.product-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.app-onboarding-overlay {
+  padding: max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: none;
+}
+
+.app-onboarding-dialog {
+  max-height: calc(
+    100vh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+  max-height: calc(
+    100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+  );
+  overflow-y: auto;
+  border: 0;
+  border-radius: 24px;
+  background: var(--product-surface);
+  padding: 24px;
+  box-shadow: none;
+  color: var(--product-ink);
+}
+
+.app-stage-title,
+.app-onboarding-step-title,
+.app-utility-sheet-title {
+  color: var(--product-ink);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.app-stage-description,
+.app-onboarding-step-description,
+.app-utility-sheet-description,
+.app-stage-kicker,
+.app-utility-sheet-kicker {
+  color: var(--product-muted);
+  overflow-wrap: anywhere;
+}
+
+.app-onboarding-step {
+  border: 0;
+  background: transparent;
+  padding: 8px 0;
+  border-radius: 0;
+}
+
+.app-onboarding-step-icon {
+  background: var(--product-tint);
+  color: var(--product-accent);
+}
+
+.app-onboarding-actions {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.app-utility-menu-button {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: var(--product-ink);
+  box-shadow: none;
+}
+
+.app-secondary-back {
+  min-width: 44px;
+  min-height: 44px;
+  color: var(--product-accent);
+}
+
+.app-utility-sheet,
+.app-utility-action {
+  background: var(--product-surface);
+  color: var(--product-ink);
+  border-color: var(--product-line);
+  box-shadow: none;
+}
+
+.app-utility-action {
+  height: auto;
+  min-height: 48px;
+  white-space: normal;
+  padding: 12px;
+}
+
+.app-utility-sheet {
+  max-height: calc(100dvh - 6rem - env(safe-area-inset-top));
+  overflow-y: auto;
+}
+
+.product-shell button:focus-visible,
+.product-shell summary:focus-visible,
+.product-image-scroll:focus-visible {
+  outline: 2px solid var(--product-accent);
+  outline-offset: 3px;
+}
+
+[data-testid="feedback-page"] {
+  margin-bottom: calc(24px + env(safe-area-inset-bottom));
+}
+
+[data-testid="feedback-page"] input,
+[data-testid="feedback-page"] textarea,
+[data-testid="feedback-page"] [role="combobox"] {
+  min-height: 44px;
+  background: var(--product-surface);
+  color: var(--product-ink);
+  border-color: var(--product-line);
+  font-size: 1rem;
+}
