@@ -1,0 +1,16 @@
+appId: top.ibotcloud.picsew.native
+name: Onboarding dismissal reaches empty import
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: onboarding
+- assertVisible:
+    id: "onboarding.continue"
+- tapOn:
+    id: "onboarding.continue"
+- assertVisible:
+    id: "upload.source.files"
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: false

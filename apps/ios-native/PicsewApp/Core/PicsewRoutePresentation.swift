@@ -21,20 +21,20 @@ public extension AppRoute {
         switch self {
         case .upload:
             PicsewRoutePresentation(
-                title: "Select a screen recording",
-                subtitle: "Import a video from Files or Photos to start a native capture.",
+                title: "Create a long screenshot",
+                subtitle: "Turn a scrolling recording into one image.",
                 activeStepIndex: 0
             )
         case .processing:
             PicsewRoutePresentation(
-                title: "Building your long screenshot",
-                subtitle: "Picsew is matching motion and stitching frames locally on your device.",
+                title: "Stitching your recording",
+                subtitle: "Your video stays on this device.",
                 activeStepIndex: 1
             )
         case .preview:
             PicsewRoutePresentation(
-                title: "Long screenshot ready",
-                subtitle: "Review the result, then save it to Photos or share it instantly.",
+                title: "Your screenshot",
+                subtitle: "Ready to save or share.",
                 activeStepIndex: 2
             )
         case .feedback:

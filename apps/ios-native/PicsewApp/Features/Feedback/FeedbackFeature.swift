@@ -10,33 +10,26 @@ public struct FeedbackFeatureView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        ScrollView {
             PicsewStageCard {
                 VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 14) {
-                        PicsewHeroGlyph(systemImage: "bubble.left.and.text.bubble.right.fill", size: 56)
-
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("Native feedback page is next")
-                                .font(.headline)
-                                .foregroundStyle(PicsewPalette.ink)
-
-                            Text("The route is in the right place, and the shared shell is already ready for a real feedback form.")
-                                .font(.subheadline)
-                                .foregroundStyle(PicsewPalette.mutedInk)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-
-                    HStack(spacing: 8) {
-                        PicsewInfoChip(title: "Shell-ready", systemImage: "checkmark.circle.fill", emphasis: true)
-                        PicsewInfoChip(title: "Future form", systemImage: "square.and.pencil")
-                    }
+                    Label("Help improve Picsew", systemImage: "bubble.left.and.text.bubble.right")
+                        .font(.headline)
+                        .foregroundStyle(PicsewPalette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Report a problem or share an idea on GitHub.")
+                        .font(.subheadline)
+                        .foregroundStyle(PicsewPalette.mutedInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Link("Send feedback", destination: URL(string: "https://github.com/JaysonAlbert/Picsew/issues/new")!)
+                        .buttonStyle(PicsewActionButtonStyle())
+                        .accessibilityLabel("Send feedback on GitHub")
+                        .accessibilityIdentifier("feedback.send")
                 }
             }
             .accessibilityIdentifier("feedback.placeholder")
 
-            Spacer(minLength: 0)
+            .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }

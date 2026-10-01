@@ -1,0 +1,20 @@
+appId: top.ibotcloud.picsew.native
+name: Clearing selection prevents empty processing
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: upload
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: true
+- tapOn:
+    id: "upload.clearSelection"
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: false
+- tapOn:
+    id: "upload.startProcessing"
+- assertVisible:
+    id: "shell.route.upload"
+- takeScreenshot: artifacts/minimal-upload-empty

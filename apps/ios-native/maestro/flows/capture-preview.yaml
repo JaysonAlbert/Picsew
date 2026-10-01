@@ -13,5 +13,5 @@ tags:
 - assertVisible:
     id: "preview.stitchedImage"
 - takeScreenshot:
-    path: capture-preview
+    path: artifacts/minimal-preview
     label: Capture the preview screen

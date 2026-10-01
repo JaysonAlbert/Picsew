@@ -8,13 +8,13 @@ import PicsewMedia
 
 @Test("route presentation keeps the expected titles and active step mapping")
 func routePresentationKeepsExpectedMetadata() {
-    #expect(AppRoute.upload.presentation.title == "Select a screen recording")
+    #expect(AppRoute.upload.presentation.title == "Create a long screenshot")
     #expect(AppRoute.upload.presentation.activeStepIndex == 0)
 
-    #expect(AppRoute.processing.presentation.title == "Building your long screenshot")
+    #expect(AppRoute.processing.presentation.title == "Stitching your recording")
     #expect(AppRoute.processing.presentation.activeStepIndex == 1)
 
-    #expect(AppRoute.preview.presentation.title == "Long screenshot ready")
+    #expect(AppRoute.preview.presentation.title == "Your screenshot")
     #expect(AppRoute.preview.presentation.activeStepIndex == 2)
 
     #expect(AppRoute.feedback.presentation.title == "Feedback")

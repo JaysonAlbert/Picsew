@@ -19,6 +19,11 @@ status: approved
 
 # Native iOS UI Aesthetic Polish
 
+The visual direction in this historical phase is superseded by the
+[native iOS minimal redesign](ios-minimal-redesign.md) dated 2026-10-01.
+Use the [shared product UI guidelines](../product-ui-guidelines.md) for current
+Web/iOS visual decisions.
+
 ## Summary
 
 - **Problem**: The native iOS app already has the right flow, but the visual finish still reads closer to a functional prototype than a polished utility product.

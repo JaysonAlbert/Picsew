@@ -1,0 +1,20 @@
+appId: top.ibotcloud.picsew.native
+name: Failed import keeps recovery actions available
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: upload-error
+- waitForAnimationToEnd
+- assertVisible:
+    id: "upload.errorMessage"
+- assertVisible:
+    id: "upload.source.files"
+- assertVisible:
+    id: "upload.source.photos"
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: false
+- takeScreenshot: artifacts/minimal-upload-error
