@@ -39,10 +39,10 @@ of this beta. The prior fresh UI artifacts remain valid for unchanged Swift sour
 5. Report the actual build and installation path, or the exact account/Apple-side
    blocker if activation, authentication or processing prevents completion.
 
-The legacy `docs/ios-release-checklist.md` refers to the transitional Capacitor
-paths. For this beta, use the native host paths above with the same metadata,
-local-signing, validation and artifact-exclusion rules. A shared checklist path
-migration is outside this focused packaging task.
+At the time of this first beta, the shared checklist still referred to the
+transitional Capacitor shell. The subsequent release-environment fix updated
+`docs/ios-release-checklist.md` to the native paths and added clean CLI/GUI
+release entry points. Follow that checklist for future releases.
 
 ## Verification and current distribution state
 

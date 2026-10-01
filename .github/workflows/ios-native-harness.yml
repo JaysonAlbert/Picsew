@@ -10,6 +10,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "scripts/agent/**"
+      - "scripts/ios-native/**"
       - ".github/workflows/ios-native-harness.yml"
   push:
     branches:
@@ -23,6 +24,7 @@ on:
       - "package.json"
       - "package-lock.json"
       - "scripts/agent/**"
+      - "scripts/ios-native/**"
       - ".github/workflows/ios-native-harness.yml"
 
 env:
