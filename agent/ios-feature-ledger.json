@@ -37,10 +37,12 @@
       "docs": [
         "docs/features/native-ios-agent-harness-foundation.md",
         "docs/architecture/native-ios-automation-validation-phase-9.md",
+        "docs/features/native-photos-import-fix.md",
         "docs/features/ios-minimal-redesign.md"
       ],
       "validators": [
         "swift test --package-path apps/ios-native/PicsewApp",
+        "npm run ios:test:maestro:photos",
         "npm run ios:test:maestro:workspace"
       ]
     },

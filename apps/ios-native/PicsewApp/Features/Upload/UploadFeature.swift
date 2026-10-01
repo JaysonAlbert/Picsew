@@ -89,13 +89,18 @@ public struct UploadFeatureView: View {
             }
         }
 #if os(iOS)
-        .task(id: photosPickerItem?.itemIdentifier) {
+        .task(id: photosPickerItem) {
             guard let photosPickerItem else { return }
             do {
-                if let importedMovie = try await photosPickerItem.loadTransferable(type: ImportedMovieFile.self) {
-                    await model.importPickedVideo(from: importedMovie.url)
+                let importedMovie = try await photosPickerItem.loadTransferable(type: ImportedMovieFile.self)
+                guard !Task.isCancelled, photosPickerItem == self.photosPickerItem else { return }
+                guard let importedMovie else {
+                    model.errorMessage = "This video could not be imported. Try another video or Files."
+                    return
                 }
+                await model.importPickedVideo(from: importedMovie.url)
             } catch {
+                guard !Task.isCancelled else { return }
                 model.errorMessage = error.localizedDescription
             }
         }
@@ -139,6 +144,9 @@ public struct UploadFeatureView: View {
             if model.selectedVideoURL != nil {
                 Button {
                     model.clearSelection()
+#if os(iOS)
+                    photosPickerItem = nil
+#endif
                 } label: {
                     Text(dynamicTypeSize.isAccessibilitySize ? "Clear" : "Choose Another Video")
                         .frame(maxWidth: .infinity, minHeight: 44)
