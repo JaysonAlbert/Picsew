@@ -101,12 +101,13 @@ preview flow pass locally. Type/lint checks pass with ten existing warnings and
 the web build passes. Test keys are generated locally for the regression, never
 used as real Apple credentials.
 
-The authenticated account is eligible to request API access, but the Team Keys
-page currently requires first-time access approval. Its request dialog asks the
-Account Holder to agree to internal-use terms and submit. That step is left for
-the user. No real key is downloaded/configured yet, and API-authenticated Apple
-export/upload is not verified; local configuration validation does not establish
-that Apple accepts a key or that a TestFlight build is available.
+At the code-validation checkpoint, first-time API access required the Account
+Holder to agree to internal-use terms and submit. The user subsequently enabled
+API access, and a new Admin team key was created. The browser's one-time download
+was triggered, but the private file has not yet been located on the local Mac.
+Local credential activation and API-authenticated Apple export/upload remain
+unverified. Configuration validation alone does not establish that Apple accepts
+a key or that a TestFlight build is available.
 
 For GUI distribution, launch through `ios:release:xcode`, then select the archive
 in Organizer and choose TestFlight Internal Only. `doctor` proves packaging copy
