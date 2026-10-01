@@ -132,6 +132,18 @@ for (const kind of ["fixed", "white", "dark", "clean"]) {
       testInfo.outputPath("diagnostics.json"),
       JSON.stringify({ ...result, logs, png: undefined }, null, 2),
     );
+    console.log(
+      JSON.stringify({
+        kind,
+        browserName,
+        width: result.width,
+        height: result.height,
+        pinkBands: result.pinkBands,
+        greenBands: result.greenBands,
+        patchErrors: result.patchErrors,
+        documentError: result.documentError,
+      }),
+    );
     expect(logs.filter((line) => line.includes("Error processing"))).toEqual(
       [],
     );

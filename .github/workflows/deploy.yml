@@ -45,6 +45,17 @@ jobs:
     - name: Run E2E tests
       run: npm run test:e2e
       
+    - name: Retain failed synthetic image evidence
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: synthetic-stitching-failure
+        path: |
+          test-results/floating-overlay-*/stitched.png
+          test-results/floating-overlay-*/diagnostics.json
+        retention-days: 7
+        if-no-files-found: ignore
+
     - name: Build application
       run: npm run build
 

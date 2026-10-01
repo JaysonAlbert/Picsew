@@ -135,3 +135,12 @@ and insufficient motion. The user's specific source recording was not supplied;
 these results establish the known fixed-control regression and compatibility of
 the project's recordings, without claiming every possible floating UI is removed.
 Native Swift algorithm synchronization is outside this Web delivery.
+
+## Remote validation diagnosis
+
+The first PR CI run passed Chromium and existing UI cases but failed all four
+Linux WebKit fixture assertions. The clean (no-control) case also reported green
+pixel row starts ten pixels later than macOS, while image dimensions were correct.
+Before changing processing or loosening assertions, retain synthetic PNG and
+JSON artifacts on CI failure and inspect actual decoded pixels. These artifacts
+contain synthetic inputs only; original local recordings are never uploaded.
