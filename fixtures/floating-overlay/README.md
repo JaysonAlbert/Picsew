@@ -18,3 +18,9 @@ VP9 lossless WebM runs in bundled Chromium; intra-frame H.264 MP4 runs in WebKit
 Fixtures are committed so CI does not need media-generation tools. To regenerate,
 install Pillow and ffmpeg and run `python3 fixtures/floating-overlay/generate.py`.
 The two formats may have small colour differences from RGB/YUV conversion.
+
+`glass` adds a changing footer patch that causes the legacy outside-UI filter to
+reject early candidates, a down-button crossing the refined body's lower edge,
+and viewport-fixed bottom shading. The expected document is still 480 × 1400,
+with all four moving arrows. Full-width repaired bands are compared against the
+known unoccluded source, so missing content and bright rectangular patches fail.

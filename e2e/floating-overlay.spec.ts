@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 
-for (const kind of ["fixed", "white", "dark", "clean"]) {
+for (const kind of ["fixed", "white", "dark", "clean", "glass"]) {
   test(`${kind} control preserves the known document and moving arrows`, async ({
     page,
     browserName,
@@ -57,7 +57,9 @@ for (const kind of ["fixed", "white", "dark", "clean"]) {
           .getImageData(0, 0, original.width, original.height).data;
         const luminance = (data: Uint8ClampedArray, at: number) =>
           data[at]! * 0.299 + data[at + 1]! * 0.587 + data[at + 2]! * 0.114;
-        const patchErrors = [470, 710, 950].map((top) => {
+        const patchErrors = (
+          kind === "glass" ? [535, 775, 1015] : [470, 710, 950]
+        ).map((top) => {
           let error = 0;
           for (let y = top; y < top + 85; y++) {
             for (let x = 205; x < 275; x++) {
@@ -69,6 +71,24 @@ for (const kind of ["fixed", "white", "dark", "clean"]) {
           }
           return error / (85 * 70);
         });
+        const repairedBandErrors =
+          kind === "glass"
+            ? [535, 775, 1015].map((top) => {
+                let error = 0;
+                for (let y = top; y < top + 49; y++) {
+                  for (let x = 0; x < output.width; x++) {
+                    error += Math.abs(
+                      luminance(pixels, (y * output.width + x) * 4) -
+                        luminance(
+                          expected,
+                          ((y - 80) * original.width + x) * 4,
+                        ),
+                    );
+                  }
+                }
+                return error / (49 * output.width);
+              })
+            : [];
         let documentError = 0,
           compared = 0;
         const pinkRows: number[] = [],
@@ -99,8 +119,8 @@ for (const kind of ["fixed", "white", "dark", "clean"]) {
               kind !== "clean" &&
               x >= 200 &&
               x < 280 &&
-              y >= 1150 &&
-              y < 1240
+              y >= (kind === "glass" ? 1215 : 1150) &&
+              y < (kind === "glass" ? 1305 : 1240)
             )
               continue;
             documentError += Math.abs(
@@ -120,6 +140,7 @@ for (const kind of ["fixed", "white", "dark", "clean"]) {
           pinkBands: bands(pinkRows),
           greenBands: bands(greenRows),
           patchErrors,
+          repairedBandErrors,
           documentError: documentError / compared,
           png: output.toDataURL(),
         };
@@ -143,6 +164,7 @@ for (const kind of ["fixed", "white", "dark", "clean"]) {
         pinkBands: result.pinkBands,
         greenBands: result.greenBands,
         patchErrors: result.patchErrors,
+        repairedBandErrors: result.repairedBandErrors,
         documentError: result.documentError,
       }),
     );
@@ -156,6 +178,8 @@ for (const kind of ["fixed", "white", "dark", "clean"]) {
     for (const [i, y] of result.greenBands.entries())
       expect(Math.abs(y - (232 + i * 280))).toBeLessThanOrEqual(2);
     for (const error of result.patchErrors) expect(error).toBeLessThan(7);
+    for (const error of result.repairedBandErrors)
+      expect(error).toBeLessThan(7);
     expect(result.documentError).toBeLessThan(7);
   });
 }

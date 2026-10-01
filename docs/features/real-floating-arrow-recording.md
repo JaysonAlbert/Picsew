@@ -56,3 +56,11 @@ investigation. Do not use its current output as an approved golden image.
 The new opt-in test passed, as did lint and typecheck (existing warnings remain).
 The original source hash was checked after copying. Generated PNGs and logs stay
 under ignored local test output. No production algorithm changes are included.
+
+## Follow-up recovery
+
+The result above records the pre-fix baseline. The subsequently authorized
+[incremental algorithm fix](floating-arrow-real-recovery.md) restores filtered
+candidate overlap and extends occlusion coverage. Its opt-in test now rejects
+repeated arrow shapes rather than only checking nonempty output. The raw source
+and derived conversation screenshots remain local.

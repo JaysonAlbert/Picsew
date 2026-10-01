@@ -43,6 +43,15 @@ describe("stationary controls among moving content", () => {
       ).toBe(true);
     },
   );
+  it("covers a control crossing the scrolling-window boundary", () => {
+    const boxes = findFloatingOverlays(recording(true), {
+      ...window,
+      height: 90,
+    });
+    expect(boxes.some((box) => box.y <= 105 && box.y + box.height >= 125)).toBe(
+      true,
+    );
+  });
   it("leaves moving content alone", () => {
     expect(findFloatingOverlays(recording(false), window)).toEqual([]);
   });

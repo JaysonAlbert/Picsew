@@ -26,11 +26,18 @@ continues to validate the public synthetic floating-control fixtures.
 See [fixture investigation](../../docs/features/real-floating-arrow-recording.md)
 and [algorithm design](../../docs/features/floating-overlay-stitching-fix.md).
 
-## Known unresolved result
+## Regression acceptance
 
-On the current algorithm, the exact source produces a nonempty 1206 × 5893 image,
-but repeated down-arrow controls remain visible. The opt-in test currently checks
-successful real decoding and output generation, **not complete overlay removal**.
-Use the saved PNG and diagnostics for visual verification; this output is not a
-correctness baseline. The existing synthetic fixtures remain the automated
-pixel-level regression for their deliberately controlled inputs.
+The original baseline generated a 1206 × 5893 image with three fixed-arrow
+occurrences, including cropped duplicates. The updated test seeks the input to
+0.5 seconds and samples the measured upper glyph at x=578, y=2100 (50 × 34), then
+counts matching black/white shapes in the output. The source template itself is
+validated so a black or empty decoded frame cannot create a false pass.
+
+Acceptance is exactly one occurrence in the final 600 output rows, where the
+recording never reveals a clean background for the footer button. A nonempty
+image alone no longer passes this sample's test. The new result is 1206 × 8108,
+with one footer occurrence; restored candidates also recover omitted content.
+See [the incremental fix](../../docs/features/floating-arrow-real-recovery.md).
+Other local recordings retain their output-generation checks. Public synthetic
+fixtures separately verify document pixels and genuine moving arrows.

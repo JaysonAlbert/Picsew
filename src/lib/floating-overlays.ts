@@ -119,10 +119,12 @@ export function findFloatingOverlays(
       )
         continue;
       const pad = Math.max(5, Math.ceil(Math.max(w, h) * 0.35));
-      const left = Math.max(x0, minX - pad),
-        right = Math.min(x1, maxX + pad + 1);
-      const top = Math.max(y0, minY - pad),
-        bottom = Math.min(y1, maxY + pad + 1);
+      // The refined window is an inset, not a control boundary. A button
+      // crossing it must also mask its out-of-window pixels in source frames.
+      const left = Math.max(3, minX - pad),
+        right = Math.min(cols - 3, maxX + pad + 1);
+      const top = Math.max(3, minY - pad),
+        bottom = Math.min(rows - 3, maxY + pad + 1);
       let motion = 0,
         surroundings = 0;
       for (let sy = top; sy < bottom; sy++) {
