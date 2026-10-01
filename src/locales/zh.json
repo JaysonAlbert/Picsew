@@ -15,23 +15,23 @@
     },
     "onboarding": {
       "kicker": "使用方式",
-      "title": "把录屏快速变成一张长截图",
-      "subtitle": "Picsew 是一个很轻量的工具。了解一次流程，后面只需要导入、等待、保存。",
+      "title": "一段录屏，一张长图。",
+      "subtitle": "录制、生成、保存，全程在你的设备上完成。",
       "stepLabel": "第 {{step}} 步，共 {{total}} 步",
       "skip": "跳过",
-      "start": "开始使用",
+      "start": "继续",
       "steps": {
         "import": {
-          "title": "选择一段滚动录屏",
-          "description": "从相册或文件中导入带滚动内容的录屏视频。"
+          "title": "录制",
+          "description": "选择一段包含滚动内容的录屏。"
         },
         "stitch": {
-          "title": "在本地完成拼接",
-          "description": "Picsew 会识别滚动区域，并在你的设备上生成长截图。"
+          "title": "生成",
+          "description": "在你的设备上自动拼接长图。"
         },
         "save": {
-          "title": "保存或分享结果",
-          "description": "查看生成结果，然后保存到相册或直接分享。"
+          "title": "保存",
+          "description": "查看长图，然后保存或分享。"
         }
       }
     },
@@ -40,6 +40,20 @@
       "processing": "处理中",
       "preview": "预览",
       "previewDownload": "预览下载"
+    },
+    "routes": {
+      "upload": {
+        "title": "创建长截图",
+        "subtitle": "把滚动录屏变成一张完整长图。"
+      },
+      "processing": {
+        "title": "正在生成",
+        "subtitle": "正在你的设备上拼接录屏。"
+      },
+      "preview": {
+        "title": "你的长截图",
+        "subtitle": "滚动查看，满意后保存或分享。"
+      }
     }
   },
   "feedback": {
@@ -110,37 +124,41 @@
   },
   "upload": {
     "title": "上传录屏视频",
-    "heroTitle": "选择一段录屏视频",
+    "heroTitle": "选择一段录屏",
     "heroDescription": "导入一段包含滚动内容的录屏，生成一张完整长截图。",
     "dragDrop": "点击上传视频",
     "dragDropActive": "松开上传视频",
-    "supportFormat": "支持 MP4, MOV, AVI 等格式",
+    "supportFormat": "选择浏览器可播放的 MP4 或 MOV 视频。",
     "localProcessingHint": "所有处理都在你的设备上完成。",
     "native": {
       "fromPhotos": "从相册选择",
       "fromFiles": "从文件选择",
       "failed": "导入视频失败，请重试。"
     },
-    "startProcessing": "开始处理",
-    "loadingResources": "正在加载资源...",
+    "startProcessing": "创建长截图",
+    "loadingResources": "准备中…",
     "instructions": {
       "title": "使用说明",
       "step1": "上传包含滑动操作的录屏视频",
       "step2": "系统会自动识别滑动内容",
       "step3": "生成一张完整的长截图",
       "step4": "支持预览和下载保存"
-    }
+    },
+    "readyTitle": "准备就绪",
+    "chooseVideo": "选择视频",
+    "clearSelection": "清除选择",
+    "previewVideo": "查看录屏"
   },
   "processing": {
     "title": "正在生成长截图",
     "stages": {
-      "preparing": "准备中...",
-      "extracting": "提取视频帧...",
-      "finding": "查找滚动窗口...",
-      "selecting": "选择关键帧...",
-      "filtering": "过滤关键帧...",
-      "stitching": "拼接长截图...",
-      "generating": "生成最终图像..."
+      "preparing": "准备录屏",
+      "extracting": "读取录屏",
+      "finding": "识别滚动内容",
+      "selecting": "选取清晰画面",
+      "filtering": "去除重复内容",
+      "stitching": "拼接长截图",
+      "generating": "即将完成"
     },
     "steps": {
       "analysis": "视频帧分析",
@@ -164,10 +182,10 @@
       "hint": "长截图已生成，向上滑动查看完整内容"
     },
     "actions": {
-      "download": "下载图片",
+      "download": "保存图片",
       "save": "保存到相册",
       "share": "分享",
-      "startOver": "重新开始"
+      "startOver": "重新创建"
     },
     "share": {
       "unsupported": "您的浏览器不支持分享功能",
@@ -178,6 +196,10 @@
     "save": {
       "success": "已保存到相册。",
       "failed": "保存到相册失败。"
+    },
+    "details": {
+      "title": "图片详情",
+      "imageSize": "{{width}} × {{height}} 像素"
     }
   }
 }

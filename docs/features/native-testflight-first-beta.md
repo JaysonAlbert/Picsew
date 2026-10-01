@@ -83,3 +83,9 @@ migration is outside this focused packaging task.
   90-day expiry. This beta is available to the internal testing account; the
   actual iPhone installation and real-device Photos/share/video checks remain
   for the tester.
+- Integrated the already delivered Web changes from `main` and resolved the
+  shared UI contract conflict by retaining its newer Web adoption and reference
+  library sections. Native source and release configuration are byte-identical
+  to the uploaded candidate. Post-integration `npm run check`, 39 Web unit tests
+  and `npm run build` passed; the current main-based lint has ten warnings and
+  zero errors. This synchronization does not port the Web algorithm to Swift.

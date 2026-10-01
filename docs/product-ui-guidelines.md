@@ -42,7 +42,10 @@ and keep usable actions visible. Technical metrics belong in optional details.
   sharing. Web respects responsive widths, browser file selection, keyboard
   navigation, and browser export capabilities.
 - A desktop Web layout can use more width while preserving the same reading
-  order, main stage, and action hierarchy as mobile Web and iOS.
+  order, main stage, and action hierarchy as mobile Web and iOS. At 640 CSS px
+  and above, Web uses a content-height column with compact actions immediately
+  below the content; narrow mobile Web keeps its bottom action area. Desktop
+  controls retain the same comfortable minimum height and visual language.
 - Keep controls at least 44 pt/CSS px in their smallest interactive dimension
   and use a comfortable primary action height around 52 pt/CSS px.
 - Browser limitations or native permissions should be explained with actionable
@@ -62,8 +65,13 @@ and keep usable actions visible. Technical metrics belong in optional details.
 
 ## Current adoption
 
-The native redesign in [ios-minimal-redesign.md](features/ios-minimal-redesign.md)
-implements this direction. The deployed Web version has not been redesigned in
-this delivery; its compatibility fixes and visual alignment are a separate
-follow-up. This document defines that follow-up's design baseline and does not
-claim the current two implementations already match.
+The native redesign is implemented in [PR #37](https://github.com/JaysonAlbert/Picsew/pull/37).
+The Web adoption is described in [web-ui-alignment.md](features/web-ui-alignment.md).
+Each platform keeps its own implementation and validation evidence while sharing
+this visual contract.
+
+## Visual reference library
+
+[Official app references](../reference/design/README.md) archive Things, Craft
+and CleanShot interface images with sources and specific adoption notes. Use
+these alongside this contract when evolving Web or native iOS layouts.

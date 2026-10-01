@@ -34,9 +34,8 @@ describe("PreviewView", () => {
 
     expect(markup).toContain('data-testid="preview-stage-card"');
     expect(markup).toContain('data-testid="preview-action-bar"');
-    expect(markup).toContain("app.flow.step3");
-    expect(markup).toContain("preview.complete.title");
-    expect(markup).toContain("preview.complete.desc");
+    expect(markup).toContain("preview.details.title");
+    expect(markup).not.toContain("<details open");
     expect(markup).toContain("preview.actions.save");
     expect(markup).toContain("preview.actions.share");
   });

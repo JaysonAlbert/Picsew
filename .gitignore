@@ -288,3 +288,6 @@ yarn-error.log*
 !demo2.mp4 
 !demo3.mp4
 !demo4.mp4
+
+# Public synthetic regression recordings (contains no user data).
+!fixtures/floating-overlay/*.mp4

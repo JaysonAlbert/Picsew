@@ -13,7 +13,8 @@ describe("ProcessingView", () => {
     const markup = renderToStaticMarkup(<ProcessingView progress={64} />);
 
     expect(markup).toContain('data-testid="processing-stage-card"');
-    expect(markup).toContain("app.flow.step2");
+    expect(markup).toContain('role="progressbar"');
+    expect(markup).toContain('aria-valuenow="64"');
     expect(markup).toContain("processing.title");
     expect(markup).toContain("processing.keepOpen");
   });

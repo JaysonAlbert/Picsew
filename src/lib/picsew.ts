@@ -1,5 +1,12 @@
 import { getOpenCV } from "./opencv";
 import {
+  findFloatingOverlays,
+  cleanTemplateColumn,
+  intersect,
+  subtract,
+  type Rect,
+} from "./floating-overlays";
+import {
   getErrorMessage,
   getFullResDecodeScale,
   scaleRect,
@@ -514,6 +521,8 @@ const stitchKeyframes = async (
   videoElement: HTMLVideoElement,
   keyframeIndices: number[],
   refinedWindow: any,
+  lowResGray: any[],
+  candidateKeyframeIndices: number[],
   addLog: (message: string) => void,
   updateProgress: (progress: number) => void,
 ): Promise<any> => {
@@ -552,6 +561,75 @@ const stitchKeyframes = async (
     canvas.height,
   );
   const { x, y, width, height } = refinedWindowForStitch;
+  const overlays = findFloatingOverlays(
+    lowResGray.slice(
+      orderedKeyframeIndices[0],
+      orderedKeyframeIndices[orderedKeyframeIndices.length - 1]! + 1,
+    ),
+    scaleRect(refinedWindow, 0.5),
+  ).map((rect) =>
+    clampRectToFrame(
+      scaleRect(rect, decodeScale * 2),
+      canvas.width,
+      canvas.height,
+    ),
+  );
+  addLog(
+    `Detected ${overlays.length} stationary floating control region(s): ${JSON.stringify(overlays)}`,
+  );
+
+  // Glass UI can change outside the body while the document scrolls normally.
+  // Restore filtered candidates only to bridge a failed/inconsistent match, when
+  // every link has independent, confident document overlap.
+  const bridgeDisplacement = (indices: number[]) => {
+    const lowWindow = clampRectToFrame(
+      scaleRect(refinedWindow, 0.5),
+      lowResGray[0].cols,
+      lowResGray[0].rows,
+    );
+    const templateHeight = Math.floor(lowWindow.height / 3);
+    const templateRect = cleanTemplateColumn(
+      {
+        ...lowWindow,
+        y: lowWindow.y + lowWindow.height - templateHeight,
+        height: templateHeight,
+      },
+      overlays.map((rect) => scaleRect(rect, 1 / (decodeScale * 2))),
+    );
+    if (!templateRect) return null;
+    let totalOffset = 0;
+    for (let i = 1; i < indices.length; i++) {
+      const template = lowResGray[indices[i - 1]!].roi(
+        new cv.Rect(
+          templateRect.x,
+          templateRect.y,
+          templateRect.width,
+          templateHeight,
+        ),
+      );
+      const search = lowResGray[indices[i]!].roi(
+        new cv.Rect(
+          templateRect.x,
+          lowWindow.y,
+          templateRect.width,
+          lowWindow.height,
+        ),
+      );
+      const result = new cv.Mat();
+      try {
+        cv.matchTemplate(search, template, result, cv.TM_CCOEFF_NORMED);
+        const match = (cv.minMaxLoc as any)(result);
+        const offset = lowWindow.height - templateHeight - match.maxLoc.y;
+        if (match.maxVal < 0.85 || offset <= 0) return null;
+        totalOffset += offset;
+      } finally {
+        template.delete();
+        search.delete();
+        result.delete();
+      }
+    }
+    return totalOffset;
+  };
 
   videoElement.muted = true;
   videoElement.pause();
@@ -582,6 +660,62 @@ const stitchKeyframes = async (
   addLog("Stitching keyframes...");
 
   let stitchedImage: any = null;
+  let recoveryFrame: any = null;
+  let pending: Rect[] = [];
+  let recoveredPixels = 0;
+  const trackCopiedOverlays = (source: Rect, bodyStart: number) => {
+    for (const overlay of overlays) {
+      const copied = intersect(source, overlay);
+      if (copied) pending.push({ ...copied, y: bodyStart + copied.y - y });
+    }
+  };
+  const recoverFrom = (frame: any, bodyStart: number) => {
+    if (!pending.length) return;
+    const coverage = { x, y: bodyStart, width, height };
+    const occlusions = overlays.map((rect) => ({
+      ...rect,
+      y: bodyStart + rect.y - y,
+    }));
+    const remaining: Rect[] = [];
+    for (const target of pending) {
+      const covered = intersect(target, coverage);
+      let clean = covered ? [covered] : [];
+      for (const occlusion of occlusions)
+        clean = clean.flatMap((rect) => subtract(rect, occlusion));
+      let unrecovered = [target];
+      for (const rect of clean) {
+        // Glass shading is tied to viewport rows. Copy a whole clean source band
+        // to avoid an isolated bright rectangle against the old shaded row.
+        const band = { ...rect, x, width };
+        const copyRect = occlusions.some((occlusion) =>
+          intersect(band, occlusion),
+        )
+          ? rect
+          : band;
+        const source = frame.roi(
+          new cv.Rect(
+            copyRect.x,
+            copyRect.y - bodyStart + y,
+            copyRect.width,
+            copyRect.height,
+          ),
+        );
+        const destination = stitchedImage.roi(
+          new cv.Rect(copyRect.x, copyRect.y, copyRect.width, copyRect.height),
+        );
+        try {
+          source.copyTo(destination);
+        } finally {
+          source.delete();
+          destination.delete();
+        }
+        recoveredPixels += rect.width * rect.height;
+        unrecovered = unrecovered.flatMap((piece) => subtract(piece, rect));
+      }
+      remaining.push(...unrecovered);
+    }
+    pending = remaining;
+  };
   try {
     const firstIndex = orderedKeyframeIndices[0];
     if (firstIndex === undefined) {
@@ -596,7 +730,11 @@ const stitchKeyframes = async (
     const headerHeight = y;
     const footerHeight = Math.max(0, frameHeight - (y + height));
 
-    const offsets: { v_offset: number; h_offset: number }[] = [];
+    const offsets: {
+      v_offset: number;
+      h_offset: number;
+      recoverySafe: boolean;
+    }[] = [];
     for (let i = 1; i < orderedKeyframeIndices.length; i++) {
       const frameIndex = orderedKeyframeIndices[i];
       if (frameIndex === undefined) {
@@ -606,11 +744,25 @@ const stitchKeyframes = async (
       const currentFrame = await decodeMatAtIndex(frameIndex);
 
       const window1 = previousFrame.roi(new cv.Rect(x, y, width, height));
-      const window2 = currentFrame.roi(new cv.Rect(x, y, width, height));
-
       const templateHeight = Math.floor(height / 3);
+      const originalTemplate = {
+        x,
+        y: y + height - templateHeight,
+        width,
+        height: templateHeight,
+      };
+      const clearTemplate = cleanTemplateColumn(originalTemplate, overlays);
+      const matchColumn = clearTemplate ?? originalTemplate;
+      const window2 = currentFrame.roi(
+        new cv.Rect(matchColumn.x, y, matchColumn.width, height),
+      );
       const template = window1.roi(
-        new cv.Rect(0, height - templateHeight, width, templateHeight),
+        new cv.Rect(
+          matchColumn.x - x,
+          height - templateHeight,
+          matchColumn.width,
+          templateHeight,
+        ),
       );
 
       const res = new cv.Mat();
@@ -620,12 +772,44 @@ const stitchKeyframes = async (
 
       const vOffset = height - templateHeight - maxLoc.y;
       const hOffset = maxLoc.x;
-      offsets.push({ v_offset: vOffset, h_offset: hOffset });
-
       window1.delete();
       window2.delete();
       template.delete();
       res.delete();
+
+      if (overlays.length) {
+        const previousIndex = orderedKeyframeIndices[i - 1]!;
+        const bridge = candidateKeyframeIndices.filter(
+          (index) => index > previousIndex && index < frameIndex,
+        );
+        const bridgeOffset = bridge.length
+          ? bridgeDisplacement([previousIndex, ...bridge, frameIndex])
+          : null;
+        if (
+          bridgeOffset !== null &&
+          (mm.maxVal < 0.7 ||
+            Math.abs(bridgeOffset * decodeScale * 2 - vOffset) >
+              Math.max(3, height * 0.01))
+        ) {
+          currentFrame.delete();
+          orderedKeyframeIndices.splice(i, 0, ...bridge);
+          addLog(
+            `Restored ${bridge.length} filtered keyframe(s) to bridge confident scrolling overlap.`,
+          );
+          i--;
+          continue;
+        }
+      }
+      offsets.push({
+        v_offset: vOffset,
+        h_offset: hOffset,
+        recoverySafe:
+          clearTemplate !== null &&
+          mm.maxVal >= 0.7 &&
+          hOffset === 0 &&
+          vOffset >= 0 &&
+          vOffset <= height,
+      });
 
       previousFrame.delete();
       previousFrame = currentFrame;
@@ -646,6 +830,8 @@ const stitchKeyframes = async (
     );
 
     const firstFrame = await decodeMatAtIndex(firstIndex);
+    recoveryFrame = firstFrame;
+    let previousBodyStart = headerHeight;
     let currentY = 0;
     if (headerHeight > 0) {
       const header = firstFrame.roi(
@@ -663,7 +849,7 @@ const stitchKeyframes = async (
       stitchedImage.roi(new cv.Rect(0, currentY, frameWidth, height)),
     );
     firstWindow.delete();
-    firstFrame.delete();
+    trackCopiedOverlays({ x, y, width, height }, headerHeight);
     currentY += height;
     updateDecodeProgress(1, 0, orderedKeyframeIndices.length);
 
@@ -679,6 +865,11 @@ const stitchKeyframes = async (
       const keyframe = await decodeMatAtIndex(frameIndex);
       const scrollingWindow = keyframe.roi(new cv.Rect(x, y, width, height));
       const safeVOffset = Math.max(0, Math.min(v_offset, height));
+      const bodyStart = currentY - height + safeVOffset;
+      // Matching uses a full-width template, so normal vertical recordings have no horizontal shift.
+      // A displaced frame is left untouched rather than patched with uncertain coordinates.
+      if (!offset.recoverySafe) pending = [];
+      else recoverFrom(keyframe, bodyStart);
 
       const newPart = scrollingWindow.roi(
         new cv.Rect(0, height - safeVOffset, width, safeVOffset),
@@ -715,12 +906,21 @@ const stitchKeyframes = async (
           newPart.rows,
         );
         newSlice.copyTo(stitchedImage.roi(stitchedImageSliceRoi));
+        if (offset.recoverySafe) {
+          trackCopiedOverlays(
+            { x, y: y + height - safeVOffset, width, height: safeVOffset },
+            bodyStart,
+          );
+          recoverFrom(recoveryFrame, previousBodyStart);
+        }
         currentY += newPart.rows;
         newSlice.delete();
       }
       newPart.delete();
       scrollingWindow.delete();
-      keyframe.delete();
+      recoveryFrame.delete();
+      recoveryFrame = keyframe;
+      previousBodyStart = bodyStart;
       updateDecodeProgress(1, i + 1, orderedKeyframeIndices.length);
     }
 
@@ -745,6 +945,9 @@ const stitchKeyframes = async (
       }
     }
 
+    addLog(
+      `Recovered ${recoveredPixels} floating-control pixel(s) from aligned frames; ${pending.reduce((sum, rect) => sum + rect.width * rect.height, 0)} pixel(s) remain without a clean source.`,
+    );
     addLog(`Streamed ${orderedKeyframeIndices.length} full-res keyframe(s).`);
     return stitchedImage;
   } catch (error) {
@@ -752,6 +955,8 @@ const stitchKeyframes = async (
       stitchedImage.delete();
     }
     throw error;
+  } finally {
+    recoveryFrame?.delete();
   }
 };
 
@@ -828,6 +1033,8 @@ export const processVideo = async (
       videoElement,
       cleanKeyframeIndices,
       refinedWindow,
+      lowResGray,
+      candidateKeyframeIndices,
       addLog,
       (p) => updateProgress(80 + p * 0.15),
     );

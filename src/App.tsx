@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ChevronLeft, Smartphone } from "lucide-react";
+import { ChevronLeft, ScanLine } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AppUtilityMenu } from "./components/AppUtilityMenu";
 import { FeedbackPage } from "./components/FeedbackPage";
@@ -291,60 +291,43 @@ export default function App() {
   };
 
   return (
-    <div
-      className={`min-h-screen bg-[radial-gradient(circle_at_top,_rgba(96,165,250,0.16),_transparent_32%),linear-gradient(180deg,_#f8fafc_0%,_#ffffff_42%,_#f6f8fc_100%)] ${
-        isNativeIos ? "ios-app-shell" : ""
-      }`}
-    >
+    <div className={`product-shell ${isNativeIos ? "ios-app-shell" : ""}`}>
       <SEO
         title={t("app.title")}
         description={t("app.subtitle")}
         keywords="screenshot, stitching, long screenshot, video to image, picsew"
       />
-      <div className="ios-app-header">
-        <div className="ios-safe-top px-4 pb-2 pt-2">
-          <div className="mx-auto max-w-md">
-            {currentView === "feedback" ? (
-              <div className="app-secondary-bar">
-                <button
-                  type="button"
-                  className="app-secondary-back"
-                  onClick={() => setCurrentView("main")}
-                >
-                  <ChevronLeft className="h-4.5 w-4.5" />
-                  <span>{t("feedback.page.back")}</span>
-                </button>
-                <div className="min-w-0 flex-1">
-                  <p className="app-shell-caption">{t("app.brandTitle")}</p>
-                  <h1 className="app-utility-title">{t("feedback.title")}</h1>
-                </div>
-              </div>
-            ) : (
-              <div className="app-utility-bar">
-                <div className="flex items-center gap-3">
-                  <div className="app-utility-brand-mark">
-                    <Smartphone className="h-4.5 w-4.5 text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="app-shell-caption">{t("app.brandTitle")}</p>
-                    <h1 className="app-utility-title">{t("app.brandTitle")}</h1>
-                  </div>
-                  <AppUtilityMenu
-                    open={isUtilityMenuOpen}
-                    onOpenChange={setIsUtilityMenuOpen}
-                    onOpenFeedbackPage={handleOpenFeedbackPage}
-                  />
-                </div>
-              </div>
-            )}
+      <header className="product-header ios-safe-top">
+        {currentView === "feedback" ? (
+          <button
+            type="button"
+            className="app-secondary-back"
+            onClick={() => setCurrentView("main")}
+          >
+            <ChevronLeft aria-hidden="true" />
+            <span>{t("feedback.page.back")}</span>
+          </button>
+        ) : (
+          <>
+            <div className="product-brand">
+              <ScanLine aria-hidden="true" />
+              <span>{t("app.brandTitle")}</span>
+            </div>
+            <AppUtilityMenu
+              open={isUtilityMenuOpen}
+              onOpenChange={setIsUtilityMenuOpen}
+              onOpenFeedbackPage={handleOpenFeedbackPage}
+            />
+          </>
+        )}
+      </header>
+      <main className="product-main">
+        {currentView === "main" && (
+          <div className="product-heading">
+            <h1>{t(`app.routes.${currentStep}.title`)}</h1>
+            <p>{t(`app.routes.${currentStep}.subtitle`)}</p>
           </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div
-        className={`px-4 ${currentStep === "preview" ? "pb-10 pt-5" : "pb-24 pt-5"}`}
-      >
+        )}
         {currentView === "feedback" ? (
           <FeedbackPage
             currentStep={currentStep}
@@ -379,7 +362,7 @@ export default function App() {
             isNativeSave={canUseNativePhotoSave()}
           />
         )}
-      </div>
+      </main>
 
       {/* Hidden elements for processing */}
       <video
