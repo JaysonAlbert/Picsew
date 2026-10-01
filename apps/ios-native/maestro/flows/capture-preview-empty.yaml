@@ -1,0 +1,16 @@
+appId: top.ibotcloud.picsew.native
+name: Empty preview keeps export disabled
+tags:
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: preview-empty
+- waitForAnimationToEnd
+- assertVisible:
+    id: "preview.emptyState"
+- assertVisible:
+    id: "preview.saveToPhotos"
+    enabled: false
+- takeScreenshot: artifacts/minimal-preview-empty

@@ -1,5 +1,8 @@
 import Foundation
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 public enum PicsewSpacing: Double, CaseIterable, Sendable {
     case xSmall = 8
@@ -77,16 +80,55 @@ public struct PicsewSurfaceStyle: Sendable, Equatable {
 }
 
 public enum PicsewPalette {
-    public static let ink = Color(red: 0.10, green: 0.16, blue: 0.26)
-    public static let mutedInk = Color(red: 0.34, green: 0.41, blue: 0.52)
-    public static let accent = Color(red: 0.16, green: 0.45, blue: 0.95)
-    public static let accentSecondary = Color(red: 0.20, green: 0.74, blue: 0.78)
-    public static let accentWarm = Color(red: 0.99, green: 0.72, blue: 0.39)
-    public static let success = Color(red: 0.20, green: 0.65, blue: 0.46)
-    public static let shellTop = Color(red: 0.93, green: 0.96, blue: 1.0)
-    public static let shellBottom = Color(red: 0.99, green: 0.99, blue: 1.0)
-    public static let shellHighlight = Color.white
-    public static let shadow = Color(red: 0.10, green: 0.20, blue: 0.34)
+    public static let ink = Color.primary
+#if os(iOS)
+    public static let mutedInk = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(white: 0.72, alpha: 1)
+            : UIColor(red: 0.36, green: 0.39, blue: 0.42, alpha: 1)
+    })
+#else
+    public static let mutedInk = Color.secondary
+#endif
+    public static let accent = Color(red: 0.03, green: 0.48, blue: 0.44)
+    public static let accentSecondary = accent
+    public static let accentWarm = accent
+    public static let success = accent
+#if os(iOS)
+    public static let background = Color(uiColor: .systemGroupedBackground)
+    public static let surface = Color(uiColor: .secondarySystemGroupedBackground)
+#else
+    public static let background = Color(nsColor: .windowBackgroundColor)
+    public static let surface = Color(nsColor: .controlBackgroundColor)
+#endif
+    public static let shellTop = background
+    public static let shellBottom = background
+    public static let shellHighlight = surface
+    public static let shadow = Color.black
+}
+
+public struct PicsewActionButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    private let prominent: Bool
+
+    public init(prominent: Bool = true) {
+        self.prominent = prominent
+    }
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .fixedSize(horizontal: false, vertical: true)
+            .font(.body.weight(.semibold))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .padding(.horizontal, 12)
+            .foregroundStyle(isEnabled ? (prominent ? Color.white : PicsewPalette.ink) : PicsewPalette.mutedInk)
+            .background(
+                isEnabled && prominent ? PicsewPalette.accent : PicsewPalette.surface,
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
+            .opacity(configuration.isPressed ? 0.78 : 1)
+    }
 }
 
 public enum PicsewGradients {

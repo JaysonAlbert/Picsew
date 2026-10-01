@@ -11,17 +11,16 @@ public struct PicsewRootView: View {
     public var body: some View {
         @Bindable var bindableModel = model
 
-        NavigationStack {
-            PicsewAppShell(
-                appName: model.composition.appName,
-                route: model.route,
-                action: shellAction
-            ) {
-                currentRouteView
-            }
+        PicsewAppShell(
+            appName: model.composition.appName,
+            route: model.route,
+            subtitle: model.route == .preview && model.result == nil
+                ? "Your next screenshot will appear here." : nil,
+            action: shellAction
+        ) {
+            currentRouteView
         }
 #if os(iOS)
-        .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $bindableModel.showsOnboarding) {
             OnboardingFeatureView(model: model)
         }

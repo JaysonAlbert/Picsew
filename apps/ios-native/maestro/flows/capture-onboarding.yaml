@@ -13,5 +13,5 @@ tags:
 - assertVisible:
     id: "onboarding.continue"
 - takeScreenshot:
-    path: capture-onboarding
+    path: artifacts/minimal-onboarding
     label: Capture the onboarding screen

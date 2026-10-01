@@ -1,3 +1,5 @@
+import CoreGraphics
+import CoreText
 import Foundation
 import PicsewAlgorithm
 import PicsewAppCore
@@ -6,8 +8,10 @@ import PicsewMedia
 public enum PicsewAutomationScenario: String, CaseIterable, Sendable {
     case onboarding
     case upload
+    case uploadError = "upload-error"
     case processing
     case preview
+    case previewEmpty = "preview-empty"
     case feedback
 }
 
@@ -50,6 +54,9 @@ public extension PicsewAppShellModel {
         case .upload:
             model.selectVideo(url: PicsewAutomationFixtures.importedVideoURL)
 
+        case .uploadError:
+            model.errorMessage = "This video couldn't be opened. Choose another recording."
+
         case .processing:
             model.selectVideo(url: PicsewAutomationFixtures.importedVideoURL)
             model.route = .processing
@@ -68,6 +75,9 @@ public extension PicsewAppShellModel {
 
         case .feedback:
             model.route = .feedback
+
+        case .previewEmpty:
+            model.route = .preview
         }
 
         return model
@@ -119,24 +129,60 @@ private enum PicsewAutomationFixtures {
     }
 
     private static func makePixels(width: Int, height: Int) -> Data {
-        var pixels = Data(capacity: width * height * 4)
+        guard let context = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8,
+            bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return Data(repeating: 255, count: width * height * 4)
+        }
+        context.translateBy(x: 0, y: CGFloat(height))
+        context.scaleBy(x: 1, y: -1)
+        context.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
 
-        for row in 0..<height {
-            let progress = Double(row) / Double(max(1, height - 1))
-            let red = UInt8((0.31 + 0.16 * progress) * 255)
-            let green = UInt8((0.55 + 0.2 * progress) * 255)
-            let blue = UInt8((0.97 - 0.12 * progress) * 255)
-
-            for _ in 0..<width {
-                pixels.append(red)
-                pixels.append(green)
-                pixels.append(blue)
-                pixels.append(255)
-            }
+        func text(_ value: String, x: CGFloat = 80, y: CGFloat, size: CGFloat, bold: Bool = false) {
+            let font = CTFontCreateWithName((bold ? "Helvetica-Bold" : "Helvetica") as CFString, size, nil)
+            let attributes: [NSAttributedString.Key: Any] = [
+                NSAttributedString.Key(kCTFontAttributeName as String): font,
+                NSAttributedString.Key(kCTForegroundColorAttributeName as String): CGColor(gray: 0.15, alpha: 1),
+            ]
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string: value, attributes: attributes))
+            context.saveGState()
+            context.translateBy(x: x, y: y + size)
+            context.scaleBy(x: 1, y: -1)
+            context.textMatrix = .identity
+            context.textPosition = .zero
+            CTLineDraw(line, context)
+            context.restoreGState()
         }
 
-        return pixels
+        text("FIELD NOTES", y: 80, size: 36, bold: true)
+        text("A day worth keeping", y: 180, size: 76, bold: true)
+        text("Little moments, all in one place.", y: 290, size: 40)
+        for section in 0..<4 {
+            let top = CGFloat(430 + section * 880)
+            context.setFillColor(CGColor(red: 0.88, green: 0.94, blue: 0.91, alpha: 1))
+            context.fill(CGRect(x: 80, y: top, width: CGFloat(width - 160), height: 330))
+            context.setFillColor(CGColor(red: 0.17, green: 0.42, blue: 0.36, alpha: 1))
+            context.fill(CGRect(x: 130, y: top + 200, width: CGFloat(width - 260), height: 130))
+            context.setFillColor(CGColor(red: 0.50, green: 0.67, blue: 0.55, alpha: 1))
+            context.fill(CGRect(x: 250, y: top + 110, width: CGFloat(width - 500), height: 220))
+            text(["Take the scenic route", "Make room for small things", "Pause along the way", "Keep the whole story"][section],
+                 y: top + 380, size: 48, bold: true)
+            for (index, line) in [
+                "Some things deserve more than a single frame.",
+                "A quiet morning. A favorite place. A useful idea.",
+                "Keep the details together, from start to finish.",
+                "Come back whenever you need a little inspiration.",
+            ].enumerated() {
+                text(line, y: top + 475 + CGFloat(index * 58), size: 36)
+            }
+        }
+        guard let data = context.data else { return Data() }
+        return Data(bytes: data, count: width * height * 4)
     }
+
 }
 
 private struct PicsewAutomationPipeline: PicsewAppPipelineRunning {

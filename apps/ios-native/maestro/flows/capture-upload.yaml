@@ -15,5 +15,5 @@ tags:
 - assertVisible:
     id: "upload.startProcessing"
 - takeScreenshot:
-    path: capture-upload
+    path: artifacts/minimal-upload
     label: Capture the upload screen

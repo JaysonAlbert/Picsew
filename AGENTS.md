@@ -117,6 +117,7 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 
 ## UI Design Rules
 
+- Web and native iOS must share the product visual language, information hierarchy, action meanings, and upload -> processing -> preview structure defined in `docs/product-ui-guidelines.md`. Adapt layouts and controls to each platform while preserving this shared design.
 - Prefer one main stage card and one primary action area per screen.
 - Remove redundant helper cards before adding new ones.
 - Keep copy concise and let hierarchy do the work.

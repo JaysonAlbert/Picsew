@@ -13,5 +13,5 @@ tags:
 - assertVisible:
     id: "processing.stage.card"
 - takeScreenshot:
-    path: capture-processing
+    path: artifacts/minimal-processing
     label: Capture the processing screen

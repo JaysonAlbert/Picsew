@@ -12,6 +12,8 @@ tags:
     id: "shell.route.feedback"
 - assertVisible:
     id: "feedback.placeholder"
+- assertVisible:
+    id: "feedback.send"
 - takeScreenshot:
-    path: capture-feedback
+    path: artifacts/minimal-feedback
     label: Capture the feedback screen

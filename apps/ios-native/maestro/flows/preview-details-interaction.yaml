@@ -1,0 +1,33 @@
+appId: top.ibotcloud.picsew.native
+name: Preview details stay optional and export remains reachable
+tags:
+  - smoke
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: preview
+- assertVisible:
+    id: "preview.stitchedImage"
+- assertNotVisible: "Clean keyframes"
+- scrollUntilVisible:
+    element: "Result details"
+    direction: DOWN
+- tapOn: "Result details"
+- assertVisible: "Clean keyframes"
+- assertVisible:
+    id: "preview.saveToPhotos"
+- tapOn:
+    id: "preview.saveToPhotos"
+- assertVisible: "Saved to Photos."
+- tapOn:
+    id: "preview.newCapture"
+- assertVisible:
+    id: "upload.source.files"
+- assertVisible:
+    id: "upload.source.photos"
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: false
+- takeScreenshot: artifacts/minimal-upload-empty

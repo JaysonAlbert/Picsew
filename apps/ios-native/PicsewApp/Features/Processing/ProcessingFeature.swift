@@ -11,138 +11,79 @@ public struct ProcessingFeatureView: View {
     }
 
     public var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(spacing: 0) {
+                    Spacer(minLength: 20)
 
-            PicsewStageCard(alignment: .center, spacing: 22) {
-                progressOrb
+                    PicsewStageCard(alignment: .center, spacing: 24) {
+                        progressRing
+                            .frame(maxWidth: .infinity)
 
-                VStack(spacing: 8) {
-                    Text(progressTitle)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(PicsewPalette.ink)
-                        .multilineTextAlignment(.center)
+                        Text(progressTitle)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(PicsewPalette.ink)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
 
-                    Text(progressSubtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(PicsewPalette.mutedInk)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity)
-
-                ProgressView(value: progressValue)
-                    .progressViewStyle(.linear)
-                    .tint(PicsewPalette.accent)
-
-                ViewThatFits {
-                    HStack(spacing: 8) {
-                        PicsewInfoChip(title: stageCounterText, systemImage: "circle.grid.2x2.fill", emphasis: true)
-                        PicsewInfoChip(title: "On-device", systemImage: "iphone")
-                        PicsewInfoChip(title: "No upload", systemImage: "icloud.slash")
+                        Text("Keep Picsew open. We'll take care of the rest.")
+                            .font(.subheadline)
+                            .foregroundStyle(PicsewPalette.mutedInk)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
                     }
+                    .accessibilityIdentifier("processing.stage.card")
 
-                    VStack(spacing: 8) {
-                        PicsewInfoChip(title: stageCounterText, systemImage: "circle.grid.2x2.fill", emphasis: true)
-                        HStack(spacing: 8) {
-                            PicsewInfoChip(title: "On-device", systemImage: "iphone")
-                            PicsewInfoChip(title: "No upload", systemImage: "icloud.slash")
-                        }
-                    }
+                    Spacer(minLength: 20)
                 }
-
-                Text("Keep this screen open while Picsew aligns motion, filters clean frames, and builds the final long screenshot.")
-                    .font(.footnote)
-                    .foregroundStyle(PicsewPalette.mutedInk)
-                    .multilineTextAlignment(.center)
+                .frame(minHeight: geometry.size.height)
             }
-            .accessibilityIdentifier("processing.stage.card")
-
-            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var progressOrb: some View {
+    private var progressRing: some View {
         ZStack {
             Circle()
-                .stroke(Color.white.opacity(0.62), lineWidth: 14)
-
+                .stroke(PicsewPalette.accent.opacity(0.12), lineWidth: 6)
             Circle()
-                .trim(from: 0, to: max(0.06, progressValue))
-                .stroke(
-                    AngularGradient(
-                        colors: [
-                            PicsewPalette.accentSecondary,
-                            PicsewPalette.accent,
-                            PicsewPalette.accentWarm,
-                            PicsewPalette.accentSecondary,
-                        ],
-                        center: .center
-                    ),
-                    style: StrokeStyle(lineWidth: 14, lineCap: .round)
-                )
+                .trim(from: 0, to: progressValue)
+                .stroke(PicsewPalette.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-
-            VStack(spacing: 4) {
-                Text("\(Int(progressValue * 100))%")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(PicsewPalette.ink)
-
-                Text("Processing")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(PicsewPalette.mutedInk)
-            }
+            Text("\(Int(progressValue * 100))%")
+                .font(.largeTitle.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(PicsewPalette.ink)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .padding(12)
         }
-        .frame(width: 174, height: 174)
+        .frame(width: 144, height: 144)
         .padding(8)
-        .background(
-            Circle()
-                .fill(Color.white.opacity(0.40))
-        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Stitching progress")
+        .accessibilityValue("\(Int(progressValue * 100)) percent")
     }
 
     private var progressValue: Double {
-        guard let progress = model.progress else { return 0.05 }
-        return Double(progress.completedStages) / Double(max(1, progress.totalStages))
+        guard let progress = model.progress else { return 0 }
+        return min(1, max(0, Double(progress.completedStages) / Double(max(1, progress.totalStages))))
     }
 
     private var progressTitle: String {
-        guard let progress = model.progress else { return "Preparing native pipeline" }
-        return title(for: progress.stage)
-    }
-
-    private var progressSubtitle: String {
-        guard model.progress != nil else {
-            return "The native pipeline is warming up."
-        }
-        return "Picsew is stitching locally and updating this stage as each pass completes."
-    }
-
-    private var stageCounterText: String {
-        guard let progress = model.progress else { return "Starting" }
-        return "Step \(progress.completedStages) of \(progress.totalStages)"
-    }
-
-    private func title(for stage: PicsewAppPipelineStage) -> String {
-        switch stage {
-        case .metadataLoaded:
-            return "Loaded video metadata"
-        case .lowResolutionFramesExtracted:
-            return "Extracted low-res frames"
+        guard let progress = model.progress else { return "Getting ready" }
+        switch progress.stage {
+        case .metadataLoaded, .lowResolutionFramesExtracted:
+            return "Reading your recording"
         case .scrollingWindowDetected:
-            return "Detected scrolling region"
-        case .candidateKeyframesSelected:
-            return "Selected candidate keyframes"
-        case .cleanKeyframesFiltered:
-            return "Filtered clean keyframes"
-        case .fullResolutionGrayKeyframesExtracted:
-            return "Loaded gray keyframes"
-        case .offsetsCalculated:
-            return "Calculated offsets"
+            return "Finding the scrolling area"
+        case .candidateKeyframesSelected, .cleanKeyframesFiltered:
+            return "Choosing the clearest frames"
+        case .fullResolutionGrayKeyframesExtracted, .offsetsCalculated:
+            return "Aligning your screenshot"
         case .fullResolutionColorKeyframesExtracted:
-            return "Loaded color keyframes"
+            return "Adding the finishing touches"
         case .stitchedImageReady:
-            return "Built stitched image"
+            return "Your screenshot is ready"
         }
     }
 }
