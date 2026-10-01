@@ -466,3 +466,52 @@ body {
   border-color: var(--product-line);
   font-size: 1rem;
 }
+
+@media (min-width: 640px) {
+  /* Wider Web windows follow content height instead of stretching the mobile
+     thumb-zone layout to the viewport. Keep the transitional iOS shell intact. */
+  .product-shell:not(.ios-app-shell) .product-main,
+  .product-shell:not(.ios-app-shell) .product-route {
+    flex: none;
+  }
+
+  .product-shell:not(.ios-app-shell) .product-header,
+  .product-shell:not(.ios-app-shell) .product-main {
+    max-width: 40rem;
+  }
+
+  .product-shell:not(.ios-app-shell) .product-header {
+    padding-top: calc(24px + env(safe-area-inset-top));
+    padding-bottom: 20px;
+  }
+
+  .product-shell:not(.ios-app-shell) .product-heading h1 {
+    font-size: 2rem;
+  }
+
+  .product-shell:not(.ios-app-shell) .app-actions-tray {
+    margin-top: 0;
+    align-items: flex-end;
+  }
+
+  .product-shell:not(.ios-app-shell) .app-actions-tray > .app-primary-action {
+    width: min(100%, 14rem);
+  }
+
+  .product-shell:not(.ios-app-shell) .app-actions-tray > .product-clear {
+    width: auto;
+  }
+
+  .product-shell:not(.ios-app-shell) .product-export-actions {
+    width: fit-content;
+    max-width: min(100%, 28rem);
+    justify-content: flex-end;
+  }
+
+  .product-shell:not(.ios-app-shell) .product-export-actions > button {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 10rem;
+    max-width: 100%;
+  }
+}

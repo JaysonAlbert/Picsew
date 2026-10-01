@@ -237,3 +237,149 @@ test("Chinese dark mode keeps the import action reachable", async ({
     expect(control.height).toBeGreaterThanOrEqual(44);
   }
 });
+
+for (const viewport of [
+  { width: 640, height: 900 },
+  { width: 647, height: 871 },
+  { width: 1280, height: 1000 },
+  { width: 1440, height: 1400 },
+]) {
+  test(`desktop ${viewport.width}px keeps actions beside their content across all routes`, async ({
+    page,
+  }, testInfo) => {
+    await prepareJourney(page);
+    await page.setViewportSize(viewport);
+    await page.goto("/");
+    const create = page.getByRole("button", {
+      name: "Create screenshot",
+      exact: true,
+    });
+    const privacy = page.getByText("Everything is processed on your device.", {
+      exact: true,
+    });
+    async function expectNearbyActions(previous: typeof privacy) {
+      const before = await previous.boundingBox();
+      const action = await page.locator(".app-primary-action").boundingBox();
+      expect(before).not.toBeNull();
+      expect(action).not.toBeNull();
+      const gap = action!.y - (before!.y + before!.height);
+      expect(gap).toBeGreaterThanOrEqual(0);
+      expect(gap).toBeLessThanOrEqual(32);
+    }
+    await expect(create).toBeDisabled();
+    const createBox = await create.boundingBox();
+    expect(createBox).not.toBeNull();
+    expect(createBox!.width).toBeGreaterThanOrEqual(160);
+    expect(createBox!.width).toBeLessThanOrEqual(280);
+    expect(createBox!.height).toBeGreaterThanOrEqual(44);
+    await expectNearbyActions(privacy);
+    await page.screenshot({ path: testInfo.outputPath("desktop-empty.png") });
+    await selectRecording(page);
+    await expect(create).toBeEnabled();
+    await expectNearbyActions(privacy);
+    await page.screenshot({ path: testInfo.outputPath("desktop-upload.png") });
+    await create.click();
+    await expect(page.getByRole("progressbar")).toHaveAttribute(
+      "aria-valuenow",
+      "64",
+    );
+    const processing = await page
+      .getByTestId("processing-stage-card")
+      .boundingBox();
+    expect(processing).not.toBeNull();
+    expect(processing!.height).toBeLessThanOrEqual(360);
+    await page.screenshot({
+      path: testInfo.outputPath("desktop-processing.png"),
+    });
+    await expect(
+      page.getByRole("heading", { name: "Your screenshot" }),
+    ).toBeVisible();
+    const details = page.locator("details");
+    await expectNearbyActions(details);
+    await page.screenshot({ path: testInfo.outputPath("desktop-preview.png") });
+    await details.locator("summary").click();
+    await expect(
+      page.getByText("720 × 3600 px", { exact: true }),
+    ).toBeVisible();
+    await expectNearbyActions(details);
+    const overflow = await page.evaluate(() => ({
+      content: document.documentElement.scrollWidth,
+      viewport: innerWidth,
+    }));
+    expect(overflow.content).toBeLessThanOrEqual(overflow.viewport);
+    await page.getByRole("button", { name: "New capture" }).click();
+    await expect(create).toBeDisabled();
+    await expectNearbyActions(privacy);
+  });
+}
+
+test("narrow mobile keeps the upload action at the bottom without covering content", async ({
+  page,
+}, testInfo) => {
+  await prepareJourney(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  const action = await page
+    .getByRole("button", {
+      name: "Create screenshot",
+      exact: true,
+    })
+    .boundingBox();
+  const caption = await page.locator(".product-privacy").boundingBox();
+  expect(action).not.toBeNull();
+  expect(caption).not.toBeNull();
+  expect(action!.y).toBeGreaterThan(caption!.y + caption!.height);
+  expect(action!.y + action!.height).toBeGreaterThanOrEqual(820);
+  expect(action!.y + action!.height).toBeLessThanOrEqual(844);
+  await page.screenshot({ path: testInfo.outputPath("mobile-empty.png") });
+});
+
+test("desktop short windows keep actions reachable at enlarged text", async ({
+  page,
+}, testInfo) => {
+  await prepareJourney(page);
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await page.goto("/");
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  await selectRecording(page);
+  const create = page.getByRole("button", {
+    name: "Create screenshot",
+    exact: true,
+  });
+  await expect(create).toBeEnabled();
+  await create.scrollIntoViewIfNeeded();
+  await expect(create).toBeInViewport();
+  await page.screenshot({
+    path: testInfo.outputPath("desktop-large-upload.png"),
+    fullPage: true,
+  });
+  await create.click();
+  await expect(page.getByRole("progressbar")).toHaveAttribute(
+    "aria-valuenow",
+    "64",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Your screenshot" }),
+  ).toBeVisible();
+  await page.getByText("Result details", { exact: true }).click();
+  await expect(page.getByText("720 × 3600 px", { exact: true })).toBeVisible();
+  const save = page.getByRole("button", { name: "Save image", exact: true });
+  await save.scrollIntoViewIfNeeded();
+  await expect(save).toBeInViewport();
+  const dimensions = await page.evaluate(() => ({
+    content: document.documentElement.scrollWidth,
+    viewport: innerWidth,
+  }));
+  expect(dimensions.content).toBeLessThanOrEqual(dimensions.viewport);
+  await page.screenshot({
+    path: testInfo.outputPath("desktop-large-preview.png"),
+    fullPage: true,
+  });
+  const reset = page.getByRole("button", { name: "New capture" });
+  await reset.scrollIntoViewIfNeeded();
+  await expect(reset).toBeInViewport();
+  await reset.click();
+  await expect(create).toBeDisabled();
+});

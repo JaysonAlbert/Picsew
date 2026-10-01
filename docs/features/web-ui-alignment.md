@@ -35,9 +35,12 @@ memory, or device-specific compatibility issues.
   as a secondary dismissal. Use a scrollable dialog at small heights/large text.
 - Controls are at least 44 CSS px, primary actions at least 52 px. Text wraps;
   page content and disclosures remain reachable above safe-area-aware actions.
-  Keep the action area in normal flow, pushed to the bottom when there is room;
+  Keep the action area in normal flow, pushed to the bottom on narrow mobile layouts when there is room;
   a sticky footer obscured content at large text sizes during visual validation.
   Use a centered constrained column on desktop with the same reading order.
+  At widths of 640 CSS px and above, let content determine the column height
+  and keep actions directly below it; only narrow mobile layouts push actions
+  down when there is spare height. See [desktop spacing fix](web-desktop-layout.md).
 
 ## Acceptance and planned tests
 
