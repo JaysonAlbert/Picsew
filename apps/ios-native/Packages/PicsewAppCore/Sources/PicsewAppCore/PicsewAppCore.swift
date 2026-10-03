@@ -121,11 +121,23 @@ public struct PicsewNativeAppPipeline: PicsewAppPipelineRunning, Sendable {
         )
         emit(.candidateKeyframesSelected)
 
-        let filtered = try keyframeFilter.filter(
+        let retained = try keyframeFilter.filter(
             candidateIndices: selection.candidateIndices,
             in: lowResBatch,
             outsideMask: detection.outsideMask
         )
+        let scale = Double(lowResBatch.frames[0].width) / Double(metadata.width)
+        func scaled(_ rect: PicsewRect, by factor: Double) -> PicsewRect {
+            PicsewRect(x: Int((Double(rect.x) * factor).rounded()), y: Int((Double(rect.y) * factor).rounded()),
+                       width: Int((Double(rect.width) * factor).rounded()), height: Int((Double(rect.height) * factor).rounded()))
+        }
+        let lowWindow = scaled(detection.refinedWindow, by: scale)
+        let controls = PicsewFloatingControls().detect(frames: lowResBatch.frames, window: lowWindow)
+        let restored = try PicsewKeyframeContinuity().restore(
+            retainedIndices: retained.cleanIndices, candidateIndices: selection.candidateIndices,
+            frames: lowResBatch.frames, refinedWindow: lowWindow, excludedRegions: controls
+        )
+        let filtered = PicsewFilteredKeyframes(cleanIndices: restored)
         emit(.cleanKeyframesFiltered)
 
         let grayBatch = try await analyzer.extractFullResolutionGrayKeyframes(
@@ -137,7 +149,9 @@ public struct PicsewNativeAppPipeline: PicsewAppPipelineRunning, Sendable {
 
         let offsetCalculation = try offsetCalculator.calculate(
             in: grayBatch,
-            refinedWindow: detection.refinedWindow
+            refinedWindow: detection.refinedWindow,
+            excludedRegions: controls.map { scaled($0, by: 1 / scale) },
+            minimumConfidence: 0.7
         )
         emit(.offsetsCalculated)
 
@@ -151,7 +165,8 @@ public struct PicsewNativeAppPipeline: PicsewAppPipelineRunning, Sendable {
         let stitchedImage = try stitcher.stitch(
             in: colorBatch,
             refinedWindow: detection.refinedWindow,
-            offsets: offsetCalculation
+            offsets: offsetCalculation,
+            floatingControls: controls.map { scaled($0, by: 1 / scale) }
         )
         emit(.stitchedImageReady)
 
