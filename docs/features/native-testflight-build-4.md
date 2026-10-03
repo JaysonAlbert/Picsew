@@ -54,4 +54,16 @@ an App Store release or create new testing groups.
   The IPA signature verifies with `get-task-allow=false` and
   `beta-reports-active=true`. Neither app bundle contains private-key or video
   resources. Signing and export settings remain local and ignored.
-- Apple upload, processing, and internal-group availability are pending.
+- Upload completed on 2026-10-03 with exit status 0 and `Upload succeeded`.
+  App Store Connect subsequently reported build 1.0 (4) as `VALID` and
+  `INTERNAL_ONLY`. The candidate's native source and shared release metadata
+  match the release preparation merged in PR #51.
+- After checking the native target/packages have no custom encryption,
+  retained the prior builds' `usesNonExemptEncryption=false` classification.
+  Saved Chinese test notes and assigned build 4 to the existing
+  `Picsew Internal` group without changing its tester membership.
+- A fresh Apple API read confirms `internalBuildState=IN_BETA_TESTING`, group
+  assignment present, and `expired=false`. The beta is available for internal
+  testers to install; its expiry is 2027-01-01. Physical-device installation,
+  processing timings, Photos permissions, and share-sheet behavior remain for
+  the tester and are not implied by simulator or upload validation.
