@@ -11,7 +11,8 @@ app. Leave the existing dirty aesthetic checkout untouched.
 ## Design choice and references
 
 Use native image-viewer structure, compact navigation, SF Symbols and semantic
-fonts/colors, retaining the existing teal accent. Borrow platform rules in
+fonts/colors. The current blue/navy appearance is defined in
+[shared-technology-theme.md](shared-technology-theme.md); PR #49 originally used teal. Borrow platform rules in
 [mobile-ios-design](https://github.com/wshobson/agents/blob/main/plugins/ui-design/skills/mobile-ios-design/SKILL.md),
 while implementing the layout against this acceptance contract.
 Apple [image views](https://developer.apple.com/design/human-interface-guidelines/image-views)
@@ -67,15 +68,15 @@ zoomable viewer; the app shell only composes routes and compact navigation:
 | Metric              | largeTitle semibold (34pt)            | Progress percentage         |
 
 All text uses semantic Dynamic Type rather than fixed point sizes. Buttons have
-primary (teal fill, 52pt), secondary (neutral surface, 52pt), toolbar (unfilled,
+primary (blue fill, 52pt), secondary (neutral surface, 52pt), toolbar (unfilled,
 44pt), and quiet (unfilled secondary text, 44pt) roles, with shared disabled and
 pressed behavior. Primary/secondary fill the available control width; toolbar
 and quiet fit their labels. Spacing tokens are 4/8/12/16/20/24/32; shared metrics
 own icon, touch target, action, toolbar and progress sizes. Palette roles own
-adaptive canvas/surface/text, teal accent, subtle accent washes, progress track,
+adaptive canvas/surface/text, blue accent, subtle accent washes, progress track,
 inverse text and disabled colors. Use these roles
 throughout import, processing, preview, onboarding, feedback and shared shell.
-Keep primary fill dark teal for white-label contrast; use a brighter teal for
+Keep primary fill blue for white-label contrast; use a brighter blue for
 accent foregrounds in Dark Mode. Native system components retain system font
 behavior. Badges use caption/caption2 roles and icons use a shared 20pt metric.
 Do not add tests duplicating token values; prove layout/interaction through the

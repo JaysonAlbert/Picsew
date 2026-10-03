@@ -179,13 +179,15 @@
       "badge": "Scrollable Preview",
       "title": "Preview Result",
       "alt": "Generated long screenshot",
-      "hint": "Long screenshot generated, swipe up to view full content"
+      "hint": "Long screenshot generated, swipe up to view full content",
+      "zoomHint": "Double-tap or press Enter to toggle zoom."
     },
     "actions": {
       "download": "Save image",
       "save": "Save to Photos",
       "share": "Share",
-      "startOver": "New capture"
+      "startOver": "New capture",
+      "new": "New"
     },
     "share": {
       "unsupported": "Your browser does not support sharing.",

@@ -2,6 +2,11 @@
 
 Date: 2026-10-01
 
+Historical delivery record. Its teal appearance and collapsed preview details
+are superseded by [shared-technology-theme.md](shared-technology-theme.md).
+That contract defines the current blue/navy theme, compact viewer shell and
+viewport-height preview on both mobile and desktop.
+
 ## Problem and scope
 
 The deployed Web app still uses blue gradients, repeated headings, nested cards,
