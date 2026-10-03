@@ -571,70 +571,7 @@ public struct PicsewKeyframeSelector: Sendable {
         guard searchWidth == templateWidth, searchHeight >= templateHeight else {
             return nil
         }
-
-        let templateMean = mean(of: template)
-        let templateVariance = variance(of: template, mean: templateMean)
-        guard templateVariance > 0 else {
-            return nil
-        }
-
-        let maxY = searchHeight - templateHeight
-        var bestScore = -Double.infinity
-        var bestY = 0
-
-        for offsetY in 0...maxY {
-            var window = Array<UInt8>()
-            window.reserveCapacity(template.count)
-
-            for row in 0..<templateHeight {
-                let sourceStart = (offsetY + row) * searchWidth
-                window.append(contentsOf: searchRegion[sourceStart..<(sourceStart + searchWidth)])
-            }
-
-            let windowMean = mean(of: window)
-            let windowVariance = variance(of: window, mean: windowMean)
-            guard windowVariance > 0 else {
-                continue
-            }
-
-            var numerator = 0.0
-            for index in 0..<template.count {
-                numerator += (Double(template[index]) - templateMean) * (Double(window[index]) - windowMean)
-            }
-
-            let denominator = sqrt(templateVariance * windowVariance)
-            guard denominator > 0 else {
-                continue
-            }
-
-            let score = numerator / denominator
-            if score > bestScore {
-                bestScore = score
-                bestY = offsetY
-            }
-        }
-
-        guard bestScore.isFinite else {
-            return nil
-        }
-
-        return (bestScore, bestY)
-    }
-
-    private func mean(of values: [UInt8]) -> Double {
-        guard !values.isEmpty else { return 0 }
-        let sum = values.reduce(0.0) { partialResult, value in
-            partialResult + Double(value)
-        }
-        return sum / Double(values.count)
-    }
-
-    private func variance(of values: [UInt8], mean: Double) -> Double {
-        guard !values.isEmpty else { return 0 }
-        return values.reduce(0.0) { partialResult, value in
-            let centered = Double(value) - mean
-            return partialResult + centered * centered
-        }
+        return PicsewVerticalCorrelation.bestMatch(template: template, search: searchRegion, width: templateWidth)
     }
 }
 
@@ -872,76 +809,11 @@ public struct PicsewOffsetCalculator: Sendable {
         searchWidth: Int,
         searchHeight: Int
     ) -> (x: Int, y: Int, score: Double) {
-        let maxX = searchWidth - templateWidth
-        let maxY = searchHeight - templateHeight
-        precondition(maxX >= 0 && maxY >= 0, "Search region must contain the template")
-
-        let templateMean = mean(of: template)
-        let templateVariance = variance(of: template, mean: templateMean)
-        guard templateVariance > 0 else {
-            return (0, 0, 0)
-        }
-
-        var bestScore = -Double.infinity
-        var bestX = 0
-        var bestY = 0
-
-        for offsetY in 0...maxY {
-            for offsetX in 0...maxX {
-                let window = extractRegion(
-                    pixels: searchRegion,
-                    frameWidth: searchWidth,
-                    x: offsetX,
-                    y: offsetY,
-                    width: templateWidth,
-                    height: templateHeight
-                )
-                let windowMean = mean(of: window)
-                let windowVariance = variance(of: window, mean: windowMean)
-                guard windowVariance > 0 else {
-                    continue
-                }
-
-                var numerator = 0.0
-                for index in 0..<template.count {
-                    numerator += (Double(template[index]) - templateMean) * (Double(window[index]) - windowMean)
-                }
-
-                let denominator = sqrt(templateVariance * windowVariance)
-                guard denominator > 0 else {
-                    continue
-                }
-
-                let score = numerator / denominator
-                if score > bestScore {
-                    bestScore = score
-                    bestX = offsetX
-                    bestY = offsetY
-                }
-            }
-        }
-
-        if !bestScore.isFinite {
-            return (0, 0, 0)
-        }
-
-        return (bestX, bestY, bestScore)
-    }
-
-    private func mean(of values: [UInt8]) -> Double {
-        guard !values.isEmpty else { return 0 }
-        let sum = values.reduce(0.0) { partialResult, value in
-            partialResult + Double(value)
-        }
-        return sum / Double(values.count)
-    }
-
-    private func variance(of values: [UInt8], mean: Double) -> Double {
-        guard !values.isEmpty else { return 0 }
-        return values.reduce(0.0) { partialResult, value in
-            let centered = Double(value) - mean
-            return partialResult + centered * centered
-        }
+        precondition(searchWidth == templateWidth && searchHeight >= templateHeight)
+        guard let match = PicsewVerticalCorrelation.bestMatch(
+            template: template, search: searchRegion, width: templateWidth
+        ) else { return (0, 0, 0) }
+        return (0, match.y, match.score)
     }
 }
 
