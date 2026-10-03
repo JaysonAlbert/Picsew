@@ -5,11 +5,15 @@ import UIKit
 #endif
 
 public enum PicsewSpacing: Double, CaseIterable, Sendable {
+    case micro = 4
     case xSmall = 8
     case small = 12
     case medium = 16
+    case inset = 20
     case large = 24
     case xLarge = 32
+
+    public var value: CGFloat { CGFloat(rawValue) }
 }
 
 public enum PicsewCornerRadius: Double, Sendable {
@@ -90,13 +94,27 @@ public enum PicsewPalette {
 #else
     public static let mutedInk = Color.secondary
 #endif
-    public static let accent = Color(red: 0.03, green: 0.48, blue: 0.44)
+    public static let primaryAction = Color(red: 0.03, green: 0.48, blue: 0.44)
+#if os(iOS)
+    public static let accent = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.30, green: 0.76, blue: 0.69, alpha: 1)
+            : UIColor(primaryAction)
+    })
+#else
+    public static let accent = primaryAction
+#endif
+    public static let onPrimary = Color.white
+    public static let accentSubtle = accent.opacity(0.08)
+    public static let progressTrack = accent.opacity(0.12)
     public static let accentSecondary = accent
     public static let accentWarm = accent
     public static let success = accent
 #if os(iOS)
-    public static let background = Color(uiColor: .systemGroupedBackground)
-    public static let surface = Color(uiColor: .secondarySystemGroupedBackground)
+    public static let canvasUIColor = UIColor.systemGroupedBackground
+    public static let surfaceUIColor = UIColor.secondarySystemGroupedBackground
+    public static let background = Color(uiColor: canvasUIColor)
+    public static let surface = Color(uiColor: surfaceUIColor)
 #else
     public static let background = Color(nsColor: .windowBackgroundColor)
     public static let surface = Color(nsColor: .controlBackgroundColor)
@@ -107,29 +125,8 @@ public enum PicsewPalette {
     public static let shadow = Color.black
 }
 
-public struct PicsewActionButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    private let prominent: Bool
-
-    public init(prominent: Bool = true) {
-        self.prominent = prominent
-    }
-
-    public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .fixedSize(horizontal: false, vertical: true)
-            .font(.body.weight(.semibold))
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .padding(.horizontal, 12)
-            .foregroundStyle(isEnabled ? (prominent ? Color.white : PicsewPalette.ink) : PicsewPalette.mutedInk)
-            .background(
-                isEnabled && prominent ? PicsewPalette.accent : PicsewPalette.surface,
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-            )
-            .opacity(configuration.isPressed ? 0.78 : 1)
-    }
-}
+// Compatibility name; both entry points use the same role-based style.
+public typealias PicsewActionButtonStyle = PicsewButtonStyle
 
 public enum PicsewGradients {
     public static var shellBackground: LinearGradient {

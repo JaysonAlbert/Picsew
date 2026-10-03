@@ -14,27 +14,27 @@ public struct ProcessingFeatureView: View {
         GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 0) {
-                    Spacer(minLength: 20)
+                    Spacer(minLength: PicsewSpacing.inset.value)
 
-                    PicsewStageCard(alignment: .center, spacing: 24) {
+                    VStack(spacing: PicsewSpacing.large.value) {
                         progressRing
                             .frame(maxWidth: .infinity)
 
                         Text(progressTitle)
-                            .font(.title3.weight(.semibold))
+                            .font(PicsewTypography.title)
                             .foregroundStyle(PicsewPalette.ink)
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
 
                         Text("Keep Picsew open. We'll take care of the rest.")
-                            .font(.subheadline)
+                            .font(PicsewTypography.supporting)
                             .foregroundStyle(PicsewPalette.mutedInk)
                             .multilineTextAlignment(.center)
                             .frame(maxWidth: .infinity)
                     }
                     .accessibilityIdentifier("processing.stage.card")
 
-                    Spacer(minLength: 20)
+                    Spacer(minLength: PicsewSpacing.inset.value)
                 }
                 .frame(minHeight: geometry.size.height)
             }
@@ -44,21 +44,21 @@ public struct ProcessingFeatureView: View {
     private var progressRing: some View {
         ZStack {
             Circle()
-                .stroke(PicsewPalette.accent.opacity(0.12), lineWidth: 6)
+                .stroke(PicsewPalette.progressTrack, lineWidth: PicsewMetrics.progressLineWidth)
             Circle()
                 .trim(from: 0, to: progressValue)
-                .stroke(PicsewPalette.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .stroke(PicsewPalette.accent, style: StrokeStyle(lineWidth: PicsewMetrics.progressLineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text("\(Int(progressValue * 100))%")
-                .font(.largeTitle.weight(.semibold))
+                .font(PicsewTypography.metric)
                 .monospacedDigit()
                 .foregroundStyle(PicsewPalette.ink)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
-                .padding(12)
+                .padding(PicsewSpacing.small.value)
         }
-        .frame(width: 144, height: 144)
-        .padding(8)
+        .frame(width: PicsewMetrics.progressDiameter, height: PicsewMetrics.progressDiameter)
+        .padding(PicsewSpacing.xSmall.value)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Stitching progress")
         .accessibilityValue("\(Int(progressValue * 100)) percent")

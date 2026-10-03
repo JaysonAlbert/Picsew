@@ -1,6 +1,6 @@
 # Picsew product UI guidelines
 
-Date: 2026-10-01
+Date: 2026-10-03
 
 Picsew is one product with a maintenance Web surface and an actively developed
 native iOS surface. The user explicitly requires the two surfaces to keep a
@@ -26,20 +26,23 @@ feature document.
 
 ## Shared journey
 
-| Stage      | Main content                                          | Primary action                                  | Supporting information                          |
-| ---------- | ----------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------- |
-| Import     | Empty prompt or selected recording                    | Create screenshot; disabled without a selection | Source choices and one concise privacy caption  |
-| Processing | One progress presentation with a plain-language stage | No competing call to action                     | A short instruction to keep the app/page open   |
-| Preview    | Width-fitted long screenshot, scrollable vertically   | Save                                            | Share, New Capture, and optional result details |
+| Stage      | Main content                                          | Primary action                                  | Supporting information                         |
+| ---------- | ----------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------- |
+| Import     | Empty prompt or selected recording                    | Create screenshot; disabled without a selection | Source choices and one concise privacy caption |
+| Processing | One progress presentation with a plain-language stage | No competing call to action                     | A short instruction to keep the app/page open  |
+| Preview    | Dominant width-fitted long screenshot, scroll/zoom    | Save                                            | Share and New Capture                          |
 
 Selected, empty, loading, failed, and completed states should remain recognizable
 on both surfaces. Keep failures close to the affected content, explain recovery,
-and keep usable actions visible. Technical metrics belong in optional details.
+and keep usable actions visible. Native preview omits technical result metrics
+and uses a compact toolbar.
 
 ## Platform adaptation
 
 - iOS respects safe areas, Dynamic Type, native Files/Photos pickers, and system
-  sharing. Web respects responsive widths, browser file selection, keyboard
+  sharing. Its preview uses a compact title/action bar and a full-width image viewer;
+  [native-content-first-ui.md](features/native-content-first-ui.md) defines its
+  current acceptance. Web respects responsive widths, browser file selection, keyboard
   navigation, and browser export capabilities.
 - A desktop Web layout can use more width while preserving the same reading
   order, main stage, and action hierarchy as mobile Web and iOS. At 640 CSS px
@@ -47,7 +50,8 @@ and keep usable actions visible. Technical metrics belong in optional details.
   below the content; narrow mobile Web keeps its bottom action area. Desktop
   controls retain the same comfortable minimum height and visual language.
 - Keep controls at least 44 pt/CSS px in their smallest interactive dimension
-  and use a comfortable primary action height around 52 pt/CSS px.
+  and use a comfortable create action height around 52 pt/CSS px. Native preview
+  exports use compact 44pt targets in one 52pt toolbar.
 - Browser limitations or native permissions should be explained with actionable
   product copy. Preserve the shared design when presenting those differences.
 
@@ -65,7 +69,9 @@ and keep usable actions visible. Technical metrics belong in optional details.
 
 ## Current adoption
 
-The native redesign is implemented in [PR #37](https://github.com/JaysonAlbert/Picsew/pull/37).
+The earlier native redesign shipped in [PR #37](https://github.com/JaysonAlbert/Picsew/pull/37).
+The current native viewer and modular design system are defined in
+[native-content-first-ui.md](features/native-content-first-ui.md).
 The Web adoption is described in [web-ui-alignment.md](features/web-ui-alignment.md).
 Each platform keeps its own implementation and validation evidence while sharing
 this visual contract.
@@ -73,5 +79,6 @@ this visual contract.
 ## Visual reference library
 
 [Official app references](../reference/design/README.md) archive Things, Craft
-and CleanShot interface images with sources and specific adoption notes. Use
-these alongside this contract when evolving Web or native iOS layouts.
+and CleanShot desktop interface images with sources and adoption notes for Web.
+For native iOS, use the platform references and acceptance contract in
+[native-content-first-ui.md](features/native-content-first-ui.md).

@@ -14,8 +14,6 @@ public struct PicsewRootView: View {
         PicsewAppShell(
             appName: model.composition.appName,
             route: model.route,
-            subtitle: model.route == .preview && model.result == nil
-                ? "Your next screenshot will appear here." : nil,
             action: shellAction
         ) {
             currentRouteView
@@ -46,7 +44,11 @@ public struct PicsewRootView: View {
     }
 
     private var shellAction: PicsewShellAction {
-        if model.route == .feedback {
+        if model.route == .preview {
+            PicsewShellAction(systemImage: "chevron.left", accessibilityLabel: "New Capture") {
+                model.clearSelection()
+            }
+        } else if model.route == .feedback {
             PicsewShellAction(
                 systemImage: "chevron.left",
                 accessibilityLabel: "Back"

@@ -15,13 +15,13 @@ OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
 cd "$ROOT_DIR/apps/ios-native/maestro"
 
 if [[ $# -eq 0 ]]; then
-  set -- upload upload-empty upload-error processing preview preview-details preview-empty onboarding feedback
+  set -- upload upload-empty upload-error processing preview preview-empty onboarding feedback
 fi
 
 for route in "$@"; do
   case "$route" in
     upload-empty) flow="upload-selection-interaction" ;;
-    upload|upload-error|processing|preview|preview-details|preview-empty|onboarding|feedback)
+    upload|upload-error|processing|preview|preview-empty|onboarding|feedback)
       flow="capture-$route" ;;
     *) echo "Unknown screenshot route: $route" >&2; exit 64 ;;
   esac

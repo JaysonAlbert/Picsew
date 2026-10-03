@@ -2,6 +2,10 @@
 
 Date: 2026-10-01
 
+The native shell and preview layout below are superseded by
+[native-content-first-ui.md](native-content-first-ui.md). The earlier validation
+remains historical evidence, not acceptance of the current layout.
+
 ## Problem and scope
 
 Picsew's product investment is native iOS; the web app stays in maintenance mode.

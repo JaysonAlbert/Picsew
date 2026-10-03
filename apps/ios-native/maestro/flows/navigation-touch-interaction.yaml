@@ -1,0 +1,16 @@
+appId: top.ibotcloud.picsew.native
+name: Navigation action includes the bottom edge of its 44pt touch target
+# Pass -e NAV_EDGE_POINT="10%,12%" on iPhone 17 Pro portrait,
+# or -e NAV_EDGE_POINT="10%,10%" on SE3. Both tap inside the 44pt target.
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: preview
+- assertVisible:
+    id: "preview.stitchedImage"
+- tapOn:
+    point: "${NAV_EDGE_POINT}"
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: false
