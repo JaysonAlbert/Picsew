@@ -181,12 +181,15 @@ public enum PicsewKeyframeFilteringError: Error, LocalizedError {
 }
 
 public enum PicsewOffsetCalculationError: Error, LocalizedError {
+    case unreliableOverlap
     case noFrames
     case invalidRefinedWindow
     case mismatchedFrameDimensions
 
     public var errorDescription: String? {
         switch self {
+        case .unreliableOverlap:
+            return "The video frames do not have reliable overlap. Try recording with slower scrolling."
         case .noFrames:
             return "No full-resolution keyframes were provided for offset calculation."
         case .invalidRefinedWindow:
@@ -731,14 +734,18 @@ public struct PicsewOffsetCalculator: Sendable {
 
     public func calculate(
         in batch: PicsewFullResolutionKeyframeBatch,
-        refinedWindow: PicsewRect
+        refinedWindow: PicsewRect,
+        excludedRegions: [PicsewRect] = [],
+        minimumConfidence: Double? = nil
     ) throws -> PicsewOffsetCalculation {
-        try calculate(frames: batch.frames, refinedWindow: refinedWindow)
+        try calculate(frames: batch.frames, refinedWindow: refinedWindow, excludedRegions: excludedRegions, minimumConfidence: minimumConfidence)
     }
 
     public func calculate(
         frames: [PicsewFullResolutionGrayFrame],
-        refinedWindow: PicsewRect
+        refinedWindow: PicsewRect,
+        excludedRegions: [PicsewRect] = [],
+        minimumConfidence: Double? = nil
     ) throws -> PicsewOffsetCalculation {
         guard let firstFrame = frames.first else {
             throw PicsewOffsetCalculationError.noFrames
@@ -763,52 +770,13 @@ public struct PicsewOffsetCalculator: Sendable {
 
         let headerHeight = y
         let footerHeight = max(0, frameHeight - (y + height))
-        let templateHeight = max(1, height / 3)
         var offsets = [PicsewStitchOffset]()
-        offsets.reserveCapacity(max(0, frames.count - 1))
-
         for index in 1..<frames.count {
-            let previousWindow = extractRegion(
-                from: frames[index - 1],
-                x: x,
-                y: y,
-                width: width,
-                height: height
-            )
-            let currentWindow = extractRegion(
-                from: frames[index],
-                x: x,
-                y: y,
-                width: width,
-                height: height
-            )
-
-            let templateYStart = max(0, height - templateHeight)
-            let template = extractRegion(
-                pixels: previousWindow,
-                frameWidth: width,
-                x: 0,
-                y: templateYStart,
-                width: width,
-                height: templateHeight
-            )
-
-            let match = bestTemplateMatch(
-                template: template,
-                templateWidth: width,
-                templateHeight: templateHeight,
-                searchRegion: currentWindow,
-                searchWidth: width,
-                searchHeight: height
-            )
-
-            let vOffset = height - templateHeight - match.y
-            offsets.append(
-                PicsewStitchOffset(
-                    vOffset: vOffset,
-                    hOffset: match.x
-                )
-            )
+            let match = try alignment(previous: frames[index - 1], current: frames[index], refinedWindow: refinedWindow, excludedRegions: excludedRegions)
+            if let minimumConfidence, match.score < minimumConfidence {
+                throw PicsewOffsetCalculationError.unreliableOverlap
+            }
+            offsets.append(PicsewStitchOffset(vOffset: match.offset, hOffset: 0))
         }
 
         let totalHeight = headerHeight + height + footerHeight + offsets.reduce(0) { partialResult, offset in
@@ -821,6 +789,43 @@ public struct PicsewOffsetCalculator: Sendable {
             footerHeight: footerHeight,
             totalHeight: totalHeight
         )
+    }
+
+    // Use identical source columns in both frames so fixed controls cannot
+    // become the strongest match. This mirrors cleanTemplateColumn in Web.
+    func alignment(
+        previous: PicsewFullResolutionGrayFrame,
+        current: PicsewFullResolutionGrayFrame,
+        refinedWindow: PicsewRect,
+        excludedRegions: [PicsewRect] = []
+    ) throws -> (offset: Int, score: Double) {
+        let x = refinedWindow.x, y = refinedWindow.y
+        let width = refinedWindow.width, height = refinedWindow.height
+        guard previous.width == current.width, previous.height == current.height else {
+            throw PicsewOffsetCalculationError.mismatchedFrameDimensions
+        }
+        guard x >= 0, y >= 0, width > 0, height > 0,
+              x + width <= previous.width, y + height <= previous.height else {
+            throw PicsewOffsetCalculationError.invalidRefinedWindow
+        }
+        let templateHeight = max(1, height / 3)
+        let templateY = y + height - templateHeight
+        var spans = [(start: x, end: x + width)]
+        for rect in excludedRegions where rect.y < y + height && rect.y + rect.height > templateY {
+            spans = spans.flatMap { span -> [(start: Int, end: Int)] in
+                if rect.x >= span.end || rect.x + rect.width <= span.start { return [span] }
+                return [(span.start, min(span.end, rect.x)), (max(span.start, rect.x + rect.width), span.end)].filter { $0.1 > $0.0 }
+            }
+        }
+        guard let column = spans.max(by: { $0.end - $0.start < $1.end - $1.start }),
+              column.end - column.start >= max(1, width / 4) else {
+            throw PicsewOffsetCalculationError.unreliableOverlap
+        }
+        let template = extractRegion(from: previous, x: column.start, y: templateY, width: column.end - column.start, height: templateHeight)
+        let search = extractRegion(from: current, x: column.start, y: y, width: column.end - column.start, height: height)
+        let match = bestTemplateMatch(template: template, templateWidth: column.end - column.start, templateHeight: templateHeight,
+                                      searchRegion: search, searchWidth: column.end - column.start, searchHeight: height)
+        return (height - templateHeight - match.y, match.score)
     }
 
     private func extractRegion(
@@ -948,15 +953,17 @@ public struct PicsewStitcher: Sendable {
     public func stitch(
         in batch: PicsewFullResolutionColorKeyframeBatch,
         refinedWindow: PicsewRect,
-        offsets: PicsewOffsetCalculation
+        offsets: PicsewOffsetCalculation,
+        floatingControls: [PicsewRect] = []
     ) throws -> PicsewStitchedImage {
-        try stitch(frames: batch.frames, refinedWindow: refinedWindow, offsets: offsets)
+        try stitch(frames: batch.frames, refinedWindow: refinedWindow, offsets: offsets, floatingControls: floatingControls)
     }
 
     public func stitch(
         frames: [PicsewFullResolutionColorFrame],
         refinedWindow: PicsewRect,
-        offsets: PicsewOffsetCalculation
+        offsets: PicsewOffsetCalculation,
+        floatingControls: [PicsewRect] = []
     ) throws -> PicsewStitchedImage {
         guard let firstFrame = frames.first else {
             throw PicsewStitchingError.noFrames
@@ -994,6 +1001,36 @@ public struct PicsewStitcher: Sendable {
         )
 
         var currentY = 0
+        var pending = [PicsewRect]()
+        func track(_ source: PicsewRect, bodyStart: Int) {
+            for control in floatingControls {
+                if let copied = picsewIntersection(source, control) {
+                    pending.append(PicsewRect(x: copied.x, y: bodyStart + copied.y - y, width: copied.width, height: copied.height))
+                }
+            }
+        }
+        func recover(from frame: PicsewFullResolutionColorFrame, bodyStart: Int) {
+            guard !pending.isEmpty else { return }
+            let coverage = PicsewRect(x: x, y: bodyStart, width: width, height: height)
+            let occlusions = floatingControls.map { PicsewRect(x: $0.x, y: bodyStart + $0.y - y, width: $0.width, height: $0.height) }
+            var remaining = [PicsewRect]()
+            for target in pending {
+                var clean = picsewIntersection(target, coverage).map { [$0] } ?? []
+                for control in occlusions { clean = clean.flatMap { picsewSubtract($0, control) } }
+                var unrecovered = [target]
+                for rect in clean {
+                    let band = PicsewRect(x: x, y: rect.y, width: width, height: rect.height)
+                    let copy = occlusions.contains { picsewIntersection(band, $0) != nil } ? rect : band
+                    copyRegion(sourcePixels: [UInt8](frame.pixels), sourceBytesPerRow: frameBytesPerRow,
+                               sourceX: copy.x, sourceY: copy.y - bodyStart + y, width: copy.width, height: copy.height,
+                               destinationPixels: &outputPixels, destinationBytesPerRow: outputBytesPerRow,
+                               destinationX: copy.x, destinationY: copy.y)
+                    unrecovered = unrecovered.flatMap { picsewSubtract($0, rect) }
+                }
+                remaining.append(contentsOf: unrecovered)
+            }
+            pending = remaining
+        }
 
         if offsets.headerHeight > 0 {
             copyRegion(
@@ -1023,13 +1060,18 @@ public struct PicsewStitcher: Sendable {
             destinationX: x,
             destinationY: currentY
         )
+        track(refinedWindow, bodyStart: offsets.headerHeight)
         currentY += height
+        var previousBodyStart = offsets.headerHeight
 
         for index in 0..<offsets.offsets.count {
             let offset = offsets.offsets[index]
             let frame = frames[index + 1]
             let safeVOffset = max(0, min(offset.vOffset, height))
-            guard safeVOffset > 0 else { continue }
+            let bodyStart = currentY - height + safeVOffset
+            if offset.hOffset == 0 { recover(from: frame, bodyStart: bodyStart) }
+            else { pending = [] }
+            guard safeVOffset > 0 else { previousBodyStart = bodyStart; continue }
 
             let sourceX = offset.hOffset < 0 ? min(-offset.hOffset, width) : 0
             let targetX = max(0, offset.hOffset)
@@ -1048,7 +1090,12 @@ public struct PicsewStitcher: Sendable {
                 destinationX: x + targetX,
                 destinationY: currentY
             )
+            if offset.hOffset == 0 {
+                track(PicsewRect(x: x, y: y + height - safeVOffset, width: width, height: safeVOffset), bodyStart: bodyStart)
+                recover(from: frames[index], bodyStart: previousBodyStart)
+            }
             currentY += safeVOffset
+            previousBodyStart = bodyStart
         }
 
         if offsets.footerHeight > 0, let lastFrame = frames.last {

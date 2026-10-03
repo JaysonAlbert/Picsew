@@ -1,7 +1,7 @@
 {
   "version": 1,
   "surface": "ios-native",
-  "updatedAt": "2026-10-01",
+  "updatedAt": "2026-10-03",
   "summary": "Machine-readable native iOS work ledger for agent and developer sessions.",
   "defaultSmokeCommands": [
     "npm run ios:harness:check",
@@ -57,9 +57,11 @@
         "docs/features/native-ios-agent-harness-foundation.md",
         "docs/architecture/native-ios-app-pipeline-phase-4.md",
         "docs/architecture/native-ios-automation-validation-phase-9.md",
-        "docs/features/ios-minimal-redesign.md"
+        "docs/features/ios-minimal-redesign.md",
+        "docs/features/native-stitch-alignment.md"
       ],
       "validators": [
+        "swift test --package-path apps/ios-native/Packages/PicsewAppCore",
         "swift test --package-path apps/ios-native/PicsewApp",
         "xcodebuild -project apps/ios-native/HostApp/PicsewNativeApp.xcodeproj -scheme PicsewNativeApp -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build"
       ]
