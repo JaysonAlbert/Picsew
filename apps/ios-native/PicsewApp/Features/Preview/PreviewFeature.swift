@@ -1,142 +1,105 @@
 import Observation
+import PicsewAlgorithm
 import PicsewAppCore
 import PicsewDesignSystem
 import SwiftUI
 
 public struct PreviewFeatureView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var model: PicsewAppShellModel
-    @State private var showsDetails = false
 
     public init(model: PicsewAppShellModel) {
         self.model = model
     }
 
     public var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let result = model.result {
-                        previewSurface(for: result)
-                            .frame(height: max(180, min(520, geometry.size.height - 88)))
-
-                        DisclosureGroup(isExpanded: $showsDetails) {
-                            VStack(spacing: 12) {
-                                detailRow("Image size", value: "\(result.stitchedImage.width) × \(result.stitchedImage.height)")
-                                detailRow("Clean keyframes", value: "\(result.filtered.cleanIndices.count)")
-                            }
-                            .padding(.top, 12)
-                        } label: {
-                            Text("Result details")
-                                .frame(minHeight: 44)
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(PicsewPalette.mutedInk)
-                        .tint(PicsewPalette.mutedInk)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 4)
-                        .background(PicsewPalette.surface, in: RoundedRectangle(cornerRadius: 16))
-                    } else {
-                        PicsewStageCard {
-                            Label("Create a screenshot to see it here.", systemImage: "photo")
-                                .foregroundStyle(PicsewPalette.mutedInk)
-                                .accessibilityIdentifier("preview.emptyState")
-                        }
-                    }
-
-                    if let exportMessage = model.exportMessage {
-                        Text(exportMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(PicsewPalette.ink)
-                            .accessibilityIdentifier("preview.exportMessage")
-                    }
-                }
-                .padding(.bottom, 16)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+        Group {
+            if let result = model.result {
+                StitchedImageViewport(image: result.stitchedImage)
+            } else {
+                ContentUnavailableView(
+                    "No screenshot yet", systemImage: "photo",
+                    description: Text("Choose New to select a recording."))
+                    .accessibilityIdentifier("preview.emptyState")
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .safeAreaInset(edge: .bottom) { previewBottomBar }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .bottom, spacing: 0) { previewBottomBar }
         .task(id: model.result?.stitchedImage.pixels.count) {
             await model.prepareShareIfNeeded()
         }
     }
 
-    private func previewSurface(for result: PicsewAppPipelineResult) -> some View {
-        GeometryReader { geometry in
-            ScrollView(.vertical) {
-                if let image = result.stitchedImage.makeCGImage() {
-                    Image(decorative: image, scale: 1)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: geometry.size.width)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityHidden(false)
-                        .accessibilityLabel("Stitched preview")
-                        .accessibilityAddTraits(.isImage)
+    private var previewBottomBar: some View {
+        VStack(spacing: 0) {
+            if let message = model.exportMessage {
+                Text(message)
+                    .font(PicsewTypography.caption)
+                    .foregroundStyle(PicsewPalette.ink)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, PicsewSpacing.medium.value)
+                    .padding(.vertical, PicsewSpacing.xSmall.value)
+                    .accessibilityIdentifier("preview.exportMessage")
+            }
+            HStack {
+                Button {
+                    Task { await model.saveResultToPhotos() }
+                } label: {
+                    exportLabel(model.isSavingResult ? "Saving…" : "Save", systemImage: "square.and.arrow.down")
+                }
+                .disabled(model.result == nil || model.isSavingResult)
+                .accessibilityLabel(model.isSavingResult ? "Saving to Photos" : "Save to Photos")
+                .accessibilityIdentifier("preview.saveToPhotos")
+
+                Spacer()
+
+                if let shareURL = model.shareURL {
+                    ShareLink(item: shareURL) {
+                        exportLabel("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("Share screenshot")
+                    .accessibilityIdentifier("preview.share")
+                } else {
+                    Button {} label: {
+                        exportLabel(model.isPreparingShare ? "Preparing…" : "Share", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(true)
+                    .accessibilityLabel(model.isPreparingShare ? "Preparing share" : "Share screenshot")
+                    .accessibilityIdentifier("preview.sharePlaceholder")
                 }
             }
-            .background(PicsewPalette.surface)
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .accessibilityIdentifier("preview.stitchedImage")
+            .buttonStyle(PicsewButtonStyle(.toolbar))
+            .padding(.horizontal, PicsewSpacing.large.value)
+            .padding(.vertical, PicsewSpacing.micro.value)
         }
-    }
-
-    private var previewBottomBar: some View {
-        PicsewBottomActionTray {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) { exportActions }
-                VStack(spacing: 12) { exportActions }
-            }
-
-            Button { model.clearSelection() } label: {
-                Text("Start over")
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .contentShape(Rectangle())
-            }
-                .buttonStyle(.plain)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(PicsewPalette.mutedInk)
-                .accessibilityLabel("New Capture")
-                .accessibilityIdentifier("preview.newCapture")
-        }
+        .background(PicsewPalette.surface)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("preview.bottomBar")
     }
 
-    @ViewBuilder
-    private var exportActions: some View {
-        Button {
-            Task { await model.saveResultToPhotos() }
-        } label: {
-            Label(model.isSavingResult ? "Saving…" : "Save", systemImage: "square.and.arrow.down")
+    private func exportLabel(_ title: String, systemImage: String) -> some View {
+        HStack(spacing: PicsewSpacing.xSmall.value) {
+            Image(systemName: systemImage)
+                .font(PicsewTypography.toolbarIcon)
+            if !dynamicTypeSize.isAccessibilitySize { Text(title) }
         }
-        .buttonStyle(PicsewActionButtonStyle())
-        .disabled(model.result == nil || model.isSavingResult)
-        .accessibilityLabel(model.isSavingResult ? "Saving to Photos" : "Save to Photos")
-        .accessibilityIdentifier("preview.saveToPhotos")
+        .frame(minWidth: PicsewMetrics.touchTarget, minHeight: PicsewMetrics.touchTarget)
+        .contentShape(Rectangle())
+    }
+}
 
-        if let shareURL = model.shareURL {
-            ShareLink(item: shareURL) {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
-            .buttonStyle(PicsewActionButtonStyle(prominent: false))
-            .accessibilityIdentifier("preview.share")
-        } else {
-            Button {} label: {
-                Label(model.isPreparingShare ? "Preparing…" : "Share", systemImage: "square.and.arrow.up")
-            }
-            .buttonStyle(PicsewActionButtonStyle(prominent: false))
-            .disabled(true)
-            .accessibilityIdentifier("preview.sharePlaceholder")
-        }
+private struct StitchedImageViewport: View {
+    // Cache decoding in this view's state: save/share status must not reset zoom.
+    @State private var cgImage: CGImage?
+
+    init(image: PicsewStitchedImage) {
+        _cgImage = State(initialValue: image.makeCGImage())
     }
 
-    private func detailRow(_ title: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text(title)
-            Spacer()
-            Text(value).foregroundStyle(PicsewPalette.ink)
+    var body: some View {
+        if let cgImage {
+            PicsewZoomableImage(image: cgImage)
+                .accessibilityIdentifier("preview.stitchedImage")
         }
-        .accessibilityElement(children: .combine)
     }
 }

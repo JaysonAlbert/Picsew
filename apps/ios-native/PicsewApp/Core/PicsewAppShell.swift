@@ -14,90 +14,80 @@ public struct PicsewShellAction {
 }
 
 public struct PicsewAppShell<Content: View>: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private let appName: String
     private let route: AppRoute
-    private let subtitle: String?
     private let action: PicsewShellAction
     private let content: Content
 
     public init(
         appName: String,
         route: AppRoute,
-        subtitle: String? = nil,
         action: PicsewShellAction,
         @ViewBuilder content: () -> Content
     ) {
         self.appName = appName
         self.route = route
-        self.subtitle = subtitle
         self.action = action
         self.content = content()
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            topBar
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(routeHeading)
-                    .font(dynamicTypeSize.isAccessibilitySize ? .headline : .title.weight(.bold))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(route.presentation.title)
-                    .foregroundStyle(PicsewPalette.ink)
-                    .accessibilityAddTraits(.isHeader)
-
-                if !dynamicTypeSize.isAccessibilitySize {
-                    Text(subtitle ?? route.presentation.subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(PicsewPalette.mutedInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
+        NavigationStack {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(PicsewPalette.background.ignoresSafeArea())
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("shell.route.\(route.rawValue)")
-    }
-
-    private var routeHeading: String {
-        guard dynamicTypeSize.isAccessibilitySize else { return route.presentation.title }
-        switch route {
-        case .upload: return "Import"
-        case .processing: return "Stitching"
-        case .preview: return "Preview"
-        case .feedback: return "Feedback"
+                .padding(.horizontal, route == .preview ? 0 : PicsewSpacing.inset.value)
+                .padding(.top, route == .preview ? 0 : PicsewSpacing.medium.value)
+                .background(PicsewPalette.background.ignoresSafeArea())
+                .navigationTitle(navigationTitle)
+#if os(iOS)
+                .toolbar(.hidden, for: .navigationBar)
+#endif
+                .safeAreaInset(edge: .top, spacing: 0) { navigationBar }
+                .tint(PicsewPalette.accent)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("shell.route.\(route.rawValue)")
         }
     }
 
-    private var topBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "rectangle.on.rectangle.angled")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(PicsewPalette.accent)
-                .accessibilityHidden(true)
-            Text(appName)
-                .font(.headline)
+    private var navigationBar: some View {
+        HStack(spacing: 0) {
+            if route == .preview || route == .feedback { navigationAction }
+            Spacer(minLength: 0)
+            if route != .preview && route != .feedback { navigationAction }
+        }
+        .overlay {
+            Text(navigationTitle)
+                .font(PicsewTypography.heading)
                 .foregroundStyle(PicsewPalette.ink)
+                .accessibilityAddTraits(.isHeader)
+                .allowsHitTesting(false)
+        }
+        .padding(.horizontal, PicsewSpacing.inset.value)
+        .frame(height: PicsewMetrics.navigationHeight)
+        .dynamicTypeSize(...PicsewTypography.navigationMaximumSize)
+        .background(PicsewPalette.background)
+    }
 
-            Spacer(minLength: 12)
-
-            Button(action: action.action) {
+    private var navigationAction: some View {
+        Button(action: action.action) {
+            if route == .preview {
+                Text("New")
+            } else {
                 Image(systemName: action.systemImage)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(PicsewPalette.mutedInk)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+                    .font(PicsewTypography.toolbarIcon)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(action.accessibilityLabel)
-            .accessibilityIdentifier("shell.utilityAction")
+        }
+        .buttonStyle(PicsewButtonStyle(.toolbar))
+        .accessibilityLabel(action.accessibilityLabel)
+        .accessibilityIdentifier(route == .preview ? "preview.newCapture" : "shell.utilityAction")
+    }
+
+    private var navigationTitle: String {
+        switch route {
+        case .upload: appName
+        case .processing: "Stitching"
+        case .preview: "Screenshot"
+        case .feedback: "Feedback"
         }
     }
 }
@@ -110,7 +100,7 @@ public struct PicsewJourneyDots: View {
     }
 
     public var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: PicsewSpacing.xSmall.value) {
             ForEach(0..<3, id: \.self) { index in
                 Capsule(style: .continuous)
                     .fill(index == activeStepIndex ? AnyShapeStyle(PicsewGradients.brand) : AnyShapeStyle(Color.white.opacity(0.55)))
@@ -122,8 +112,8 @@ public struct PicsewJourneyDots: View {
                     .animation(.spring(response: 0.28, dampingFraction: 0.8), value: activeStepIndex)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, PicsewSpacing.small.value)
+        .padding(.vertical, PicsewSpacing.xSmall.value)
         .background(
             Capsule(style: .continuous)
                 .fill(Color.white.opacity(0.55))
@@ -133,55 +123,6 @@ public struct PicsewJourneyDots: View {
                 .stroke(Color.white.opacity(0.78), lineWidth: 1)
         )
         .accessibilityIdentifier("shell.journeyDots")
-    }
-}
-
-public struct PicsewStageCard<Content: View>: View {
-    private let style: PicsewSurfaceStyle
-    private let alignment: HorizontalAlignment
-    private let spacing: CGFloat
-    private let content: Content
-
-    public init(
-        style: PicsewSurfaceStyle = .primaryStage,
-        alignment: HorizontalAlignment = .leading,
-        spacing: CGFloat = 18,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.style = style
-        self.alignment = alignment
-        self.spacing = spacing
-        self.content = content()
-    }
-
-    public var body: some View {
-        VStack(alignment: alignment, spacing: spacing) {
-            content
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            PicsewPalette.surface,
-            in: RoundedRectangle(cornerRadius: CGFloat(style.cornerRadius), style: .continuous)
-        )
-        .accessibilityElement(children: .contain)
-    }
-}
-
-public struct PicsewBottomActionTray<Content: View>: View {
-    private let content: Content
-
-    public init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            content
-        }
-        .padding(.vertical, 12)
-        .background(PicsewPalette.background)
-        .accessibilityElement(children: .contain)
     }
 }
 
@@ -197,47 +138,25 @@ public struct PicsewInfoChip: View {
     }
 
     public var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: PicsewSpacing.micro.value) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.caption2.weight(.semibold))
+                    .font(PicsewTypography.badgeSymbol)
             }
             Text(title)
                 .lineLimit(1)
         }
-        .font(.caption.weight(.semibold))
+        .font(PicsewTypography.badge)
         .foregroundStyle(emphasis ? PicsewPalette.accent : PicsewPalette.mutedInk)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 7)
+        .padding(.horizontal, PicsewSpacing.small.value)
+        .padding(.vertical, PicsewSpacing.xSmall.value)
         .background(
             Capsule(style: .continuous)
-                .fill(emphasis ? PicsewPalette.accent.opacity(0.12) : Color.white.opacity(0.72))
+                .fill(emphasis ? PicsewPalette.progressTrack : Color.white.opacity(0.72))
         )
         .overlay(
             Capsule(style: .continuous)
                 .stroke(emphasis ? PicsewPalette.accent.opacity(0.16) : Color.white.opacity(0.8), lineWidth: 1)
         )
-    }
-}
-
-public struct PicsewHeroGlyph: View {
-    private let systemImage: String
-    private let size: CGFloat
-
-    public init(systemImage: String, size: CGFloat = 58) {
-        self.systemImage = systemImage
-        self.size = size
-    }
-
-    public var body: some View {
-        Image(systemName: systemImage)
-            .font(.system(size: size * 0.42, weight: .medium))
-            .foregroundStyle(PicsewPalette.accent)
-            .frame(width: size, height: size)
-            .background(
-                PicsewPalette.accent.opacity(0.08),
-                in: RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-            )
-            .accessibilityHidden(true)
     }
 }

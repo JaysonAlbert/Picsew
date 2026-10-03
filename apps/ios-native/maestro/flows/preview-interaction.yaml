@@ -1,0 +1,46 @@
+appId: top.ibotcloud.picsew.native
+name: Preview keeps the screenshot first and export remains reachable
+tags:
+  - smoke
+  - screenshots
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: preview
+- assertVisible:
+    id: "preview.stitchedImage"
+- assertNotVisible: "Result details"
+- assertNotVisible: "Clean keyframes"
+- assertVisible: "100 percent zoom"
+- takeScreenshot: artifacts/content-first-preview-width-fit
+- doubleTapOn:
+    id: "preview.stitchedImage"
+- waitForAnimationToEnd
+- assertVisible: "200 percent zoom"
+- takeScreenshot: artifacts/content-first-preview-zoomed
+- tapOn:
+    id: "preview.saveToPhotos"
+- assertVisible: "Saved to Photos."
+- assertVisible: "200 percent zoom"
+- doubleTapOn:
+    id: "preview.stitchedImage"
+- waitForAnimationToEnd
+- assertVisible: "100 percent zoom"
+- swipe:
+    start: "50%,70%"
+    end: "50%,30%"
+    duration: 600
+- takeScreenshot: artifacts/content-first-preview-scrolled
+- assertVisible:
+    id: "preview.saveToPhotos"
+- tapOn:
+    id: "preview.newCapture"
+- assertVisible:
+    id: "upload.source.files"
+- assertVisible:
+    id: "upload.source.photos"
+- assertVisible:
+    id: "upload.startProcessing"
+    enabled: false
+- takeScreenshot: artifacts/minimal-upload-empty

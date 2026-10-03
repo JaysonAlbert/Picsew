@@ -23,23 +23,23 @@ public struct UploadFeatureView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                PicsewStageCard(alignment: .center, spacing: 20) {
+            VStack(alignment: .leading, spacing: PicsewSpacing.medium.value) {
+                PicsewStageCard(alignment: .center, spacing: PicsewSpacing.inset.value) {
                     if !dynamicTypeSize.isAccessibilitySize {
                         PicsewHeroGlyph(
                             systemImage: model.selectedVideoURL == nil ? "video.badge.plus" : "checkmark",
-                            size: 72
+                            size: PicsewMetrics.heroGlyphSize
                         )
                         .frame(maxWidth: .infinity)
                     }
 
-                    VStack(spacing: 6) {
+                    VStack(spacing: PicsewSpacing.micro.value) {
                         Text(model.selectedVideoURL == nil ? "Choose a recording" : "Ready to stitch")
-                            .font(.title3.weight(.semibold))
+                            .font(PicsewTypography.title)
                             .foregroundStyle(PicsewPalette.ink)
 
                         Text(model.selectedVideoURL?.lastPathComponent ?? "Select a video from Files or Photos.")
-                            .font(.subheadline)
+                            .font(PicsewTypography.supporting)
                             .foregroundStyle(PicsewPalette.mutedInk)
                             .lineLimit(2)
                             .truncationMode(.middle)
@@ -48,25 +48,25 @@ public struct UploadFeatureView: View {
                     .frame(maxWidth: .infinity)
 
                     ViewThatFits(in: .horizontal) {
-                        HStack(spacing: 12) { sourceChoices }
-                        VStack(spacing: 12) { sourceChoices }
+                        HStack(spacing: PicsewSpacing.small.value) { sourceChoices }
+                        VStack(spacing: PicsewSpacing.small.value) { sourceChoices }
                     }
                 }
                 .accessibilityIdentifier("upload.stage.import")
 
                 Label("Processed on your device. Never uploaded.", systemImage: "lock")
-                    .font(.footnote)
+                    .font(PicsewTypography.caption)
                     .foregroundStyle(PicsewPalette.mutedInk)
                     .frame(maxWidth: .infinity)
 
                 if let errorMessage = model.errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.circle")
-                        .font(.subheadline)
+                        .font(PicsewTypography.supporting)
                         .foregroundStyle(PicsewPalette.ink)
                         .accessibilityIdentifier("upload.errorMessage")
                 }
             }
-            .padding(.bottom, 16)
+            .padding(.bottom, PicsewSpacing.medium.value)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .safeAreaInset(edge: .bottom) {
@@ -114,14 +114,14 @@ public struct UploadFeatureView: View {
         } label: {
             SourceButtonLabel(title: "Files", systemImage: "folder")
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PicsewButtonStyle(.secondary))
         .accessibilityIdentifier("upload.source.files")
 
 #if os(iOS)
         PhotosPicker(selection: $photosPickerItem, matching: .videos) {
             SourceButtonLabel(title: "Photos", systemImage: "photo.on.rectangle")
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PicsewButtonStyle(.secondary))
         .accessibilityIdentifier("upload.source.photos")
 #endif
     }
@@ -136,7 +136,7 @@ public struct UploadFeatureView: View {
                 Label(dynamicTypeSize.isAccessibilitySize ? "Create" : "Create screenshot", systemImage: "rectangle.stack")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(PicsewActionButtonStyle())
+            .buttonStyle(PicsewButtonStyle(.primary))
             .disabled(!model.canStartProcessing)
             .accessibilityLabel("Create screenshot")
             .accessibilityIdentifier("upload.startProcessing")
@@ -149,12 +149,10 @@ public struct UploadFeatureView: View {
 #endif
                 } label: {
                     Text(dynamicTypeSize.isAccessibilitySize ? "Clear" : "Choose Another Video")
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .frame(maxWidth: .infinity, minHeight: PicsewMetrics.touchTarget)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(PicsewPalette.mutedInk)
+                .buttonStyle(PicsewButtonStyle(.quiet))
                 .accessibilityLabel("Choose another video")
                 .accessibilityIdentifier("upload.clearSelection")
             }
@@ -169,15 +167,6 @@ private struct SourceButtonLabel: View {
 
     var body: some View {
         Label(title, systemImage: systemImage)
-            .font(.body.weight(.medium))
-            .foregroundStyle(PicsewPalette.ink)
-            .padding(.horizontal, 16)
-            .frame(maxWidth: .infinity, minHeight: 52)
-            .background(
-                PicsewPalette.background,
-                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-            )
-            .contentShape(Rectangle())
     }
 }
 

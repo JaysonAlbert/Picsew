@@ -11,27 +11,27 @@ public struct OnboardingFeatureView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 32) {
-                VStack(alignment: .leading, spacing: 16) {
-                    PicsewHeroGlyph(systemImage: "rectangle.on.rectangle.angled", size: 72)
+            VStack(alignment: .leading, spacing: PicsewSpacing.xLarge.value) {
+                VStack(alignment: .leading, spacing: PicsewSpacing.medium.value) {
+                    PicsewHeroGlyph(systemImage: "rectangle.on.rectangle.angled", size: PicsewMetrics.onboardingGlyphSize)
                     Text("A little recording.\nOne long screenshot.")
-                        .font(.largeTitle.weight(.bold))
+                        .font(PicsewTypography.hero)
                         .foregroundStyle(PicsewPalette.ink)
                         .accessibilityAddTraits(.isHeader)
                     Text("Capture the whole story, privately on your device.")
-                        .font(.body)
+                        .font(PicsewTypography.body)
                         .foregroundStyle(PicsewPalette.mutedInk)
                 }
 
-                PicsewStageCard(spacing: 24) {
+                PicsewStageCard(spacing: PicsewSpacing.large.value) {
                     onboardingStep(number: "1", title: "Record", detail: "Record your screen as you scroll.")
                     onboardingStep(number: "2", title: "Create", detail: "Choose the video. Picsew stitches it.")
                     onboardingStep(number: "3", title: "Keep", detail: "Save or share your long screenshot.")
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 32)
-            .padding(.bottom, 16)
+            .padding(.horizontal, PicsewSpacing.large.value)
+            .padding(.top, PicsewSpacing.xLarge.value)
+            .padding(.bottom, PicsewSpacing.medium.value)
             .accessibilityIdentifier("onboarding.screen")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -39,26 +39,26 @@ public struct OnboardingFeatureView: View {
         .safeAreaInset(edge: .bottom) {
             PicsewBottomActionTray {
                 Button("Continue") { model.dismissOnboarding() }
-                    .buttonStyle(PicsewActionButtonStyle())
+                    .buttonStyle(PicsewButtonStyle(.primary))
                     .accessibilityIdentifier("onboarding.continue")
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, PicsewSpacing.large.value)
             .background(PicsewPalette.background)
         }
         .interactiveDismissDisabled()
     }
 
     private func onboardingStep(number: String, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: PicsewSpacing.medium.value) {
             Text(number)
-                .font(.subheadline.weight(.semibold))
+                .font(PicsewTypography.supportingStrong)
                 .foregroundStyle(PicsewPalette.accent)
-                .frame(width: 32, height: 32)
-                .background(PicsewPalette.accent.opacity(0.08), in: Circle())
+                .frame(width: PicsewMetrics.stepBadgeSize, height: PicsewMetrics.stepBadgeSize)
+                .background(PicsewPalette.accentSubtle, in: Circle())
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline).foregroundStyle(PicsewPalette.ink)
-                Text(detail).font(.subheadline).foregroundStyle(PicsewPalette.mutedInk)
+            VStack(alignment: .leading, spacing: PicsewSpacing.micro.value) {
+                Text(title).font(PicsewTypography.heading).foregroundStyle(PicsewPalette.ink)
+                Text(detail).font(PicsewTypography.supporting).foregroundStyle(PicsewPalette.mutedInk)
             }
         }
         .accessibilityElement(children: .combine)
