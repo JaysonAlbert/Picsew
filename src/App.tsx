@@ -290,39 +290,45 @@ export default function App() {
     });
   };
 
+  const isPreview = currentView === "main" && currentStep === "preview";
+
   return (
-    <div className={`product-shell ${isNativeIos ? "ios-app-shell" : ""}`}>
+    <div
+      className={`product-shell ${isPreview ? "product-shell--preview" : ""} ${isNativeIos ? "ios-app-shell" : ""}`}
+    >
       <SEO
         title={t("app.title")}
         description={t("app.subtitle")}
         keywords="screenshot, stitching, long screenshot, video to image, picsew"
       />
-      <header className="product-header ios-safe-top">
-        {currentView === "feedback" ? (
-          <button
-            type="button"
-            className="app-secondary-back"
-            onClick={() => setCurrentView("main")}
-          >
-            <ChevronLeft aria-hidden="true" />
-            <span>{t("feedback.page.back")}</span>
-          </button>
-        ) : (
-          <>
-            <div className="product-brand">
-              <ScanLine aria-hidden="true" />
-              <span>{t("app.brandTitle")}</span>
-            </div>
-            <AppUtilityMenu
-              open={isUtilityMenuOpen}
-              onOpenChange={setIsUtilityMenuOpen}
-              onOpenFeedbackPage={handleOpenFeedbackPage}
-            />
-          </>
-        )}
-      </header>
+      {!isPreview && (
+        <header className="product-header ios-safe-top">
+          {currentView === "feedback" ? (
+            <button
+              type="button"
+              className="app-secondary-back"
+              onClick={() => setCurrentView("main")}
+            >
+              <ChevronLeft aria-hidden="true" />
+              <span>{t("feedback.page.back")}</span>
+            </button>
+          ) : (
+            <>
+              <div className="product-brand">
+                <ScanLine aria-hidden="true" />
+                <span>{t("app.brandTitle")}</span>
+              </div>
+              <AppUtilityMenu
+                open={isUtilityMenuOpen}
+                onOpenChange={setIsUtilityMenuOpen}
+                onOpenFeedbackPage={handleOpenFeedbackPage}
+              />
+            </>
+          )}
+        </header>
+      )}
       <main className="product-main">
-        {currentView === "main" && (
+        {currentView === "main" && !isPreview && (
           <div className="product-heading">
             <h1>{t(`app.routes.${currentStep}.title`)}</h1>
             <p>{t(`app.routes.${currentStep}.subtitle`)}</p>

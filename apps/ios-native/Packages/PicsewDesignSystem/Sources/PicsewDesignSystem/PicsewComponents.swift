@@ -28,6 +28,10 @@ public struct PicsewStageCard<Content: View>: View {
             PicsewPalette.surface,
             in: RoundedRectangle(cornerRadius: CGFloat(style.cornerRadius), style: .continuous)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: CGFloat(style.cornerRadius), style: .continuous)
+                .stroke(PicsewPalette.border, lineWidth: 1)
+        )
         .accessibilityElement(children: .contain)
     }
 }
@@ -61,7 +65,7 @@ public struct PicsewHeroGlyph: View {
     public var body: some View {
         Image(systemName: systemImage)
             .font(PicsewTypography.heroSymbol(size: size))
-            .foregroundStyle(PicsewPalette.accent)
+            .foregroundStyle(PicsewGradients.brand)
             .frame(width: size, height: size)
             .background(
                 PicsewPalette.accentSubtle,

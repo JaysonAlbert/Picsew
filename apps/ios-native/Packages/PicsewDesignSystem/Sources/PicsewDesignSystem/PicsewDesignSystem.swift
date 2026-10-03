@@ -83,38 +83,37 @@ public struct PicsewSurfaceStyle: Sendable, Equatable {
     )
 }
 
+// Shared role values: docs/features/shared-technology-theme.md.
+// Keep feature views independent of appearance-specific color literals.
 public enum PicsewPalette {
-    public static let ink = Color.primary
-#if os(iOS)
-    public static let mutedInk = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(white: 0.72, alpha: 1)
-            : UIColor(red: 0.36, green: 0.39, blue: 0.42, alpha: 1)
-    })
-#else
-    public static let mutedInk = Color.secondary
-#endif
-    public static let primaryAction = Color(red: 0.03, green: 0.48, blue: 0.44)
-#if os(iOS)
-    public static let accent = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0.30, green: 0.76, blue: 0.69, alpha: 1)
-            : UIColor(primaryAction)
-    })
-#else
-    public static let accent = primaryAction
-#endif
+    public static let ink = adaptive(light: 0x14213D, dark: 0xEDF3FF)
+    public static let mutedInk = adaptive(light: 0x52617A, dark: 0xAABAD4)
+    public static let primaryAction = adaptive(light: 0x2457E6, dark: 0x2457E6)
+    public static let accent = adaptive(light: 0x2457E6, dark: 0x8AB4FF)
+    public static let accentSecondary = adaptive(light: 0x6941C6, dark: 0xBAA7FF)
     public static let onPrimary = Color.white
-    public static let accentSubtle = accent.opacity(0.08)
-    public static let progressTrack = accent.opacity(0.12)
-    public static let accentSecondary = accent
-    public static let accentWarm = accent
-    public static let success = accent
+    public static let accentSubtle = adaptive(light: 0xE8EEFF, dark: 0x1B2D50)
+    public static let progressTrack = accentSubtle
+    public static let accentWarm = accentSecondary
+    public static let success = adaptive(light: 0x167252, dark: 0x70D9B0)
+    public static let border = adaptive(light: 0xD6DFEF, dark: 0x34445F)
 #if os(iOS)
-    public static let canvasUIColor = UIColor.systemGroupedBackground
-    public static let surfaceUIColor = UIColor.secondarySystemGroupedBackground
+    public static let canvasUIColor = adaptiveUIColor(light: 0xF3F6FC, dark: 0x080F20)
+    public static let surfaceUIColor = adaptiveUIColor(light: 0xFFFFFF, dark: 0x121D33)
     public static let background = Color(uiColor: canvasUIColor)
     public static let surface = Color(uiColor: surfaceUIColor)
+
+    private static func adaptiveUIColor(light: UInt32, dark: UInt32) -> UIColor {
+        UIColor { traits in
+            let hex = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(
+                red: CGFloat((hex >> 16) & 0xFF) / 255,
+                green: CGFloat((hex >> 8) & 0xFF) / 255,
+                blue: CGFloat(hex & 0xFF) / 255,
+                alpha: 1
+            )
+        }
+    }
 #else
     public static let background = Color(nsColor: .windowBackgroundColor)
     public static let surface = Color(nsColor: .controlBackgroundColor)
@@ -123,6 +122,18 @@ public enum PicsewPalette {
     public static let shellBottom = background
     public static let shellHighlight = surface
     public static let shadow = Color.black
+
+    private static func adaptive(light: UInt32, dark: UInt32) -> Color {
+#if os(iOS)
+        Color(uiColor: adaptiveUIColor(light: light, dark: dark))
+#else
+        Color(
+            red: Double((light >> 16) & 0xFF) / 255,
+            green: Double((light >> 8) & 0xFF) / 255,
+            blue: Double(light & 0xFF) / 255
+        )
+#endif
+    }
 }
 
 // Compatibility name; both entry points use the same role-based style.
@@ -134,7 +145,7 @@ public enum PicsewGradients {
             colors: [
                 PicsewPalette.shellTop,
                 PicsewPalette.shellBottom,
-                Color(red: 0.96, green: 0.98, blue: 1.0),
+                PicsewPalette.shellHighlight,
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing

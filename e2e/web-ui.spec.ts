@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 // Exercise the real UI and export lifecycle independently of codec availability.
 // Real processing is covered separately by the existing [video] scenarios.
@@ -84,10 +85,9 @@ for (const appearance of ["large text", "dark"] as const) {
     await expect(
       page.getByRole("heading", { name: "Your screenshot" }),
     ).toBeVisible();
-    await page.getByText("Result details", { exact: true }).click();
-    await expect(
-      page.getByText("720 × 3600 px", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByText("Result details", { exact: true })).toHaveCount(
+      0,
+    );
     const dimensions = await page.evaluate(() => ({
       width: innerWidth,
       content: document.documentElement.scrollWidth,
@@ -109,7 +109,7 @@ for (const appearance of ["large text", "dark"] as const) {
   });
 }
 
-test("selection, accessible progress, details, save and new capture", async ({
+test("selection, accessible progress, content-first viewer, save and new capture", async ({
   page,
 }, testInfo) => {
   await prepareJourney(page);
@@ -129,7 +129,7 @@ test("selection, accessible progress, details, save and new capture", async ({
   ).toBeVisible();
   await expect(create).toBeEnabled();
   await page.mouse.move(0, 0);
-  await expect(create).toHaveCSS("background-color", "rgb(8, 122, 112)");
+
   await page.screenshot({
     path: testInfo.outputPath("upload.png"),
     fullPage: true,
@@ -146,23 +146,11 @@ test("selection, accessible progress, details, save and new capture", async ({
   await expect(
     page.getByRole("heading", { name: "Your screenshot" }),
   ).toBeVisible();
-  const details = page.locator("details");
-  await expect(details).not.toHaveAttribute("open", "");
-  const summaryBox = await details.locator("summary").boundingBox();
-  const actionBox = await page.getByTestId("preview-action-bar").boundingBox();
-  expect(summaryBox).not.toBeNull();
-  expect(actionBox).not.toBeNull();
-  expect((summaryBox?.y ?? 0) + (summaryBox?.height ?? 0)).toBeLessThanOrEqual(
-    actionBox?.y ?? 0,
+  await expect(page.getByText("Result details", { exact: true })).toHaveCount(
+    0,
   );
   await page.screenshot({
     path: testInfo.outputPath("preview.png"),
-    fullPage: true,
-  });
-  await page.getByText("Result details", { exact: true }).click();
-  await expect(page.getByText("720 × 3600 px", { exact: true })).toBeVisible();
-  await page.screenshot({
-    path: testInfo.outputPath("preview-details.png"),
     fullPage: true,
   });
   const download = page.waitForEvent("download");
@@ -294,14 +282,20 @@ for (const viewport of [
     await expect(
       page.getByRole("heading", { name: "Your screenshot" }),
     ).toBeVisible();
-    const details = page.locator("details");
-    await expectNearbyActions(details);
-    await page.screenshot({ path: testInfo.outputPath("desktop-preview.png") });
-    await details.locator("summary").click();
+    const viewer = page.getByRole("region", {
+      name: "Generated long screenshot",
+    });
+    await expectNearbyActions(viewer);
     await expect(
-      page.getByText("720 × 3600 px", { exact: true }),
-    ).toBeVisible();
-    await expectNearbyActions(details);
+      page.getByRole("button", { name: "Save image", exact: true }),
+    ).toBeInViewport();
+    await expect(
+      page.getByRole("button", { name: "New capture", exact: true }),
+    ).toBeInViewport();
+    await page.screenshot({ path: testInfo.outputPath("desktop-preview.png") });
+    await expect(page.getByText("Result details", { exact: true })).toHaveCount(
+      0,
+    );
     const overflow = await page.evaluate(() => ({
       content: document.documentElement.scrollWidth,
       viewport: innerWidth,
@@ -363,8 +357,9 @@ test("desktop short windows keep actions reachable at enlarged text", async ({
   await expect(
     page.getByRole("heading", { name: "Your screenshot" }),
   ).toBeVisible();
-  await page.getByText("Result details", { exact: true }).click();
-  await expect(page.getByText("720 × 3600 px", { exact: true })).toBeVisible();
+  await expect(page.getByText("Result details", { exact: true })).toHaveCount(
+    0,
+  );
   const save = page.getByRole("button", { name: "Save image", exact: true });
   await save.scrollIntoViewIfNeeded();
   await expect(save).toBeInViewport();
@@ -383,3 +378,101 @@ test("desktop short windows keep actions reachable at enlarged text", async ({
   await reset.click();
   await expect(create).toBeDisabled();
 });
+
+for (const appearance of ["light", "dark"] as const) {
+  test(`technology theme and dominant mobile preview in ${appearance}`, async ({
+    page,
+  }, testInfo) => {
+    await prepareJourney(page);
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.emulateMedia({ colorScheme: appearance });
+    await page.goto("/");
+    await selectRecording(page);
+    await page
+      .getByRole("button", { name: "Create screenshot", exact: true })
+      .click();
+    const viewer = page.getByRole("region", {
+      name: "Generated long screenshot",
+    });
+    await expect(viewer).toBeVisible();
+    await expect(page.getByText("Result details", { exact: true })).toHaveCount(
+      0,
+    );
+    const region = await viewer.boundingBox();
+    expect(region!.height).toBeGreaterThanOrEqual(667 * 0.75);
+    const image = page.getByRole("img", { name: "Generated long screenshot" });
+    const fitted = await image.boundingBox();
+    // Public interaction: zoom must actually change rendered width, not just a label.
+    await viewer.focus();
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(async () => (await image.boundingBox())!.width)
+      .toBeCloseTo(fitted!.width * 2, 0);
+    await viewer.evaluate((element) => {
+      element.scrollTop = 300;
+      element.scrollLeft = 100;
+    });
+    expect(
+      await viewer.evaluate((element) => element.scrollTop),
+    ).toBeGreaterThan(0);
+    await page.screenshot({ path: testInfo.outputPath("zoomed-preview.png") });
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(async () => (await image.boundingBox())!.width)
+      .toBeCloseTo(fitted!.width, 0);
+    const controls = page.getByRole("button");
+    for (const button of await controls.all()) {
+      const bounds = await button.boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(bounds!.width).toBeGreaterThanOrEqual(44);
+      expect(bounds!.height).toBeGreaterThanOrEqual(44);
+    }
+    const contrast = await page.evaluate(() => {
+      const luminance = (color: string) => {
+        const channels = color
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number)
+          .map((v) => {
+            v /= 255;
+            return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+          });
+        return (
+          channels[0]! * 0.2126 + channels[1]! * 0.7152 + channels[2]! * 0.0722
+        );
+      };
+      const shell = getComputedStyle(document.querySelector(".product-shell")!);
+      const action = getComputedStyle(
+        document.querySelector(".app-primary-action")!,
+      );
+      const ratio = (a: string, b: string) => {
+        const x = luminance(a),
+          y = luminance(b);
+        return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+      };
+      return {
+        text: ratio(shell.color, shell.backgroundColor),
+        action: ratio(action.color, action.backgroundColor),
+      };
+    });
+    expect(contrast.text).toBeGreaterThanOrEqual(4.5);
+    expect(contrast.action).toBeGreaterThanOrEqual(4.5);
+    await page.screenshot({
+      path: testInfo.outputPath("technology-preview.png"),
+    });
+    // The original export is independent of viewer zoom or scroll.
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Save image", exact: true }).click();
+    const exported = await download;
+    expect(exported.suggestedFilename()).toBe("long-screenshot.png");
+    const png = await readFile((await exported.path())!);
+    expect(png.readUInt32BE(16)).toBe(720);
+    expect(png.readUInt32BE(20)).toBe(3600);
+    await page
+      .getByRole("button", { name: "New capture", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Create screenshot", exact: true }),
+    ).toBeDisabled();
+  });
+}

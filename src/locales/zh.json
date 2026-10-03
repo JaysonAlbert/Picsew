@@ -179,13 +179,15 @@
       "badge": "可滚动预览",
       "title": "预览结果",
       "alt": "生成的长截图",
-      "hint": "长截图已生成，向上滑动查看完整内容"
+      "hint": "长截图已生成，向上滑动查看完整内容",
+      "zoomHint": "双击图片或按 Enter 键切换缩放。"
     },
     "actions": {
       "download": "保存图片",
       "save": "保存到相册",
       "share": "分享",
-      "startOver": "重新创建"
+      "startOver": "重新创建",
+      "new": "新建"
     },
     "share": {
       "unsupported": "您的浏览器不支持分享功能",
