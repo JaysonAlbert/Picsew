@@ -3,13 +3,19 @@ title: iOS Release Checklist
 author: Jayson Albert
 date: 2026-03-29
 updated: 2026-10-13
-version: 0.4.0
+version: 0.4.1
 reviewers: [Jayson Albert]
 tags: [ios, release, checklist]
 status: approved
 ---
 
 # iOS Release Checklist
+
+For command-line uploads and TestFlight group/review management, start with
+[App Store Connect / TestFlight operations](app-store-connect-operations.md).
+It includes the existing tools, protected API-key setup, management API examples,
+and internal/external testing rules. Check the working-copy version if commands
+are missing.
 
 The active native target is `apps/ios-native/HostApp/PicsewNativeApp.xcodeproj`,
 scheme `PicsewNativeApp`. Root `ios/` is the transitional Capacitor shell; use its
