@@ -1,0 +1,17 @@
+appId: top.ibotcloud.picsew.native
+name: Export failures are visible without losing the preview
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: preview
+      picsewAutomationExportBehavior: failure
+- assertVisible:
+    id: preview.stitchedImage
+- tapOn:
+    id: preview.saveToPhotos
+- assertVisible: "Automation save failed."
+- assertVisible:
+    id: preview.stitchedImage
+- takeScreenshot:
+    path: preview-export-failure
