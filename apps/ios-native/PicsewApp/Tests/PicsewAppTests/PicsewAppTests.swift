@@ -40,7 +40,12 @@ func automationModelBootstrapsPreviewState() async throws {
     #expect(model.showsOnboarding == false)
     #expect(model.selectedVideoURL?.lastPathComponent == "picsew-automation-input.mov")
     #expect(model.result != nil)
-    #expect(model.shareURL?.lastPathComponent == "picsew-automation-share.png")
+    #expect(model.shareURL == nil)
+    await model.prepareShareIfNeeded()
+    let shareURL = try #require(model.shareURL)
+    #expect(shareURL.lastPathComponent == "picsew-automation-share.png")
+    let png = try Data(contentsOf: shareURL)
+    #expect(Array(png.prefix(8)) == [137, 80, 78, 71, 13, 10, 26, 10])
 }
 
 @Test("automation onboarding scenario keeps the onboarding cover visible")
@@ -280,5 +285,66 @@ actor SaveTracker {
 
     func savedValue() -> Bool {
         didSave
+    }
+}
+
+
+@Test("empty upload cannot start a pipeline without a selected recording")
+@MainActor
+func emptyUploadDoesNotStartProcessing() async {
+    let model = PicsewAppShellModel(pipeline: MockSuccessPipeline())
+    await model.startProcessing()
+    #expect(model.route == .upload)
+    #expect(model.result == nil)
+    #expect(model.isRunning == false)
+    #expect(model.canStartProcessing == false)
+    #expect(model.errorMessage == "Select a video before processing.")
+}
+
+@Test("automation export failures preserve the result and surface both failures")
+@MainActor
+func automationExportFailuresKeepPreview() async throws {
+    let configuration = try #require(PicsewAutomationConfiguration(arguments: [
+        "picsewAutomationScenario": "preview",
+        "picsewAutomationExportBehavior": "failure",
+    ]))
+    let model = PicsewAppShellModel.automationModel(for: configuration)
+    await model.prepareShareIfNeeded()
+    #expect(model.shareURL == nil)
+    #expect(model.exportMessage == "Automation share export failed.")
+    await model.saveResultToPhotos()
+    #expect(model.exportMessage == "Automation save failed.")
+    #expect(model.result != nil)
+    #expect(model.route == .preview)
+}
+
+@Test("missing and traversing seeded videos cannot pretend to be processed")
+@MainActor
+func missingSeededVideoRemainsOnUpload() throws {
+    for filename in ["missing-\(UUID().uuidString).mp4", "../outside.mp4", "nested/video.mp4"] {
+        let configuration = try #require(PicsewAutomationConfiguration(arguments: [
+            "picsewAutomationScenario": "live-demo-upload",
+            "picsewAutomationSeededVideoFilename": filename,
+        ]))
+        let model = PicsewAppShellModel.automationModel(for: configuration)
+        #expect(model.route == .upload)
+        #expect(model.selectedVideoURL == nil)
+        #expect(model.canStartProcessing == false)
+        #expect(model.result == nil)
+        #expect(model.errorMessage == "Seeded demo video is unavailable for automation.")
+    }
+}
+
+@Test("legacy empty-upload spellings both produce an empty import screen")
+@MainActor
+func emptyUploadAutomationCompatibility() throws {
+    for scenario in ["uploadEmpty", "upload-empty"] {
+        let configuration = try #require(PicsewAutomationConfiguration(arguments: [
+            "picsewAutomationScenario": scenario,
+        ]))
+        let model = PicsewAppShellModel.automationModel(for: configuration)
+        #expect(model.route == .upload)
+        #expect(model.selectedVideoURL == nil)
+        #expect(model.canStartProcessing == false)
     }
 }
