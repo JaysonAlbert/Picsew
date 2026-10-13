@@ -2,8 +2,8 @@
 title: iOS Release Checklist
 author: Jayson Albert
 date: 2026-03-29
-updated: 2026-10-01
-version: 0.3.0
+updated: 2026-10-13
+version: 0.4.0
 reviewers: [Jayson Albert]
 tags: [ios, release, checklist]
 status: approved
@@ -59,7 +59,10 @@ npm run ios:release:upload -- /absolute/path/PicsewNativeApp.xcarchive \
 The export-options file must explicitly set `destination` to `export` or `upload`
 to match the command. Use `method=app-store-connect`, `signingStyle=automatic`,
 `manageAppVersionAndBuildNumber=false` and, for internal betas,
-`testFlightInternalTestingOnly=true`. Keep `teamID` and account-specific settings
+`testFlightInternalTestingOnly=true`. For external groups use ordinary App Store
+Connect distribution with `testFlightInternalTestingOnly=false`. An uploaded
+internal-only build cannot be converted; upload a new build number and submit
+TestFlight beta review before external testers can install it. Keep `teamID` and account-specific settings
 in ignored local files. API keys, if separately configured for automation, stay
 outside source and command output. Without local API-key configuration, the
 wrapper uses Xcode's existing authentication.
