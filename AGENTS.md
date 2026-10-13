@@ -114,6 +114,7 @@ All feature work, bug fixes, and meaningful product changes in this repository s
 - Keep local signing overrides separate from shared release metadata.
 - When preparing an iOS release, update the committed release metadata intentionally and review it as part of the PR diff.
 - Follow `docs/ios-release-checklist.md` for iOS release prep and validation.
+- For App Store Connect / TestFlight operations, first read `docs/app-store-connect-operations.md` for the existing xcodebuild/npm commands, protected API-key configuration, Node.js REST API recipe, and internal/external testing rules. If release scripts are missing, check the working-copy version before searching for another CLI or MCP.
 
 ## UI Design Rules
 
