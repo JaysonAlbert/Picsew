@@ -64,4 +64,15 @@ Apple reference: [Internal-only build restriction and external beta review](http
   the existing feedback email was reused. No demo account is required, and
   review notes describe actual video import, creation and export steps. Personal
   contact details are excluded from source and delivery documentation.
-- Apple upload, processing, Friends assignment and beta review are pending.
+- Upload succeeded on 2026-10-13 with exit status 0. A fresh Apple API read
+  confirms 1.0 (5) is VALID, APP_STORE_ELIGIBLE, unexpired, and classified
+  usesNonExemptEncryption=false, matching the unchanged native implementation.
+- Existing What to Test localizations were copied from build 4. The candidate
+  is now associated with the existing external Friends group. Tester membership
+  and public invitation settings were not modified.
+- TestFlight beta review was submitted successfully. Fresh API reads confirm
+  externalBuildState=WAITING_FOR_BETA_REVIEW and betaReviewState=WAITING_FOR_REVIEW,
+  with Friends assignment present and autoNotifyEnabled=true. External testers
+  must wait for Apple approval before installing this build; submission and
+  group assignment do not imply approval. No App Store production submission
+  was created.
