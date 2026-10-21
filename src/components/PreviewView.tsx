@@ -10,6 +10,7 @@ interface PreviewViewProps {
   imageUrl: string;
   onDownload: () => Promise<void> | void;
   onReset: () => void;
+  onShare?: () => Promise<void>;
   isNativeSave?: boolean;
 }
 
@@ -17,6 +18,7 @@ export function PreviewView({
   imageUrl,
   onDownload,
   onReset,
+  onShare,
   isNativeSave = false,
 }: PreviewViewProps) {
   const { t } = useTranslation();
@@ -27,6 +29,11 @@ export function PreviewView({
   const handleShare = async () => {
     if (!canShare) {
       alert(t("preview.share.unsupported"));
+      return;
+    }
+
+    if (onShare) {
+      await onShare();
       return;
     }
 

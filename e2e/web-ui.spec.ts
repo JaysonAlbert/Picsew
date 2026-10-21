@@ -34,6 +34,7 @@ async function prepareJourney(page: Page) {
           ctx.fillText('Take a moment. Keep the whole story.', 48, y + 90);
         }
         progress(100);
+        return "success";
       }`,
     }),
   );
