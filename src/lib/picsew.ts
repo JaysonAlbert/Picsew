@@ -965,7 +965,7 @@ export const processVideo = async (
   addLog: (message: string) => void,
   outputCanvas: HTMLCanvasElement,
   updateProgress: (progress: number) => void,
-) => {
+): Promise<"success" | "empty_output" | "processing_failed"> => {
   addLog("Processing video with OpenCV.js");
   updateProgress(5);
 
@@ -989,14 +989,14 @@ export const processVideo = async (
     if (lowResGray.length < 2) {
       addLog("Not enough frames to process.");
       lowResGray.forEach((frame: any) => frame.delete());
-      return;
+      return "empty_output";
     }
     updateProgress(30);
 
     const windowInfo = await findRefinedScrollingWindow(lowResGray, addLog);
     if (!windowInfo) {
       lowResGray.forEach((frame: any) => frame.delete());
-      return;
+      return "empty_output";
     }
     updateProgress(50);
 
@@ -1026,7 +1026,7 @@ export const processVideo = async (
     if (cleanKeyframeIndices.length === 0) {
       addLog("No keyframes after filtering.");
       lowResGray.forEach((frame: any) => frame.delete());
-      return;
+      return "empty_output";
     }
 
     stitchedImage = await stitchKeyframes(
@@ -1040,16 +1040,16 @@ export const processVideo = async (
     );
     updateProgress(95);
 
-    if (stitchedImage) {
-      cv.imshow(outputCanvas, stitchedImage);
-    }
-
+    if (!stitchedImage) return "empty_output";
+    cv.imshow(outputCanvas, stitchedImage);
     updateProgress(100);
+    return "success";
   } catch (error) {
     const cv = await getOpenCV().catch(() => null);
     const errorMessage = getErrorMessage(error, cv);
     addLog(`Error processing video: ${errorMessage}`);
     console.error("Video processing error:", error);
+    return "processing_failed";
   } finally {
     // Ensure all resources are cleaned up
     try {

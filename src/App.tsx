@@ -13,9 +13,9 @@ import {
   ANALYTICS_EVENTS,
   getVideoFileAnalytics,
   getVideoMetadataAnalytics,
-  sanitizeAnalyticsErrorMessage,
   type VideoSelectionSource,
 } from "./lib/analytics-events";
+import { AnalyticsTask } from "./lib/analytics-task";
 import SEO from "./components/SEO";
 import {
   canUseNativePhotoSave,
@@ -24,6 +24,7 @@ import {
   isNativeIosApp,
   pickNativeVideo,
   saveImageToPhotos,
+  shareGeneratedImage,
 } from "./lib/native-media";
 
 type AppStep = "upload" | "processing" | "preview";
@@ -57,6 +58,9 @@ export default function App() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const taskRef = useRef<AnalyticsTask | null>(null);
+  const processingRef = useRef(false);
+  const exportingRef = useRef(false);
 
   useEffect(() => {
     initGA();
@@ -77,22 +81,36 @@ export default function App() {
       const url = URL.createObjectURL(selectedVideo);
       const videoElement = videoRef.current;
 
+      const task = taskRef.current;
       const handleLoadedMetadata = () => {
         setVideoMetadata({
           durationSeconds: videoElement.duration,
           width: videoElement.videoWidth,
           height: videoElement.videoHeight,
         });
-        trackEvent(ANALYTICS_EVENTS.uploadCompleted, {
-          ...getVideoFileAnalytics(selectedVideo),
-          ...getVideoMetadataAnalytics(
-            videoElement.duration,
-            videoElement.videoWidth,
-            videoElement.videoHeight,
-          ),
-        });
+        if (
+          Number.isFinite(videoElement.duration) &&
+          videoElement.duration > 0 &&
+          videoElement.videoWidth > 0 &&
+          videoElement.videoHeight > 0
+        ) {
+          task?.imported(
+            getVideoMetadataAnalytics(
+              videoElement.duration,
+              videoElement.videoWidth,
+              videoElement.videoHeight,
+            ),
+          );
+        } else {
+          task?.error("import", "metadata_unreadable");
+        }
       };
 
+      const handleMetadataError = () =>
+        task?.error("import", "metadata_unreadable");
+      videoElement.addEventListener("error", handleMetadataError, {
+        once: true,
+      });
       videoElement.addEventListener("loadedmetadata", handleLoadedMetadata, {
         once: true,
       });
@@ -105,6 +123,7 @@ export default function App() {
           "loadedmetadata",
           handleLoadedMetadata,
         );
+        videoElement.removeEventListener("error", handleMetadataError);
         URL.revokeObjectURL(url);
       };
     }
@@ -143,18 +162,20 @@ export default function App() {
     file: File | null,
     source: VideoSelectionSource = "picker",
   ) => {
-    if (file) {
-      trackEvent(
-        ANALYTICS_EVENTS.uploadStarted,
-        getVideoFileAnalytics(file, source),
-      );
-    } else {
-      setVideoMetadata({});
-    }
+    taskRef.current?.cancel(file ? "replace" : "clear");
+    taskRef.current =
+      file && !isNativeIos
+        ? new AnalyticsTask(getVideoFileAnalytics(file, source))
+        : null;
+    setVideoMetadata({});
     setSelectedVideo(file);
   };
 
   const handleStartProcessing = async (): Promise<void> => {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    const task = taskRef.current;
+    task?.startGeneration();
     setIsUtilityMenuOpen(false);
     setCurrentView("main");
     setCurrentStep("processing");
@@ -163,51 +184,40 @@ export default function App() {
     setLastProcessingError(null);
 
     if (videoRef.current && canvasRef.current) {
-      const startedAt = performance.now();
       const addProcessingLog = (message: string) => {
         console.log(message);
         setProcessingLogs((previous) => [...previous.slice(-199), message]);
       };
       try {
-        trackEvent(ANALYTICS_EVENTS.processingStarted, {
-          ...(selectedVideo ? getVideoFileAnalytics(selectedVideo) : {}),
-          ...getVideoMetadataAnalytics(
-            videoRef.current.duration,
-            videoRef.current.videoWidth,
-            videoRef.current.videoHeight,
-          ),
-        });
-
-        await picsewProcessVideo(
+        canvasRef.current.width = 0;
+        canvasRef.current.height = 0;
+        const result = await picsewProcessVideo(
           videoRef.current,
           addProcessingLog,
           canvasRef.current,
           (p) => setProcessProgress(Math.round(p)),
         );
+        if (result !== "success") {
+          task?.error("generate", result);
+          throw new Error("Screenshot generation did not complete.");
+        }
         const imageUrl = canvasRef.current.toDataURL("image/png");
-        trackEvent(ANALYTICS_EVENTS.processingCompleted, {
-          processing_time_ms: Math.round(performance.now() - startedAt),
-          ...getVideoMetadataAnalytics(
-            videoRef.current.duration,
-            videoRef.current.videoWidth,
-            videoRef.current.videoHeight,
-          ),
-        });
+        if (
+          imageUrl === "data:," ||
+          !canvasRef.current.width ||
+          !canvasRef.current.height
+        ) {
+          task?.error("generate", "empty_output");
+          throw new Error("No screenshot was generated.");
+        }
+        task?.generated();
         setGeneratedImage(imageUrl);
         setCurrentStep("preview");
       } catch (error) {
         setLastProcessingError(
           error instanceof Error ? error.message : String(error),
         );
-        trackEvent(ANALYTICS_EVENTS.processingFailed, {
-          error_message: sanitizeAnalyticsErrorMessage(error),
-          processing_time_ms: Math.round(performance.now() - startedAt),
-          ...getVideoMetadataAnalytics(
-            videoRef.current.duration,
-            videoRef.current.videoWidth,
-            videoRef.current.videoHeight,
-          ),
-        });
+        task?.error("generate", "processing_failed");
         console.error("Processing failed:", error);
         alert(
           `Processing failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -216,12 +226,15 @@ export default function App() {
       }
     } else {
       console.error("Video or canvas ref not available");
-      // Handle error appropriately
+      task?.error("generate", "resources_unavailable");
       handleReset();
     }
+    processingRef.current = false;
   };
 
   const handleReset = () => {
+    taskRef.current?.cancel("reset");
+    taskRef.current = null;
     setIsUtilityMenuOpen(false);
     setCurrentView("main");
     setCurrentStep("upload");
@@ -262,7 +275,10 @@ export default function App() {
       return;
     }
 
-    trackEvent(ANALYTICS_EVENTS.exportStarted);
+    if (exportingRef.current) return;
+    exportingRef.current = true;
+    const task = taskRef.current;
+    task?.requestExport("download");
 
     try {
       if (canUseNativePhotoSave()) {
@@ -275,10 +291,35 @@ export default function App() {
         link.click();
       }
 
-      trackEvent(ANALYTICS_EVENTS.exportCompleted);
+      task?.dispatched("download");
     } catch (error) {
+      task?.error("export", "export_failed", "download");
       console.error("Failed to export image:", error);
       alert(t("preview.save.failed"));
+    } finally {
+      exportingRef.current = false;
+    }
+  };
+
+  const handleShare = async () => {
+    if (!generatedImage || exportingRef.current) return;
+    exportingRef.current = true;
+    const task = taskRef.current;
+    task?.requestExport("share");
+    try {
+      await shareGeneratedImage(generatedImage, {
+        title: t("preview.share.title"),
+        text: t("preview.share.text"),
+        fileName: "long-screenshot.png",
+      });
+      task?.dispatched("share");
+    } catch (error) {
+      // Web Share signals explicit cancellation with AbortError; never classify by raw text.
+      if (error instanceof Error && error.name === "AbortError")
+        task?.cancel("share_cancelled");
+      else task?.error("export", "export_failed", "share");
+    } finally {
+      exportingRef.current = false;
     }
   };
 
@@ -364,6 +405,7 @@ export default function App() {
           <PreviewView
             imageUrl={generatedImage!}
             onDownload={handleDownload}
+            onShare={handleShare}
             onReset={handleReset}
             isNativeSave={canUseNativePhotoSave()}
           />
