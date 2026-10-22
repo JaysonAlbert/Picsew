@@ -17,7 +17,7 @@ private enum PicsewHostEnvironment {
     @MainActor
     static func makeModel() -> PicsewAppShellModel {
         if let automation = PicsewAutomationConfiguration.current() {
-            return PicsewAppShellModel.automationModel(for: automation.scenario)
+            return PicsewAppShellModel.automationModel(for: automation)
         }
 
         return PicsewAppShellModel(systemClient: makeSystemClient())

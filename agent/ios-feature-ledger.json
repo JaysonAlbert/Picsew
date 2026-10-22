@@ -1,7 +1,7 @@
 {
   "version": 1,
   "surface": "ios-native",
-  "updatedAt": "2026-10-03",
+  "updatedAt": "2026-10-14",
   "summary": "Machine-readable native iOS work ledger for agent and developer sessions.",
   "defaultSmokeCommands": [
     "npm run ios:harness:check",
@@ -91,7 +91,7 @@
     },
     {
       "id": "ios.feedback.route",
-      "title": "Feedback route shell and navigation path",
+      "title": "Feedback route, local drafts and GitHub entry",
       "area": "feedback",
       "priority": "P1",
       "status": "baseline",
@@ -100,7 +100,8 @@
         "docs/features/native-ios-agent-harness-foundation.md",
         "docs/features/ios-feedback-page.md",
         "docs/architecture/native-ios-automation-validation-phase-9.md",
-        "docs/features/native-content-first-ui.md"
+        "docs/features/native-content-first-ui.md",
+        "docs/features/native-feedback-draft-and-automation.md"
       ],
       "validators": [
         "swift test --package-path apps/ios-native/PicsewApp",
