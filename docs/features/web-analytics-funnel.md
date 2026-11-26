@@ -49,6 +49,8 @@ The requested semantic names map to existing wire events as follows. Do **not** 
 
 `AnalyticsTask` holds only in-memory lifecycle state and deduplicates import success, generation transitions and terminal summaries. Repeated export actions intentionally each have request/dispatch events, but only the first dispatch finishes a task. A reset after dispatch does not emit cancellation. A callback that never arrives does not produce a synthetic terminal event. Late metadata after generation is ignored. Existing `preview_shown` and bounded feedback events remain supplemental, not funnel completion steps. Native Capacitor-origin tracking is disabled by the Web origin gate; no native analytics implementation is added.
 
+An explicit generation retry on the same recording starts a new attempt after the failed one has finished. The retry emits `upload_started` and `upload_completed` using the retained recording and its validated metadata before `processing_started`. These totals count attempts and include retries without opening the picker again. See [Web journey recovery](web-journey-recovery.md).
+
 Parameter allowlist in `analytics-events.ts`:
 
 - `upload_source`: picker/drop (native labels retained for compatibility but Web tasks do not use them).

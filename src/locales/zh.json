@@ -136,6 +136,15 @@
       "failed": "导入视频失败，请重试。"
     },
     "startProcessing": "创建长截图",
+    "checkingTitle": "正在检查录屏",
+    "unreadableTitle": "无法打开录屏",
+    "retryProcessing": "重试生成",
+    "reloadPage": "重新加载页面",
+    "errors": {
+      "recording": "请选择另一段浏览器可以播放的录屏。",
+      "engine": "截图引擎加载失败。请重新加载页面，再选择录屏。",
+      "generation": "无法生成长截图。请重试，或换一段录屏。"
+    },
     "loadingResources": "准备中…",
     "instructions": {
       "title": "使用说明",
@@ -193,7 +202,7 @@
       "unsupported": "您的浏览器不支持分享功能",
       "title": "长截图",
       "text": "查看我生成的长截图",
-      "failed": "分享已取消或失败"
+      "failed": "分享失败。你仍可以保存图片。"
     },
     "save": {
       "success": "已保存到相册。",

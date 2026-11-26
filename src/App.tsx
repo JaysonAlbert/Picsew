@@ -7,12 +7,12 @@ import { OnboardingDialog } from "./components/OnboardingDialog";
 import { VideoUpload } from "./components/VideoUpload";
 import { ProcessingView } from "./components/ProcessingView";
 import { PreviewView } from "./components/PreviewView";
-import { processVideo as picsewProcessVideo } from "./lib/picsew";
 import { initGA, logPageView, trackEvent } from "./lib/analytics";
 import {
   ANALYTICS_EVENTS,
   getVideoFileAnalytics,
   getVideoMetadataAnalytics,
+  type TaskErrorCode,
   type VideoSelectionSource,
 } from "./lib/analytics-events";
 import { AnalyticsTask } from "./lib/analytics-task";
@@ -42,11 +42,20 @@ export default function App() {
   const isNativeIos = isNativeIosApp();
   const [currentStep, setCurrentStep] = useState<AppStep>("upload");
   const [currentView, setCurrentView] = useState<AppView>("main");
-  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
+  const [selection, setSelection] = useState<{
+    file: File;
+    source: VideoSelectionSource;
+  } | null>(null);
+  const selectedVideo = selection?.file ?? null;
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [processProgress, setProcessProgress] = useState(0);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [isOpenCVReady, setIsOpenCVReady] = useState(false);
+  const [engineStatus, setEngineStatus] = useState<
+    "loading" | "ready" | "failed"
+  >("loading");
+  const [recordingStatus, setRecordingStatus] = useState<
+    "checking" | "ready" | "unreadable"
+  >("checking");
   const [videoMetadata, setVideoMetadata] = useState<VideoMetadata>({});
   const [processingLogs, setProcessingLogs] = useState<string[]>([]);
   const [lastProcessingError, setLastProcessingError] = useState<string | null>(
@@ -59,6 +68,7 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const taskRef = useRef<AnalyticsTask | null>(null);
+  const videoPickerRef = useRef<HTMLButtonElement>(null);
   const processingRef = useRef(false);
   const exportingRef = useRef(false);
 
@@ -77,37 +87,36 @@ export default function App() {
   }, [currentStep, generatedImage]);
 
   useEffect(() => {
-    if (selectedVideo && videoRef.current) {
-      const url = URL.createObjectURL(selectedVideo);
+    if (selection && videoRef.current) {
+      const url = URL.createObjectURL(selection.file);
       const videoElement = videoRef.current;
 
       const task = taskRef.current;
-      const handleLoadedMetadata = () => {
-        setVideoMetadata({
-          durationSeconds: videoElement.duration,
-          width: videoElement.videoWidth,
-          height: videoElement.videoHeight,
-        });
-        if (
-          Number.isFinite(videoElement.duration) &&
-          videoElement.duration > 0 &&
-          videoElement.videoWidth > 0 &&
-          videoElement.videoHeight > 0
-        ) {
-          task?.imported(
-            getVideoMetadataAnalytics(
-              videoElement.duration,
-              videoElement.videoWidth,
-              videoElement.videoHeight,
-            ),
-          );
-        } else {
-          task?.error("import", "metadata_unreadable");
-        }
-      };
-
-      const handleMetadataError = () =>
+      const handleMetadataError = () => {
+        setRecordingStatus("unreadable");
         task?.error("import", "metadata_unreadable");
+      };
+      const handleLoadedMetadata = () => {
+        const { duration, videoWidth, videoHeight } = videoElement;
+        if (
+          !Number.isFinite(duration) ||
+          duration <= 0 ||
+          videoWidth <= 0 ||
+          videoHeight <= 0
+        ) {
+          handleMetadataError();
+          return;
+        }
+        setVideoMetadata({
+          durationSeconds: duration,
+          width: videoWidth,
+          height: videoHeight,
+        });
+        setRecordingStatus("ready");
+        task?.imported(
+          getVideoMetadataAnalytics(duration, videoWidth, videoHeight),
+        );
+      };
       videoElement.addEventListener("error", handleMetadataError, {
         once: true,
       });
@@ -127,18 +136,23 @@ export default function App() {
         URL.revokeObjectURL(url);
       };
     }
-  }, [selectedVideo]);
+  }, [selection]);
 
   useEffect(() => {
+    let active = true;
     const loadOpenCV = async () => {
       try {
         await import("./lib/opencv").then((m) => m.getOpenCV());
-        setIsOpenCVReady(true);
+        if (active) setEngineStatus("ready");
       } catch (error) {
+        if (active) setEngineStatus("failed");
         console.error("Failed to load OpenCV:", error);
       }
     };
-    loadOpenCV();
+    void loadOpenCV();
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -167,13 +181,37 @@ export default function App() {
       file && !isNativeIos
         ? new AnalyticsTask(getVideoFileAnalytics(file, source))
         : null;
+    setRecordingStatus("checking");
     setVideoMetadata({});
-    setSelectedVideo(file);
+    setVideoPreviewUrl(null);
+    setLastProcessingError(null);
+    setProcessingLogs([]);
+    setSelection(file ? { file, source } : null);
   };
 
   const handleStartProcessing = async (): Promise<void> => {
-    if (processingRef.current) return;
+    if (
+      processingRef.current ||
+      !selection ||
+      recordingStatus !== "ready" ||
+      engineStatus !== "ready"
+    )
+      return;
     processingRef.current = true;
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (lastProcessingError !== null && video && !isNativeIos) {
+      taskRef.current = new AnalyticsTask(
+        getVideoFileAnalytics(selection.file, selection.source),
+      );
+      taskRef.current.imported(
+        getVideoMetadataAnalytics(
+          video.duration,
+          video.videoWidth,
+          video.videoHeight,
+        ),
+      );
+    }
     const task = taskRef.current;
     task?.startGeneration();
     setIsUtilityMenuOpen(false);
@@ -183,53 +221,47 @@ export default function App() {
     setProcessingLogs([]);
     setLastProcessingError(null);
 
-    if (videoRef.current && canvasRef.current) {
+    let failureCode: TaskErrorCode = "processing_failed";
+    try {
+      if (!video || !canvas) {
+        failureCode = "resources_unavailable";
+        throw new Error("Video or canvas ref not available");
+      }
       const addProcessingLog = (message: string) => {
         console.log(message);
         setProcessingLogs((previous) => [...previous.slice(-199), message]);
       };
-      try {
-        canvasRef.current.width = 0;
-        canvasRef.current.height = 0;
-        const result = await picsewProcessVideo(
-          videoRef.current,
-          addProcessingLog,
-          canvasRef.current,
-          (p) => setProcessProgress(Math.round(p)),
-        );
-        if (result !== "success") {
-          task?.error("generate", result);
-          throw new Error("Screenshot generation did not complete.");
-        }
-        const imageUrl = canvasRef.current.toDataURL("image/png");
-        if (
-          imageUrl === "data:," ||
-          !canvasRef.current.width ||
-          !canvasRef.current.height
-        ) {
-          task?.error("generate", "empty_output");
-          throw new Error("No screenshot was generated.");
-        }
-        task?.generated();
-        setGeneratedImage(imageUrl);
-        setCurrentStep("preview");
-      } catch (error) {
-        setLastProcessingError(
-          error instanceof Error ? error.message : String(error),
-        );
-        task?.error("generate", "processing_failed");
-        console.error("Processing failed:", error);
-        alert(
-          `Processing failed: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        handleReset();
+      canvas.width = 0;
+      canvas.height = 0;
+      const { processVideo } = await import("./lib/picsew");
+      const result = await processVideo(
+        video,
+        addProcessingLog,
+        canvas,
+        (progress) => setProcessProgress(Math.round(progress)),
+      );
+      if (result !== "success") {
+        failureCode = result;
+        throw new Error("Screenshot generation did not complete.");
       }
-    } else {
-      console.error("Video or canvas ref not available");
-      task?.error("generate", "resources_unavailable");
-      handleReset();
+      const imageUrl = canvas.toDataURL("image/png");
+      if (imageUrl === "data:," || !canvas.width || !canvas.height) {
+        failureCode = "empty_output";
+        throw new Error("No screenshot was generated.");
+      }
+      task?.generated();
+      setGeneratedImage(imageUrl);
+      setCurrentStep("preview");
+    } catch (error) {
+      setLastProcessingError(
+        error instanceof Error ? error.message : String(error),
+      );
+      task?.error("generate", failureCode);
+      console.error("Processing failed:", error);
+      setCurrentStep("upload");
+    } finally {
+      processingRef.current = false;
     }
-    processingRef.current = false;
   };
 
   const handleReset = () => {
@@ -238,10 +270,11 @@ export default function App() {
     setIsUtilityMenuOpen(false);
     setCurrentView("main");
     setCurrentStep("upload");
-    setSelectedVideo(null);
+    setSelection(null);
     setVideoPreviewUrl(null);
     setProcessProgress(0);
     setGeneratedImage(null);
+    setRecordingStatus("checking");
     setVideoMetadata({});
     setProcessingLogs([]);
     setLastProcessingError(null);
@@ -318,6 +351,7 @@ export default function App() {
       if (error instanceof Error && error.name === "AbortError")
         task?.cancel("share_cancelled");
       else task?.error("export", "export_failed", "share");
+      throw error;
     } finally {
       exportingRef.current = false;
     }
@@ -389,7 +423,11 @@ export default function App() {
             videoPreviewUrl={videoPreviewUrl}
             onVideoSelect={handleVideoSelect}
             onStartProcessing={handleStartProcessing}
-            isOpenCVReady={isOpenCVReady}
+            engineStatus={engineStatus}
+            recordingStatus={recordingStatus}
+            generationFailed={lastProcessingError !== null}
+            videoPickerRef={videoPickerRef}
+            onReload={() => window.location.reload()}
             supportsNativeImport={canUseNativeVideoImport()}
             isPickingNativeVideo={isPickingNativeVideo}
             onPickFromPhotos={() =>
@@ -426,6 +464,7 @@ export default function App() {
         open={showOnboarding}
         onSkip={dismissOnboarding}
         onStart={dismissOnboarding}
+        onRestoreFocus={() => videoPickerRef.current?.focus()}
       />
     </div>
   );

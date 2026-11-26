@@ -24,6 +24,7 @@ export function PreviewView({
   const { t } = useTranslation();
   const canShare = supportsImageSharing();
   const [zoom, setZoom] = useState(1);
+  const [shareFailed, setShareFailed] = useState(false);
   const toggleZoom = () => setZoom((value) => (value === 1 ? 2 : 1));
 
   const handleShare = async () => {
@@ -32,19 +33,21 @@ export function PreviewView({
       return;
     }
 
-    if (onShare) {
-      await onShare();
-      return;
-    }
-
+    setShareFailed(false);
     try {
-      await shareGeneratedImage(imageUrl, {
-        title: t("preview.share.title"),
-        text: t("preview.share.text"),
-        fileName: "long-screenshot.png",
-      });
-    } catch (err) {
-      console.log(t("preview.share.failed"), err);
+      if (onShare) {
+        await onShare();
+      } else {
+        await shareGeneratedImage(imageUrl, {
+          title: t("preview.share.title"),
+          text: t("preview.share.text"),
+          fileName: "long-screenshot.png",
+        });
+      }
+    } catch (error) {
+      if (!(error instanceof Error && error.name === "AbortError")) {
+        setShareFailed(true);
+      }
     }
   };
 
@@ -88,8 +91,19 @@ export function PreviewView({
         </div>
       </Card>
       <div data-testid="preview-action-bar" className="app-actions-tray">
+        {shareFailed && (
+          <p role="alert" className="product-action-feedback">
+            {t("preview.share.failed")}
+          </p>
+        )}
         <div className="product-export-actions">
-          <Button onClick={onDownload} className="app-primary-action">
+          <Button
+            onClick={() => {
+              setShareFailed(false);
+              void onDownload();
+            }}
+            className="app-primary-action"
+          >
             <Download aria-hidden="true" />
             {isNativeSave
               ? t("preview.actions.save")

@@ -1,5 +1,5 @@
 import type { VideoSelectionSource } from "../lib/analytics-events";
-import { useRef, useState } from "react";
+import { useRef, useState, type Ref } from "react";
 import { Film, Check, Images, FolderOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "./ui/button";
@@ -10,7 +10,11 @@ interface VideoUploadProps {
   videoPreviewUrl: string | null;
   onVideoSelect: (file: File | null, source?: VideoSelectionSource) => void;
   onStartProcessing: () => void;
-  isOpenCVReady: boolean;
+  engineStatus: "loading" | "ready" | "failed";
+  recordingStatus: "checking" | "ready" | "unreadable";
+  generationFailed?: boolean;
+  videoPickerRef?: Ref<HTMLButtonElement>;
+  onReload?: () => void;
   supportsNativeImport?: boolean;
   isPickingNativeVideo?: boolean;
   onPickFromPhotos?: () => Promise<void>;
@@ -22,7 +26,11 @@ export function VideoUpload({
   videoPreviewUrl,
   onVideoSelect,
   onStartProcessing,
-  isOpenCVReady,
+  engineStatus,
+  recordingStatus,
+  generationFailed = false,
+  videoPickerRef,
+  onReload,
   supportsNativeImport = false,
   isPickingNativeVideo = false,
   onPickFromPhotos,
@@ -31,6 +39,33 @@ export function VideoUpload({
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const canCreate =
+    !!selectedVideo && recordingStatus === "ready" && engineStatus === "ready";
+  const engineFailed = engineStatus === "failed";
+  const recordingUnreadable =
+    !!selectedVideo && recordingStatus === "unreadable";
+  const feedback = engineFailed
+    ? "upload.errors.engine"
+    : recordingUnreadable
+      ? "upload.errors.recording"
+      : generationFailed
+        ? "upload.errors.generation"
+        : null;
+  const actionLabel =
+    selectedVideo && !recordingUnreadable && !canCreate
+      ? "upload.loadingResources"
+      : generationFailed && !recordingUnreadable
+        ? "upload.retryProcessing"
+        : "upload.startProcessing";
+  let sourceTitle = "upload.heroTitle";
+  if (selectedVideo) {
+    sourceTitle =
+      recordingStatus === "checking"
+        ? "upload.checkingTitle"
+        : recordingUnreadable
+          ? "upload.unreadableTitle"
+          : "upload.readyTitle";
+  }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -54,6 +89,7 @@ export function VideoUpload({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (file && file.type.startsWith("video/")) {
       onVideoSelect(file, "picker");
     }
@@ -80,9 +116,13 @@ export function VideoUpload({
           data-testid="upload-dropzone"
         >
           <div className="product-source-icon" aria-hidden="true">
-            {selectedVideo ? <Check /> : <Film />}
+            {selectedVideo && recordingStatus === "ready" ? (
+              <Check />
+            ) : (
+              <Film />
+            )}
           </div>
-          <h2>{t(selectedVideo ? "upload.readyTitle" : "upload.heroTitle")}</h2>
+          <h2>{t(sourceTitle)}</h2>
           {selectedVideo ? (
             <>
               <p className="product-file-name">{selectedVideo.name}</p>
@@ -104,6 +144,7 @@ export function VideoUpload({
                 variant="outline"
                 className="app-secondary-action"
                 disabled={isPickingNativeVideo}
+                ref={videoPickerRef}
                 onClick={() => void onPickFromPhotos?.()}
               >
                 <Images aria-hidden="true" />
@@ -125,13 +166,14 @@ export function VideoUpload({
               type="button"
               variant="outline"
               className="app-secondary-action"
+              ref={videoPickerRef}
               onClick={() => fileInputRef.current?.click()}
             >
               {t("upload.chooseVideo")}
             </Button>
           )}
         </div>
-        {selectedVideo && videoPreviewUrl && (
+        {selectedVideo && recordingStatus === "ready" && videoPreviewUrl && (
           <details className="product-details product-video-details">
             <summary>{t("upload.previewVideo")}</summary>
             <video
@@ -154,14 +196,17 @@ export function VideoUpload({
         {t("upload.localProcessingHint")}
       </p>
       <div data-testid="upload-action-tray" className="app-actions-tray">
+        {feedback && (
+          <p role="alert" className="product-action-feedback">
+            {t(feedback)}
+          </p>
+        )}
         <Button
-          onClick={onStartProcessing}
-          disabled={!selectedVideo || !isOpenCVReady}
+          onClick={engineFailed ? onReload : onStartProcessing}
+          disabled={!engineFailed && !canCreate}
           className="app-primary-action"
         >
-          {selectedVideo && !isOpenCVReady
-            ? t("upload.loadingResources")
-            : t("upload.startProcessing")}
+          {t(engineFailed ? "upload.reloadPage" : actionLabel)}
         </Button>
         {selectedVideo && (
           <Button
