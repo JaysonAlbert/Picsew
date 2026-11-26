@@ -3,7 +3,7 @@ title: iOS Feedback Page
 issue: ios-feedback-page
 author: Jayson Albert
 date: 2026-03-29
-updated: 2026-03-29
+updated: 2026-10-14
 version: 0.1.0
 reviewers: [Jayson Albert]
 tags: [ios, feedback, ui, ux]
@@ -17,6 +17,14 @@ status: approved
 ---
 
 # iOS Feedback Page
+
+## Surface scope update (2026-10-14)
+
+The form and payload below describe the maintenance Web/Capacitor surface.
+The native app preserves its GitHub feedback entry and adds on-device draft
+saving/restoration, using current technology-theme roles. Its implementation and
+acceptance are documented in [Native feedback drafts and automation coverage](native-feedback-draft-and-automation.md).
+Native local saving does not submit the Web feedback payload.
 
 ## Summary
 

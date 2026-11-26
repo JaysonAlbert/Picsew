@@ -14,6 +14,11 @@ tags:
     id: "feedback.placeholder"
 - assertVisible:
     id: "feedback.send"
+- assertVisible:
+    id: "feedback.message"
+- assertVisible:
+    id: "feedback.saveDraft"
+    enabled: false
 - takeScreenshot:
     path: artifacts/minimal-feedback
     label: Capture the feedback screen

@@ -1,0 +1,40 @@
+appId: top.ibotcloud.picsew.native
+name: Feedback drafts save locally and survive an app restart
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: feedback
+- assertVisible:
+    id: feedback.send
+- assertVisible:
+    id: feedback.saveDraft
+    enabled: false
+- tapOn:
+    id: feedback.message
+- inputText: "short"
+- tapOn:
+    id: feedback.dismissKeyboard
+- assertVisible:
+    id: feedback.saveDraft
+    enabled: false
+- tapOn:
+    id: feedback.message
+- eraseText
+- inputText: "Draft note for a stitching issue."
+- tapOn:
+    id: feedback.dismissKeyboard
+- tapOn:
+    id: feedback.saveDraft
+- assertVisible:
+    id: feedback.confirmation
+- stopApp
+- launchApp:
+    clearState: false
+    arguments:
+      picsewAutomationScenario: feedback
+- assertVisible: "Draft note for a stitching issue."
+- assertVisible:
+    id: feedback.send
+- takeScreenshot:
+    path: feedback-draft

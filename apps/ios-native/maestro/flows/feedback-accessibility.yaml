@@ -1,0 +1,24 @@
+appId: top.ibotcloud.picsew.native
+name: Enlarged text keeps feedback actions reachable by scrolling
+---
+- launchApp:
+    clearState: true
+    arguments:
+      picsewAutomationScenario: feedback
+- assertVisible:
+    id: shell.route.feedback
+- takeScreenshot: artifacts/feedback-accessibility-top
+- scrollUntilVisible:
+    element:
+      id: feedback.saveDraft
+    direction: DOWN
+- assertVisible:
+    id: feedback.saveDraft
+    enabled: false
+- scrollUntilVisible:
+    element:
+      id: feedback.send
+    direction: DOWN
+- assertVisible:
+    id: feedback.send
+- takeScreenshot: artifacts/feedback-accessibility-actions

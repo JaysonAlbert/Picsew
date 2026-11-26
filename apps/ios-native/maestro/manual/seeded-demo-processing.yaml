@@ -1,0 +1,24 @@
+appId: top.ibotcloud.picsew.native
+name: A seeded recording uses the real native pipeline
+# Run scripts/ios-native/seed-demo-videos-on-booted-sim.sh first.
+---
+- launchApp:
+    clearState: false
+    arguments:
+      picsewAutomationScenario: live-demo-upload
+      picsewAutomationSeededVideoFilename: test-video.mp4
+- assertVisible:
+    id: upload.startProcessing
+    enabled: true
+- tapOn:
+    id: upload.startProcessing
+- extendedWaitUntil:
+    visible:
+      id: preview.stitchedImage
+    timeout: 180000
+- assertVisible:
+    id: preview.share
+- tapOn:
+    id: preview.saveToPhotos
+- assertVisible: "Saved to Photos."
+- takeScreenshot: artifacts/seeded-real-pipeline
