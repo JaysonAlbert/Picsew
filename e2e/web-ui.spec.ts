@@ -6,6 +6,32 @@ import { readFile } from "node:fs/promises";
 async function prepareJourney(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem("picsew:onboarding-seen:v1", "1");
+    const src = Object.getOwnPropertyDescriptor(
+      HTMLMediaElement.prototype,
+      "src",
+    );
+    Object.defineProperty(HTMLMediaElement.prototype, "src", {
+      ...src,
+      set(value: string) {
+        if (!this.classList.contains("hidden")) src?.set?.call(this, value);
+      },
+    });
+    const load = HTMLMediaElement.prototype.load;
+    HTMLMediaElement.prototype.load = function () {
+      if (
+        !(this instanceof HTMLVideoElement) ||
+        !this.classList.contains("hidden")
+      ) {
+        load.call(this);
+        return;
+      }
+      Object.defineProperties(this, {
+        duration: { value: 2, configurable: true },
+        videoWidth: { value: 720, configurable: true },
+        videoHeight: { value: 1280, configurable: true },
+      });
+      this.dispatchEvent(new Event("loadedmetadata"));
+    };
   });
   await page.route("**/src/lib/opencv.ts*", (route) =>
     route.fulfill({
@@ -162,6 +188,52 @@ test("selection, accessible progress, content-first viewer, save and new capture
   await expect(
     page.getByText("weekend-recording.mov", { exact: true }),
   ).toHaveCount(0);
+});
+
+test("onboarding keeps keyboard focus in the dialog and returns it to import", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/");
+  const dialog = page.getByRole("dialog");
+  const title = dialog.getByRole("heading", { level: 2 });
+  await expect(title).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("button", { name: "Continue" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("button", { name: "Skip" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("button", { name: "Continue" })).toBeFocused();
+  await page.screenshot({
+    path: testInfo.outputPath("onboarding-keyboard.png"),
+  });
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Choose video" }),
+  ).toBeFocused();
+});
+
+test("OpenCV load failure offers a page reload", async ({ page }, testInfo) => {
+  await prepareJourney(page);
+  let requests = 0;
+  await page.route("**/src/lib/opencv.ts*", (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body:
+        requests++ === 0
+          ? 'export async function getOpenCV() { throw new Error("init failed"); }'
+          : "export async function getOpenCV() {}",
+    }),
+  );
+  await page.goto("/");
+  await expect(page.getByRole("alert")).toContainText("Reload the page");
+  await page.screenshot({ path: testInfo.outputPath("opencv-recovery.png") });
+  await page.getByRole("button", { name: "Reload page" }).click();
+  await selectRecording(page);
+  await expect(
+    page.getByRole("button", { name: "Create screenshot" }),
+  ).toBeEnabled();
+  await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
 test("small-screen onboarding remains dismissible at enlarged text", async ({

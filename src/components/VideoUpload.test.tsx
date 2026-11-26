@@ -16,7 +16,8 @@ describe("VideoUpload", () => {
         videoPreviewUrl={null}
         onVideoSelect={() => undefined}
         onStartProcessing={() => undefined}
-        isOpenCVReady
+        engineStatus="ready"
+        recordingStatus="ready"
         supportsNativeImport
         isPickingNativeVideo={false}
         onPickFromPhotos={async () => undefined}
@@ -40,7 +41,8 @@ describe("VideoUpload", () => {
         videoPreviewUrl="blob:demo"
         onVideoSelect={() => undefined}
         onStartProcessing={() => undefined}
-        isOpenCVReady
+        engineStatus="ready"
+        recordingStatus="ready"
       />,
     );
 

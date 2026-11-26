@@ -31,7 +31,7 @@
         },
         "save": {
           "title": "Keep",
-          "description": "Review your screenshot, then save or share."
+          "description": "Review and save or share."
         }
       }
     },
@@ -128,7 +128,7 @@
     "heroDescription": "Import a scrolling screen recording to generate one long image.",
     "dragDrop": "Click to upload video",
     "dragDropActive": "Drop video here",
-    "supportFormat": "Choose an MP4 or MOV your browser can play.",
+    "supportFormat": "Use a playable MP4 or MOV.",
     "localProcessingHint": "Everything is processed on your device.",
     "native": {
       "fromPhotos": "Photos",
@@ -136,6 +136,15 @@
       "failed": "We couldn't import that video. Please try again."
     },
     "startProcessing": "Create screenshot",
+    "checkingTitle": "Checking recording",
+    "unreadableTitle": "Recording can’t be opened",
+    "retryProcessing": "Try again",
+    "reloadPage": "Reload page",
+    "errors": {
+      "recording": "Choose another recording your browser can play.",
+      "engine": "Couldn’t load the screenshot engine. Reload the page, then choose your recording again.",
+      "generation": "Couldn’t create a screenshot. Try again or choose another recording."
+    },
     "loadingResources": "Preparing…",
     "instructions": {
       "title": "Instructions",
@@ -166,7 +175,7 @@
       "generation": "Generation"
     },
     "waitMessage": "This usually takes a moment, depending on video length and complexity.",
-    "keepOpen": "Keep this screen open while we finish the image."
+    "keepOpen": "Keep this page open."
   },
   "preview": {
     "complete": {
@@ -193,7 +202,7 @@
       "unsupported": "Your browser does not support sharing.",
       "title": "Long Screenshot",
       "text": "Check out my long screenshot",
-      "failed": "Share cancelled or failed"
+      "failed": "Couldn’t share. You can still save the image."
     },
     "save": {
       "success": "Saved to Photos.",

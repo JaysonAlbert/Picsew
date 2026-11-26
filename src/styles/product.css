@@ -456,7 +456,7 @@ body {
 
 .app-onboarding-actions {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   gap: 8px;
   margin-top: 24px;
 }
@@ -666,6 +666,20 @@ body {
 .product-shell [role="alert"] {
   color: var(--product-error);
   background: var(--product-error-tint);
+}
+
+.product-action-feedback {
+  width: 100%;
+  margin: 0;
+  padding: var(--product-space-xs) var(--product-space-sm);
+  border-radius: 10px;
+  font-size: var(--product-type-supporting);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.product-preview-route .product-action-feedback {
+  margin-block-end: 4px;
 }
 
 /* Override the desktop content-height rule only for the image viewer. */

@@ -5,6 +5,7 @@ type Scenario =
   | "swallowed_failure"
   | "metadata_error"
   | "generate_error"
+  | "generate_retry"
   | "empty_output"
   | "share_abort"
   | "share_error"
@@ -36,10 +37,11 @@ async function prepare(page: Page, scenario: Scenario = "success") {
       get: () => "",
       set: () => undefined,
     });
+    let loadCount = 0;
     HTMLMediaElement.prototype.load = function () {
       if (!this.classList.contains("hidden")) return;
       if (mode === "metadata_pending") return;
-      if (mode === "metadata_error") {
+      if (mode === "metadata_error" && loadCount++ === 0) {
         queueMicrotask(() => this.dispatchEvent(new Event("error")));
         return;
       }
@@ -83,7 +85,9 @@ async function prepare(page: Page, scenario: Scenario = "success") {
   await page.route("**/src/lib/picsew.ts*", (route) =>
     route.fulfill({
       contentType: "application/javascript",
-      body: `export async function processVideo(video, log, canvas) {
+      body: `let attempts = 0;
+    export async function processVideo(video, log, canvas) {
+    ${scenario === "generate_retry" ? 'if (++attempts === 1) throw new Error("transient processing error");' : ""}
     ${scenario === "swallowed_failure" ? 'return "processing_failed";' : scenario === "generate_error" ? 'throw new Error("alice@example.com secret file.mov");' : scenario === "empty_output" ? 'canvas.width = 0; canvas.height = 0; return "empty_output";' : 'canvas.width = 10; canvas.height = 10; canvas.getContext("2d").fillRect(0,0,10,10); return "success";'}
   }`,
     }),
@@ -175,6 +179,12 @@ test("metadata error is a bounded import error; no import success", async ({
       .filter((e) => e.name !== "page_view")
       .map((e) => e.name),
   ).toEqual(["upload_started", "task_error", "task_finished"]);
+  const create = page.getByRole("button", { name: "Create screenshot" });
+  await expect(page.getByRole("alert")).toContainText("Choose another");
+  await expect(create).toBeDisabled();
+  await select(page);
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(create).toBeEnabled();
 });
 
 for (const scenario of [
@@ -202,6 +212,37 @@ for (const scenario of [
     expect(JSON.stringify(result)).not.toMatch(/alice|secret|file.mov/);
   });
 }
+
+test("localized generation failure retains the recording and retries through export", async ({
+  page,
+}, testInfo) => {
+  await page.addInitScript(() => localStorage.setItem("i18nextLng", "zh"));
+  await prepare(page, "generate_retry");
+  await select(page);
+  await page.getByRole("button", { name: "创建长截图" }).click();
+  await expect(page.getByRole("alert")).toHaveText(
+    "无法生成长截图。请重试，或换一段录屏。",
+  );
+  await expect(
+    page.getByText("alice@example.com-secret.mov", { exact: true }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: testInfo.outputPath("generation-recovery.png"),
+  });
+  await page.getByRole("button", { name: "重试生成" }).click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "保存图片" }).click();
+  await download;
+  const result = await events(page);
+  expect(
+    result
+      .filter((event) => event.name === "task_finished")
+      .map((event) => event.params.task_outcome),
+  ).toEqual(["error", "dispatched"]);
+  expect(
+    result.filter((event) => event.name === "upload_started"),
+  ).toHaveLength(2);
+});
 
 test("sharing resolves before dispatch is recorded", async ({ page }) => {
   await prepare(page);
@@ -249,6 +290,13 @@ for (const scenario of [
         (e) => e.name === "export_completed" || e.name === "task_finished",
       ),
     ).toBe(false);
+    const shareWarning = page.getByRole("alert").filter({
+      hasText: "Couldn’t share. You can still save the image.",
+    });
+    await expect(shareWarning).toHaveCount(Number(scenario === "share_error"));
+    await expect(
+      page.getByRole("button", { name: "Save image" }),
+    ).toBeEnabled();
     expect(JSON.stringify(await events(page))).not.toMatch(
       /alice|secret|private/,
     );
